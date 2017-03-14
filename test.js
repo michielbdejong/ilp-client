@@ -7,6 +7,9 @@ Object.keys(passwords).map(host => {
    password: passwords[host],
  };
 });
-console.log(credentials);
 var client = new Client(credentials);
-client.init();
+client.init().then(() => {
+  console.log('hosts:', Object.keys(client.hosts));
+  console.log('plugins:', Object.keys(client.plugins));
+});
+

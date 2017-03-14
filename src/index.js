@@ -6,6 +6,8 @@ var cc           = require('ilp-79/src/utils/condition');
 var uuidV4 = require('uuid/v4');
 var crypto = require('crypto');
 
+var inspect = require('./lib/inspect');
+
 function Client(credentials) {
   if (typeof credentials !== 'object') {
     throw new Error(`Please construct as new Client({ example.com: { user: 'foo', password: 'bar' } });`);
@@ -22,19 +24,31 @@ Client.prototype = {
   init() {
     var promise = [];
     return Promise.all(Object.keys(this.credentials).map(host => {
-      return this.inspectHost(host);
-    })).then(results => results.map(result => {
-      this.initPlugin(result);
+      return inspect.getWebFinger(host).then(obj => {
+        this.hosts[host] = obj;
+        return this.initLedger(host);
+      }).catch(err => {
+        console.log(host, err);
+      });
     }));
   },
-
-  initPlugin(host, prefix, user, password) {
-    this.plugins[prefix] = new Plugin({
-      prefix,
-      account: `https://${host}/ledger/accounts/${user}`,
-      passwordword: password,
-    });
-    return plugins[ledger].connect({ timeout: 10000 }).then(() => {
+  initLedger(host) {
+    if (typeof this.hosts[host].ledgerUri === 'string') {
+      return Promise.resolve();
+    }
+    return inspect.getLedgerInfo(obj.ledgerUri).then(ledgerInfo => {
+console.log({ ledgerInfo, host });
+      var ledger = ledgerInfo.ilp_prefix;
+      var credentials = this.credentials[host];
+      this.plugins[ledger] = new Plugin({
+        ledger,
+        account: `https://${host}/ledger/accounts/${credentials.user}`,
+        password: credentials.password,
+      });
+      return this.plugins[ledger].connect({ timeout: 10000 }).then(() => {
+        return ledger;
+      });
+    }).then(ledger => {
       return this.setListeners(ledger);
     }, err => {
       console.log('could not connect to', host, ledger, err);
