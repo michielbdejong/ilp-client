@@ -1,0 +1,23 @@
+{
+  "name": "ilp-client",
+  "version": "1.0.0",
+  "description": "cancelRoutesFor(ledger); Common parts between [micmic](https://github.com/michielbdejong/micmic) and [connectorland](https://github.com/interledger/connector.land).",
+  "main": "index.js",
+  "dependencies": {
+    "ilp-plugin-bells": "^11.0.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/michielbdejong/ilp-client.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/michielbdejong/ilp-client/issues"
+  },
+  "homepage": "https://github.com/michielbdejong/ilp-client#readme"
+}
