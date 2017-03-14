@@ -8,6 +8,7 @@ var ledgerCurrency = {};
 var connectorLedger = {};
 
 function getLedgerInfo(ledgerUri) {
+console.log('requesting', ledgerUri);
   return request({
     uri: ledgerUri,
     json: true,

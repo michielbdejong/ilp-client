@@ -28,15 +28,17 @@ Client.prototype = {
         this.hosts[host] = obj;
         return this.initLedger(host);
       }).catch(err => {
-        console.log(host, err);
+        console.error('WebFinger error', host);
       });
     }));
   },
   initLedger(host) {
-    if (typeof this.hosts[host].ledgerUri === 'string') {
+    var ledgerUri = this.hosts[host].ledgerUri;
+    if (typeof ledgerUri !== 'string') {
+      console.log('skipping initLedger', host, this.hosts[host]);
       return Promise.resolve();
     }
-    return inspect.getLedgerInfo(obj.ledgerUri).then(ledgerInfo => {
+    return inspect.getLedgerInfo(ledgerUri).then(ledgerInfo => {
 console.log({ ledgerInfo, host });
       var ledger = ledgerInfo.ilp_prefix;
       var credentials = this.credentials[host];
