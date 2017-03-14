@@ -7,6 +7,33 @@ var rateCache;
 var ledgerCurrency = {};
 var connectorLedger = {};
 
+function timedPromise(executor, timeout) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      reject(new Error('timeout'));
+    }, timeout);
+    executor(resolve, reject);
+  });
+}
+
+function pingHost(hostname) {
+  return timedPromise(resolve => {
+    ping.sys.probe(hostname, resolve);
+  }).then(isAlive => {
+    return (isAlive ? 1 : 0);
+  }, () => {
+    return 0;
+  });
+}
+
+function getHealth(hostname) {
+  return request(`https://${hostname}/api/health`).then(str => {
+    return (str === 'OK' ? 1 : 0);
+  }, () => {
+    return 0;
+  });
+}
+
 function getLedgerInfo(ledgerUri) {
 console.log('requesting', ledgerUri);
   return request({
@@ -142,6 +169,17 @@ function checkApiCall(i, field, path, print) {
 function checkHealth(i) {
   return checkApiCall(i, 'health', '/api/health', function(body) {
     return body;
+  });
+}
+
+function getHostInfo(hostname) {
+  var ret = {};
+  return Promise.all([
+    getWebFinger(hostname).then(obj => { ret = Object.assign(ret, obj); }, () => {}),
+    getHealth(hostname).then(val => { ret.health = val; }, () => {}),
+    pingHost(hostname).then(val => { ret.ping = val; }, () => {}),
+  ]).then(() => {
+    return ret;
   });
 }
 
@@ -315,6 +353,6 @@ console.log('fee', price, baseValue, percentage(paidExtra / baseValue));
 }
 
 module.exports = {
-  getWebFinger,
+  getHostInfo,
   getLedgerInfo,
 };
