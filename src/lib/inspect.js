@@ -40,7 +40,6 @@ console.log('requesting', ledgerUri);
     uri: ledgerUri,
     json: true,
   }).then(obj => {
-    console.log(ledgerUri, obj);
     // set a rate for this ledger
     return obj;
   });

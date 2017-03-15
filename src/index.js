@@ -8,30 +8,22 @@
 // the cache file is updated on each check
 //
 var Plugin = require('ilp-plugin-bells');  // TODO: allow other ledger types
-var Packet       = require('ilp-79/src/utils/packet');
-var cryptoHelper = require('ilp-79/src/utils/crypto');
-var base64url    = require('ilp-79/src/utils/base64url');
-var cc           = require('ilp-79/src/utils/condition');
+var cryptoHelper = require('ilp/src/utils/crypto');
+var cc           = require('ilp/src/utils/condition');
 var uuidV4 = require('uuid/v4');
 var crypto = require('crypto');
 
-var request = require('request-promise-native');
 var inspect = require('./lib/inspect');
-
-function send(plugin, prefix, fromAddress, toAddress, destLedger) {
-}
+var rates = require('./lib/rates');
 
 function Client(credentials) {
   if (typeof credentials !== 'object') {
-    throw new Error(`Please construct as new Client({ example.com: { user: 'foo', password: 'bar' } });`);
+    throw new Error(`Please construct as new Client({ 'example.com': { user: 'foo', password: 'bar' } });`);
   }
   this.credentials = credentials;
-  this.hosts = {};
-  this.plugins = {};
-  this.fulfillments = {};
-  this.balances = {};
-  this.rates = {};
-  this.quoteRequests = {};
+  ['hosts', 'ledgerInfo',  'ledger2host', 'plugins', 'fulfillments', 'balances', 'messaging', 'rates', 'quoteRequests'].map(field => {
+    this[field] = {};
+  });
 }
 
 Client.prototype = {
@@ -41,10 +33,25 @@ Client.prototype = {
       return inspect.getHostInfo(host).then(obj => {
         this.hosts[host] = obj;
         return this.initLedger(host);
+      }).then(ledger => {
+        return this.msgToSelf(ledger);
       }).catch(err => {
-        console.error('WebFinger error', host);
+        console.log('Error initializing ledger for', host, err);
       });
     }));
+  },
+  msgToSelf(ledger) {
+    console.log('got username', ledger, this.ledger2host[ledger], this.credentials[this.ledger2host[ledger]]);
+    var account = this.credentials[this.ledger2host[ledger]].user;
+    var startTime = new Date().getTime();
+    return this.getQuote({
+      ledger,
+      account,
+    }, {}, account, 7000, 10000).then(() => {
+      this.messaging[ledger] = new Date().getTime() - startTime;
+    }, () => {
+      this.messaging[ledger] = Infinity;
+    });
   },
   initLedger(host) {
     var ledgerUri = this.hosts[host].ledgerUri;
@@ -52,32 +59,68 @@ Client.prototype = {
       console.log('skipping initLedger', host, this.hosts[host]);
       return Promise.resolve();
     }
+    var ledger;
     return inspect.getLedgerInfo(ledgerUri).then(ledgerInfo => {
-console.log({ ledgerInfo, host });
-      var ledger = ledgerInfo.ilp_prefix;
-      var credentials = this.credentials[host];
-      this.plugins[ledger] = new Plugin({
-        ledger,
-        account: `https://${host}/ledger/accounts/${credentials.user}`,
-        password: credentials.password,
-      });
-      return this.plugins[ledger].connect({ timeout: 10000 }).then(() => {
+      ledger = ledgerInfo.ilp_prefix;
+      this.ledgerInfo[ledger] = ledgerInfo;
+      this.ledger2host[ledger] = host;
+      console.log('calling initPlugin', ledger);
+      return this.initPlugin(ledger).then(() => {
+        return this.plugins[ledger].getBalance();
+      }).then(balance => {
+        this.balances[ledger] = balance;
+        return this.msgToSelf(ledger);
+      }).then(() => {
+        return this.getRate(ledger);
+      }).then(() => {
+        return this.initConnectors(ledger);
+      }).then(() => {
         return ledger;
       });
-    }).then(ledger => {
+    });
+  },
+  initConnectors(ledger) {
+    console.log('getting connectors', ledger, this.ledgerInfo);
+    var defaultConnectors = this.ledgerInfo[ledger].connectors.map(obj => obj.name);
+    var extraConnectors = ['micmic'];
+    defaultConnectors.concat(extraConnectors).map(conn => {
+      // ...
+    });
+  },
+  getConnectors(ledger) {
+    console.log('getting connectors', ledger, this.ledgerInfo);
+    return this.ledgerInfo[ledger].connectors.map(obj => obj.name).concat('micmic');
+  },
+  getRate(ledger) {
+    return rates.getRate(this.ledgerInfo[ledger].currency_code).then(rate => {
+      this.rates[ledger] = rate;
+    });
+  },
+  initPlugin(ledger) {
+    var credentials = this.credentials[this.ledger2host[ledger]];
+console.log('getting plugin for', ledger, credentials);
+    this.plugins[ledger] = new Plugin({
+      ledger,
+      account: `https://${this.ledger2host[ledger]}/ledger/accounts/${credentials.user}`,
+      password: credentials.password,
+    });
+    return this.plugins[ledger].connect({ timeout: 10000 }).then(() => {
       return this.setListeners(ledger);
     }, err => {
-      console.log('could not connect to', host, ledger, err);
+      console.log('could not connect to', this.ledger2host[ledger], ledger, err);
     });
   },
   setListeners(ledger) {
     this.plugins[ledger].on('outgoing_fulfill', transfer => {
+      console.log('outgoing_fulfill!', ledger, transfer);
       this.pending[transfer.id].resolve();
     });
     this.plugins[ledger].on('outgoing_reject', transfer => {
+      console.log('outgoing_reject!', ledger, transfer);
       this.pending[transfer.id].reject(new Error('rejected by peer'));
     });
     this.plugins[ledger].on('outgoing_cancel', transfer => {
+      console.log('outgoing_cancel!', ledger, transfer);
       this.pending[transfer.id].reject(new Error('timed out by ledger'));
     });
     this.plugins[ledger].on('incoming_prepare', transfer => {
@@ -97,24 +140,43 @@ console.log({ ledgerInfo, host });
       //   executionCondition: 'cc:0:3:NM4LgYQos5lXIlT63OzD6zmBAlUroykzrQQCTVxtL14:32',
       //   expiresAt: '2017-03-10T13:19:50.085Z' }
       if (typeof this.fulfillments[transfer.id] !== 'undefined') {
-        plugins[ledger].fulfillCondition(transfer.id, 'cf:0:' + this.fulfillments[transfer.id]).then(() => {
+console.log('have the fulfillment, fulfilling condition', ledger, transfer.id, this.fulfillments[transfer.id]);
+        this.plugins[ledger].fulfillCondition(transfer.id, this.fulfillments[transfer.id]).then(() => {
           console.log('fulfillCondition success');
         } , err => {
           console.log('fulfillCondition fail', ledger, transfer, transfer.id, this.fulfillments[transfer.id], err);
         });
       } else {
+console.log('cannot find the fulfillment, should check destination and try to forward');
         // try to forward
       }
     });
     this.plugins[ledger].on('incoming_message', message => {
       console.log('incoming_message!', ledger, message);
       switch (message.data.method) {
+      case 'quote_request':
+        if ((message.from === message.to) && (typeof this.quoteRequests[message.data.id] === 'object')) {
+          // this was a quote request to ourselves
+          clearTimeout(this.quoteRequests[message.data.id].timeout);
+          this.quoteRequests[message.data.id].resolve(message);
+        } else {
+          console.log('unexpected message, method quote_request');
+        }
+        break;
       case 'quote_response':
         if (typeof this.quoteRequests[message.data.id] === 'object') {
           clearTimeout(this.quoteRequests[message.data.id].timeout);
           this.quoteRequests[message.data.id].resolve(message.data.data.source_amount);
         } else {
-          console.log('unexpected quote response');
+          console.log('unexpected message, method quote_response');
+        }
+        break;
+      case 'error':
+        if (typeof this.quoteRequests[message.data.id] === 'object') {
+          clearTimeout(this.quoteRequests[message.data.id].timeout);
+          this.quoteRequests[message.data.id].reject(new Error(message.data.data.message));
+        } else {
+          console.log('unexpected message, method error');
         }
         break;
       default:
@@ -192,97 +254,106 @@ console.log({ ledgerInfo, host });
   //   success: true,
   //   delay: 1203,
   // }
-  getQuote(from, to, connector, timeout1, timeout2) {
-    // TODO: use the timeouts somewhere
+  getQuote(from, to, connector) {
     var plugin = this.plugins[from.ledger];
-    var body = {
-      // these are five-bells addresses, not ILP addresses:
-      from: plugin.ledgerContext.urls.account.replace(':name', encodeURIComponent(from.account)),
-      to: plugin.ledgerContext.urls.account.replace(':name', encodeURIComponent(connector)),
-      ledger: plugin.ledgerContext.urls.message,
+    // this tries to be compatible with ilp-core 11.1.0
+    var data = {
+      method: 'quote_request',
       data: {
-        method: 'quote_request',
-        data: {
-          source_address: from.ledger + from.account,
-          destination_address: to.ledger + to.account,
-          destination_amount: to.amount,
-        },
-        id: uuidV4(),
+        source_address: from.ledger + from.account,
+        destination_address: to.ledger + to.account,
+        destination_amount: to.amount,
       },
+      id: uuidV4(),
     };
-    console.log(JSON.stringify(body, null, 2));
     var promise = new Promise((resolve, reject) => {
-      this.quoteRequests[body.id] = {
-        body,
+      this.quoteRequests[data.id] = {
+        data,
         resolve,
         reject,
       };
+      console.log('expecting message', data.id);
     });
     // circumvent plugin.sendMessage so we have more control over timing and error handling:
-    return request({
-      auth:  {
-        user: plugin.credentials.username,
-        pass: plugin.credentials.password,
-      },
-      method: 'post',
-      uri: plugin.ledgerContext.urls.message,
-      body,
-      json: true
+    return this.plugins[from.ledger].sendMessage({
+      from: from.ledger + from.account,
+      to: from.ledger + connector,
+      account: from.ledger + connector,
+      ledger: from.ledger,
+      data,
     }).then(() => {
-      this.quoteRequests[body.id].timeout = setTimeout(() => {
+      this.quoteRequests[data.id].timeout = setTimeout(() => {
         // should not happen if timeout was not cleared, but checking anyway:
-        if (typeof this.quoteRequests[body.d] === 'undefined') {
+        if (typeof this.quoteRequests[data.id] === 'undefined') {
           return;
         }
-        this.quoteRequests[body.id].reject(new Error('timeout'));
-        delete this.quoteRequests[body.id];
+        this.quoteRequests[data.id].reject(new Error('timeout'));
+        delete this.quoteRequests[data.id];
       }, 20000);
       // and now, it's up to this.plugins[from.ledger].on('incoming_message', msg) handler
       // to actually resolve that promise when a quote_response comes in, before that timeout
       return promise;
+    }).catch(err => {
+      console.log('sending quote request failed', from.ledger + connector, err);
+      return Infinity;
+    }).then(result => {
+      console.log('getQuote returns', result);
+      return result;
     });
   },
-  sendTransfer(from, to, connector, timeout1, timeout2) {
-    var transfer = this.addCondition({
+  sendTransfer(from, to, connector, sourceTimeout) {
+    console.log('sendTransfer(', {from, to, connector, sourceTimeout });
+    
+    return this.addCondition({
       id: uuidV4(),
-      from: from.ledger + from.user,
+      from: from.ledger + from.account,
       to: from.ledger + connector,
-      ledger: from.edger,
+      ledger: from.ledger,
       amount: from.amount,
       data: {
         ilp_header: {
-          account: to.ledger + to.user,
-          amount: to.amount,
-          data: {
-            expires_at: JSON.parse(JSON.stringify(new Date( new Date().getTime() + timeout1))),
-          },
+          account: to.ledger + to.account,
+          amount: '' + to.amount,
+          data: {},
         },
       },
-      expiresAt: JSON.parse(JSON.stringify(new Date( new Date().getTime() + timeout2))),
+      expiresAt: JSON.parse(JSON.stringify(new Date(new Date().getTime() + sourceTimeout))),
+    }).then(transfer => {
+      // deal with bug in ilp-plugin-bells:
+      transfer.account = transfer.to;
+
+      transfer.noteToSelf = {};
+      console.log('sending source payment!', from.ledger, transfer);
+      return this.plugins[from.ledger].sendTransfer(transfer);
     });
-    this.plugins[from.ledger].sendTransfer(transfer);
   },
   addCondition(transfer) {
+    console.log('addCondition', transfer);
     return new Promise((resolve, reject) => {
       crypto.randomBytes(64, (err, secret) => { // much more than 32 bytes is not really useful here, I guess?
         if (err) {
           reject(err);
           return;
         }
-        var packet = Packet.serialize({
-          account: transfer.data.ilp_header.account,
+        var paymentRequest = {
+          address: transfer.data.ilp_header.account,
           amount: transfer.data.ilp_header.amount,
-          data: base64url(cryptoHelper.aesEncryptObject({
-            expiresAt: transfer.data.ilp_header.amount,
-            data: undefined
-          }, secret)),
-        });
-        console.log(transfer.data.ilp_header, packet);
-        transfer.executionCondition = 'cc:0:3:' + base64url(cc.toCondition(cryptoHelper.hmacJsonForPskCondition(packet, secret))) + ':32';
-        this.fulfillments[transfer.id] = 'cf:0:' + cc.toFulfillment(cryptoHelper.hmacJsonForPskCondition(packet, secret));
+        };
+        conditionPreimage = cryptoHelper.hmacJsonForPskCondition(paymentRequest, secret)
+        transfer.executionCondition = cc.toConditionUri(conditionPreimage);
+        this.fulfillments[transfer.id] = cc.toFulfillmentUri(conditionPreimage);
         resolve(transfer);
       });
     });
+  },
+  getAccounts() {
+    var ret = [];
+    for (var ledger in this.messaging) {
+      if (this.messaging[ledger] < 10000) {
+        ret.push({ ledger, account: this.credentials[this.ledger2host[ledger]].user });
+      }
+    }
+    return ret;
   },
   stop() {
     for (var ledger in this.plugins) {
