@@ -5,10 +5,10 @@ var credentials = {};
 
 const user = 'connectorland';
 
-Object.keys(passwords).map(host => {
-  credentials[host] = {
-   user,
-   password: passwords[host],
+passwords.map(arr => {
+  credentials[arr[0]] = {
+   user: arr[1],
+   password: arr[2],
  };
 });
 
