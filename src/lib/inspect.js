@@ -35,7 +35,7 @@ function getHealth(hostname) {
 }
 
 function getLedgerInfo(ledgerUri) {
-console.log('requesting', ledgerUri);
+   // console.log('requesting', ledgerUri);
   return request({
     uri: ledgerUri,
     json: true,
@@ -106,13 +106,13 @@ function prefixToCurrency(prefix) {
       return ledgerCurrency[str];
     }
   }
-  console.warn('WARNING! Currency not found for prefix', prefix);
+  // console.warn('WARNING! Currency not found for prefix', prefix);
   return 'EUR';
 }
 
 function exchangeRate(fromConn, toLedger) {
   if (typeof rateCache !== 'object') {
-    console.warn('WARNING! Rate cache empty');
+    // console.warn('WARNING! Rate cache empty');
     return 'EUR';
   }
   var from = prefixToCurrency(fromConn);
@@ -120,7 +120,7 @@ function exchangeRate(fromConn, toLedger) {
   // if from === EUR and to === USD, this returns:
   //              1.0000 / 1.0556
   // so it's the expected source amount if fee is zero.
-  console.log('exchangeRate', fromConn, toLedger, from, to, rateCache[from], rateCache[to], rateCache[from] / rateCache[to]);
+  // console.log('exchangeRate', fromConn, toLedger, from, to, rateCache[from], rateCache[to], rateCache[from] / rateCache[to]);
   return rateCache[from] / rateCache[to];
 }
 
@@ -298,7 +298,7 @@ function checkLedger(i) {
         //     'kr.krw.interledgerkorea.': 'no data',
         //   ,}
         // }
-console.log('results are in:', hostsArr[i].hostname, hostsArr[i].prefix, recipients, destinations, result); 
+        // console.log('results are in:', hostsArr[i].hostname, hostsArr[i].prefix, recipients, destinations, result); 
         hostsArr[i].messaging = (result.connectSuccess ? result.connectTime : 'fail');
         hostsArr[i].messageToSelf = result.sendResults[hostsArr[i].prefix + 'connectorland'];
         for (var addr in result.sendResults) {
@@ -310,7 +310,7 @@ console.log('results are in:', hostsArr[i].hostname, hostsArr[i].prefix, recipie
           }
         }
       }, err => {
-        console.log('error msgToSelf', i, err);
+        // console.log('error msgToSelf', i, err);
         if ([ // hosts on which connectorland has no account:
           'grifiti.web-payments.net',
         ].indexOf(hostsArr[i].hostname) === -1) {
@@ -347,7 +347,7 @@ function fee(price, baseValue) {
     return price;
   }
   var paidExtra = price - baseValue;
-console.log('fee', price, baseValue, percentage(paidExtra / baseValue));
+  // console.log('fee', price, baseValue, percentage(paidExtra / baseValue));
   return percentage(paidExtra / baseValue);
 }
 

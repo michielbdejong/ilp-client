@@ -55,7 +55,7 @@ function getCurrencyRates() {
 }
 
 module.exports.getRate = function(currCode) {
-  console.log('getting rate for', currCode);
+  // console.log('getting rate for', currCode);
   return getCurrencyRates().then(rates => {
     return rates[currCode] || 1;
   });

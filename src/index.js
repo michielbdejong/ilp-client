@@ -21,7 +21,7 @@ function Client(credentials) {
     throw new Error(`Please construct as new Client({ 'example.com': { user: 'foo', password: 'bar' } });`);
   }
   this.credentials = credentials;
-  ['hosts', 'ledgerInfo',  'ledger2host', 'plugins', 'fulfillments', 'balances', 'messaging', 'rates', 'quoteRequests'].map(field => {
+  ['hosts', 'ledgerInfo',  'ledger2host', 'plugins', 'fulfillments', 'balances', 'messaging', 'rates', 'quoteRequests', 'pending'].map(field => {
     this[field] = {};
   });
 }
@@ -36,12 +36,12 @@ Client.prototype = {
       }).then(ledger => {
         return this.msgToSelf(ledger);
       }).catch(err => {
-        console.log('Error initializing ledger for', host, err);
+        // console.log('Error initializing ledger for', host, err);
       });
     }));
   },
   msgToSelf(ledger) {
-    console.log('got username', ledger, this.ledger2host[ledger], this.credentials[this.ledger2host[ledger]]);
+    // console.log('got username', ledger, this.ledger2host[ledger], this.credentials[this.ledger2host[ledger]]);
     var account = this.credentials[this.ledger2host[ledger]].user;
     var startTime = new Date().getTime();
     return this.getQuote({
@@ -56,7 +56,7 @@ Client.prototype = {
   initLedger(host) {
     var ledgerUri = this.hosts[host].ledgerUri;
     if (typeof ledgerUri !== 'string') {
-      console.log('skipping initLedger', host, this.hosts[host]);
+      // console.log('skipping initLedger', host, this.hosts[host]);
       return Promise.resolve();
     }
     var ledger;
@@ -64,7 +64,7 @@ Client.prototype = {
       ledger = ledgerInfo.ilp_prefix;
       this.ledgerInfo[ledger] = ledgerInfo;
       this.ledger2host[ledger] = host;
-      console.log('calling initPlugin', ledger);
+      // console.log('calling initPlugin', ledger);
       return this.initPlugin(ledger).then(() => {
         return this.plugins[ledger].getBalance();
       }).then(balance => {
@@ -80,7 +80,7 @@ Client.prototype = {
     });
   },
   initConnectors(ledger) {
-    console.log('getting connectors', ledger, this.ledgerInfo);
+    // console.log('getting connectors', ledger, this.ledgerInfo);
     var defaultConnectors = this.ledgerInfo[ledger].connectors.map(obj => obj.name);
     var extraConnectors = ['micmic'];
     defaultConnectors.concat(extraConnectors).map(conn => {
@@ -88,7 +88,7 @@ Client.prototype = {
     });
   },
   getConnectors(ledger) {
-    console.log('getting connectors', ledger, this.ledgerInfo);
+    // console.log('getting connectors', ledger, this.ledgerInfo);
     return this.ledgerInfo[ledger].connectors.map(obj => obj.name).concat('micmic');
   },
   getRate(ledger) {
@@ -98,7 +98,7 @@ Client.prototype = {
   },
   initPlugin(ledger) {
     var credentials = this.credentials[this.ledger2host[ledger]];
-console.log('getting plugin for', ledger, credentials);
+    // console.log('getting plugin for', ledger, credentials);
     this.plugins[ledger] = new Plugin({
       ledger,
       account: `https://${this.ledger2host[ledger]}/ledger/accounts/${credentials.user}`,
@@ -107,24 +107,24 @@ console.log('getting plugin for', ledger, credentials);
     return this.plugins[ledger].connect({ timeout: 10000 }).then(() => {
       return this.setListeners(ledger);
     }, err => {
-      console.log('could not connect to', this.ledger2host[ledger], ledger, err);
+      // console.log('could not connect to', this.ledger2host[ledger], ledger, err);
     });
   },
   setListeners(ledger) {
     this.plugins[ledger].on('outgoing_fulfill', transfer => {
       console.log('outgoing_fulfill!', ledger, transfer);
-      this.pending[transfer.id].resolve();
+      this.pending[transfer.id].resolve(`It took ${new Date().getTime() - this.pending[transfer.id].outgoingPrepare}ms (${this.pending[transfer.id].expiresAt - new Date().getTime()}ms left) and has cost you ${transfer.amount} source ledger units.`);
     });
     this.plugins[ledger].on('outgoing_reject', transfer => {
-      console.log('outgoing_reject!', ledger, transfer);
+      // console.log('outgoing_reject!', ledger, transfer);
       this.pending[transfer.id].reject(new Error('rejected by peer'));
     });
     this.plugins[ledger].on('outgoing_cancel', transfer => {
-      console.log('outgoing_cancel!', ledger, transfer);
+      // console.log('outgoing_cancel!', ledger, transfer);
       this.pending[transfer.id].reject(new Error('timed out by ledger'));
     });
     this.plugins[ledger].on('incoming_prepare', transfer => {
-      console.log('incoming_prepare!', ledger, transfer);
+      // console.log('incoming_prepare!', ledger, transfer);
       // incoming_prepare! de.eur.blue. { id: '7de75a3e-2f02-49ed-8907-5a4f8a243ee1',
       //   direction: 'incoming',
       //   account: 'de.eur.blue.micmic',
@@ -140,19 +140,19 @@ console.log('getting plugin for', ledger, credentials);
       //   executionCondition: 'cc:0:3:NM4LgYQos5lXIlT63OzD6zmBAlUroykzrQQCTVxtL14:32',
       //   expiresAt: '2017-03-10T13:19:50.085Z' }
       if (typeof this.fulfillments[transfer.id] !== 'undefined') {
-console.log('have the fulfillment, fulfilling condition', ledger, transfer.id, this.fulfillments[transfer.id]);
+        // console.log('have the fulfillment, fulfilling condition', ledger, transfer.id, this.fulfillments[transfer.id]);
         this.plugins[ledger].fulfillCondition(transfer.id, this.fulfillments[transfer.id]).then(() => {
-          console.log('fulfillCondition success');
+          // console.log('fulfillCondition success');
         } , err => {
-          console.log('fulfillCondition fail', ledger, transfer, transfer.id, this.fulfillments[transfer.id], err);
+          // console.log('fulfillCondition fail', ledger, transfer, transfer.id, this.fulfillments[transfer.id], err);
         });
       } else {
-console.log('cannot find the fulfillment, should check destination and try to forward');
+        // console.log('cannot find the fulfillment, should check destination and try to forward');
         // try to forward
       }
     });
     this.plugins[ledger].on('incoming_message', message => {
-      console.log('incoming_message!', ledger, message);
+      // console.log('incoming_message!', ledger, message);
       switch (message.data.method) {
       case 'quote_request':
         if ((message.from === message.to) && (typeof this.quoteRequests[message.data.id] === 'object')) {
@@ -160,7 +160,7 @@ console.log('cannot find the fulfillment, should check destination and try to fo
           clearTimeout(this.quoteRequests[message.data.id].timeout);
           this.quoteRequests[message.data.id].resolve(message);
         } else {
-          console.log('unexpected message, method quote_request');
+          // console.log('unexpected message, method quote_request');
         }
         break;
       case 'quote_response':
@@ -168,7 +168,7 @@ console.log('cannot find the fulfillment, should check destination and try to fo
           clearTimeout(this.quoteRequests[message.data.id].timeout);
           this.quoteRequests[message.data.id].resolve(message.data.data.source_amount);
         } else {
-          console.log('unexpected message, method quote_response');
+          // console.log('unexpected message, method quote_response');
         }
         break;
       case 'error':
@@ -176,20 +176,17 @@ console.log('cannot find the fulfillment, should check destination and try to fo
           clearTimeout(this.quoteRequests[message.data.id].timeout);
           this.quoteRequests[message.data.id].reject(new Error(message.data.data.message));
         } else {
-          console.log('unexpected message, method error');
+          // console.log('unexpected message, method error');
         }
         break;
       default:
-        console.log('unexpected message', ledger, message);
+        // console.log('unexpected message', ledger, message);
       }
-      this.pending[transfer.id].outgoingPrepare = new Date().getTime();
-      this.pending[transfer.id].expiresAt = new Date(transfer.expiresAt).getTime();
-      console.log('outgoing_prepare', { ledger, transfer }, transfer.data, transfer.noteToSelf.key, timeLeft, routes[transfer.noteToSelf.key]);
     });
     this.plugins[ledger].on('outgoing_prepare', transfer => {
       this.pending[transfer.id].outgoingPrepare = new Date().getTime();
       this.pending[transfer.id].expiresAt = new Date(transfer.expiresAt).getTime();
-      console.log('outgoing_prepare', { ledger, transfer }, transfer.data, transfer.noteToSelf.key, timeLeft, routes[transfer.noteToSelf.key]);
+      // console.log('outgoing_prepare', { ledger, transfer }, transfer.data, transfer.noteToSelf.key, timeLeft, routes[transfer.noteToSelf.key]);
     });
     [
       'incoming_transfer',
@@ -197,11 +194,10 @@ console.log('cannot find the fulfillment, should check destination and try to fo
       'incoming_reject',
       'incoming_cancel',
       'outgoing_transfer',
-      'outgoing_reject',
       'info_change',
     ].map(eventName => {
       this.plugins[ledger].on(eventName, res => {
-        console.log('Noting event', ledger, eventName, res);
+        // console.log('Noting event', ledger, eventName, res);
       });
     });
   },
@@ -272,7 +268,7 @@ console.log('cannot find the fulfillment, should check destination and try to fo
         resolve,
         reject,
       };
-      console.log('expecting message', data.id);
+      // console.log('expecting message', data.id);
     });
     // circumvent plugin.sendMessage so we have more control over timing and error handling:
     return this.plugins[from.ledger].sendMessage({
@@ -294,15 +290,15 @@ console.log('cannot find the fulfillment, should check destination and try to fo
       // to actually resolve that promise when a quote_response comes in, before that timeout
       return promise;
     }).catch(err => {
-      console.log('sending quote request failed', from.ledger + connector, err);
+      // console.log('sending quote request failed', from.ledger + connector, err);
       return Infinity;
     }).then(result => {
-      console.log('getQuote returns', result);
+      // console.log('getQuote returns', result);
       return result;
     });
   },
   sendTransfer(from, to, connector, sourceTimeout) {
-    console.log('sendTransfer(', {from, to, connector, sourceTimeout });
+    // console.log('sendTransfer(', {from, to, connector, sourceTimeout });
     
     return this.addCondition({
       id: uuidV4(),
@@ -324,11 +320,14 @@ console.log('cannot find the fulfillment, should check destination and try to fo
 
       transfer.noteToSelf = {};
       console.log('sending source payment!', from.ledger, transfer);
-      return this.plugins[from.ledger].sendTransfer(transfer);
+      var promise =  new Promise((resolve, reject) => {
+        this.pending[transfer.id] = { resolve, reject }; //TODO: set our own timeout timer on this?
+      });
+      return this.plugins[from.ledger].sendTransfer(transfer).then(() => promise);
     });
   },
   addCondition(transfer) {
-    console.log('addCondition', transfer);
+    // console.log('addCondition', transfer);
     return new Promise((resolve, reject) => {
       crypto.randomBytes(64, (err, secret) => { // much more than 32 bytes is not really useful here, I guess?
         if (err) {
@@ -392,12 +391,12 @@ function firstHop(fromLedger, toLedger) {
     executionCondition: `cc:0:3:${routes[key].condition}:32`,
     expiresAt: routes[key].expiresAt,
   };
-  console.log('trying to sendTransfer', JSON.stringify(transfer, null, 2));
+  // console.log('trying to sendTransfer', JSON.stringify(transfer, null, 2));
   routes[key].startTime = new Date().getTime();
   return plugins[fromLedger].sendTransfer(transfer).then(() => {
-    console.log('source payment success', key, transfer, routes[key], balances[fromLedger]);
+    // console.log('source payment success', key, transfer, routes[key], balances[fromLedger]);
   }, err => {
-    console.log('payment failed', key, err, transfer, routes[key], balances[fromLedger]);
+    // console.log('payment failed', key, err, transfer, routes[key], balances[fromLedger]);
     if (err.name === 'NotAcceptedError') {
       routes[key].result = 'NotAcceptedError';
     } else {
@@ -406,7 +405,7 @@ function firstHop(fromLedger, toLedger) {
     }
     numPending--;
     numFail++;
-    console.log({ numPending, numSuccess, numFail });
+    // console.log({ numPending, numSuccess, numFail });
   });
 }
 
@@ -414,7 +413,7 @@ function cancelRoutesFor(ledger) {
   for (var key in routes) {
     var parts = key.split(' ');
     if (parts[0] === ledger) {
-      console.log(`Cancelling test ${key}`);
+      // console.log(`Cancelling test ${key}`);
       delete routes[key];
     }
   }
@@ -423,29 +422,29 @@ function cancelRoutesFor(ledger) {
 function checkFunds(ledger) {
   return plugins[ledger].getBalance().then(balance => {
     balances[ledger] = balance;
-    console.log(`Balance for ${ledger} is ${balance}`);
+    // console.log(`Balance for ${ledger} is ${balance}`);
     if (balance <= 0.05) {
       cancelRoutesFor(ledger);
     }
   }, err => {
-    console.log('unable to check balance', ledger, err);
+    // console.log('unable to check balance', ledger, err);
     cancelRoutesFor(ledger);
   });
 }
 
 function launchPayments() {
-  console.log(`Gathering routes...`);
+  // console.log(`Gathering routes...`);
   return gatherRoutes().then(() => {
-    console.log(`Connecting to ${Object.keys(plugins).length} plugins..`);
+    // console.log(`Connecting to ${Object.keys(plugins).length} plugins..`);
     return setupPlugins();
   }).then(() => {
-    console.log(`Checking funds...`);
+    // console.log(`Checking funds...`);
     return Promise.all(Object.keys(plugins).map(checkFunds));
   }).then(() => {
   //  console.log(`Generating ${Object.keys(routes).length} conditions...`);
   //  return Promise.all(Object.keys(routes).map(genCondition));
   //}).then(() => {
-    console.log(`Sending ${Object.keys(routes).length} source payments...`);
+    // console.log(`Sending ${Object.keys(routes).length} source payments...`);
     var delay = 0;
     return Promise.all(Object.keys(routes).map(key => {
       // if (key !== 'lu.eur.michiel. lu.eur.michiel-eur.') {
@@ -463,7 +462,7 @@ function launchPayments() {
        delay += 1000;
        routes[key].result = 'queued to start';
      }).catch(err => {
-       console.log('Source payment failed', key, err);
+       // console.log('Source payment failed', key, err);
        numPending--;
        numFail++;
        routes[key].result = err.message;
@@ -472,8 +471,8 @@ function launchPayments() {
      });
    }));
   }).then(() => {
-    console.log(`Waiting for incoming_prepare and outgoing_fulfill messages...`);
-    console.log(`For ${numPending} source payments...`);
+    // console.log(`Waiting for incoming_prepare and outgoing_fulfill messages...`);
+    // console.log(`For ${numPending} source payments...`);
   });
 };
 
