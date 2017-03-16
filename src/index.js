@@ -113,7 +113,32 @@ Client.prototype = {
   setListeners(ledger) {
     this.plugins[ledger].on('outgoing_fulfill', transfer => {
       console.log('outgoing_fulfill!', ledger, transfer);
-      this.pending[transfer.id].resolve(`It took ${new Date().getTime() - this.pending[transfer.id].outgoingPrepare}ms (${this.pending[transfer.id].expiresAt - new Date().getTime()}ms left) and has cost you ${transfer.amount} source ledger units.`);
+      var str;
+      try {
+        var timeTaken =new Date().getTime() - this.pending[transfer.id].outgoingPrepare;
+        var timeMax = this.pending[transfer.id].expiresAt - new Date().getTime();
+        var timePerc = Math.floor((timeTaken / timeMax) * 100 + .5);
+        console.log({ timeTaken, timeMax, timePerc });
+
+        var srcAmount = transfer.amount;
+        var srcCurr = this.ledgerInfo[ledger].currency_code;
+        var dest = this.pending[transfer.id].dest;
+        var destAmount = dest.amount;
+        var destCurr = this.ledgerInfo[dest.ledger].currency_code;
+        console.log({ srcAmount, srcCurr, dest, destAmount, destCurr });
+
+        var exchangeFactor = this.rates[ledger] / this.rates[dest.ledger];
+        var feeBase = exchangeFactor * destAmount;
+        var feeFactor = srcAmount / feeBase;
+        var feePerc = Math.floor((feeFactor * 100) + .5) - 100;
+        console.log({ srcRate: this.rates[ledger], destRate: this.rates[dest.ledger], exchangeFactor, feeBase, feeFactor, feePerc });
+        str = `It took ${timeTaken}ms (${timePerc}% of  ${timeMax}ms max) ` +
+          `and has cost you ${srcAmount} ${srcCurr} to send ${destAmount} ${destCurr} (a ${feePerc}% fee)`;
+      } catch(e) {
+        console.log(e);
+        str = 'It worked!';
+      }
+      this.pending[transfer.id].resolve(str);
     });
     this.plugins[ledger].on('outgoing_reject', transfer => {
       // console.log('outgoing_reject!', ledger, transfer);
@@ -322,6 +347,7 @@ Client.prototype = {
       console.log('sending source payment!', from.ledger, transfer);
       var promise =  new Promise((resolve, reject) => {
         this.pending[transfer.id] = { resolve, reject }; //TODO: set our own timeout timer on this?
+        this.pending[transfer.id].dest = to; // keep track of this for reporting what it was when outgoing_fulfill is triggered
       });
       return this.plugins[from.ledger].sendTransfer(transfer).then(() => promise);
     });

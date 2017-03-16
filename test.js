@@ -13,16 +13,16 @@ passwords.map(arr => {
 });
 
 
-function getQuotes(sourceLedger, destinationLedger) {
+function getQuotes(sourceLedger, sourceAccount, destinationLedger, destinationAccount, amount) {
   // console.log('function getQuotes(', sourceLedger, destinationLedger);
   return Promise.all(client.getConnectors(sourceLedger).map(conn => {
     return client.getQuote({
       ledger: sourceLedger,
-      account: client.credentials[client.ledger2host[sourceLedger]].user,
+      account: sourceAccount, // note that currently the client can only remember credentials for one sourceAccount per ledger
     }, {
       ledger: destinationLedger,
-      account: client.credentials[client.ledger2host[destinationLedger]].user,
-      amount: '0.01',
+      account: destinationAccount,
+      amount: amount,
     }, conn).catch(err => {
       // console.log('client.getQuote rejected its promise', err);
       return Infinity;
@@ -34,8 +34,8 @@ function getQuotes(sourceLedger, destinationLedger) {
     return results;
   });
 }
-function sendMoney(sourceLedger, destinationLedger) {
-  return getQuotes(sourceLedger, destinationLedger).then(results => {
+function sendMoney(sourceLedger, sourceAccount, destinationLedger, destinationAccount, amount) {
+  return getQuotes(sourceLedger, sourceAccount, destinationLedger, destinationAccount, amount).then(results => {
     // console.log('result of getQuotes', results);
     var bestConn, bestAmount=Infinity;
     results.map(obj => {
@@ -51,17 +51,17 @@ function sendMoney(sourceLedger, destinationLedger) {
     }
     return client.sendTransfer({
       ledger: sourceLedger,
-      account: client.credentials[client.ledger2host[sourceLedger]].user,
+      account: sourceAccount, // note that currently the client can only remember credentials for one sourceAccount per ledger
       amount: '' + bestAmount,
     }, {
       ledger: destinationLedger,
-      account: client.credentials[client.ledger2host[destinationLedger]].user,
-      amount: '0.01',
+      account: destinationAccount,
+      amount: amount,
     }, bestConn, 10000);
   });
 }
-function stealMoney(sourceLedger, destinationLedger) {
-  return Promise.resolve('coming soon!');
+function stealMoney(sourceLedger, sourceAccount, destinationLedger, destinationAccount, amount) {
+  return Promise.resolve('coming soon! ;)');
 }
   
 
@@ -97,8 +97,28 @@ function doTask(task) {
     type: 'list',
     name: 'destinationLedger',
     choices: client.getAccounts().map(obj => obj.ledger),
-  }]).then(answers => {
-    return task(answers.sourceLedger, answers.destinationLedger);
+  }]).then(answers1 => {
+    console.log({ answers1 });
+    var sourceHost = client.ledger2host[answers1.sourceLedger];
+    var sourceUser = client.credentials[sourceHost].user;
+    return inquirer.prompt([{
+      message: `From which source account on ${answers1.sourceLedger}?`,
+      type: 'list',
+      name: 'sourceAccount',
+      choices: [ { value: sourceUser, name: `${sourceUser} (balance: ${client.balances[answers1.sourceLedger]} ${client.ledgerInfo[answers1.sourceLedger].currency_code})` } ],
+    }, {
+      message: `To which destination account on ${answers1.destinationLedger}?`,
+      type: 'input',
+      name: 'destinationAccount',
+    }, {
+      message: `How much would you like to send? (in ${client.ledgerInfo[answers1.destinationLedger].currency_code})`,
+      type: 'input',
+      name: 'amount',
+      validate: (val) => { return (isNaN(parseInt(val)) ? 'Please specify a number' : true) },
+    }]).then(answers2 => {
+      console.log({ answers2 });
+      return task(answers1.sourceLedger, answers2.destinationAccount, answers1.destinationLedger, answers2.destinationAccount, answers2.amount);
+    });
   }).then(result => {
     console.log('result of your action:', result);
   }).catch(err => {
