@@ -34,6 +34,7 @@ Client.prototype = {
         this.hosts[host] = obj;
         return this.initLedger(host);
       }).then(ledger => {
+        console.log(host);
         return this.msgToSelf(ledger);
       }).catch(err => {
         // console.log('Error initializing ledger for', host, err);
