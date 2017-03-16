@@ -310,7 +310,7 @@ Client.prototype = {
         }
         this.quoteRequests[data.id].reject(new Error('timeout'));
         delete this.quoteRequests[data.id];
-      }, 20000);
+      }, 5000);
       // and now, it's up to this.plugins[from.ledger].on('incoming_message', msg) handler
       // to actually resolve that promise when a quote_response comes in, before that timeout
       return promise;
@@ -425,7 +425,7 @@ Client.prototype = {
         //     "expiresAt": "2017-03-09T18:05:38.393Z"
         //   },
         transfer.data.ilp_header.account = paymentRequest.address;
-        if (transfer.data.ilp_header.amount !== paymentRequest.amount) {
+        if (parseFloat(transfer.data.ilp_header.amount) !== parseFloat(paymentRequest.amount)) {
           throw new Error(`wrong amount in IPR! ${transfer.data.ilp_header.amount} !== ${paymentRequest.amount}`);
         }
         transfer.data.ilp_header.data = {

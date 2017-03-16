@@ -57,15 +57,24 @@ function sendMoney(sourceLedger, sourceAccount, destinationLedger, destinationAc
       ledger: destinationLedger,
       account: destinationAccount,
       amount: amount,
-    }, bestConn, 10000);
+    }, bestConn, 30000);
   });
 }
 function stealMoney(sourceLedger, sourceAccount, destinationLedger, destinationAccount, amount) {
   return Promise.resolve('coming soon! ;)');
 }
   
+String.prototype.padEnd = function(targetLength) {
+  var ret = this;
+  while (ret.length < targetLength) {
+    ret  += ' ';
+  }
+  return ret;
+};
 
 function mainMenu() {
+  console.log(['Host', 'Ledger', 'Account', 'Balance'].map(col => col.padEnd(50)).join('\t'));
+  console.log(Object.keys(client.balances).map(ledger => `${client.ledger2host[ledger].padEnd(50)}\t${ledger.padEnd(50)}\t${client.credentials[client.ledger2host[ledger]].user.padEnd(50)}\t${client.balances[ledger]}`).join('\n'));
   return inquirer.prompt([{
     message: 'What do you want to do?',
     type: 'list',
