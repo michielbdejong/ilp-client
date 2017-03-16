@@ -12,7 +12,7 @@ var cryptoHelper = require('ilp/src/utils/crypto');
 var cc           = require('ilp/src/utils/condition');
 var uuidV4 = require('uuid/v4');
 var crypto = require('crypto');
-
+var request = require('request-promise-native');
 var inspect = require('./lib/inspect');
 var rates = require('./lib/rates');
 
@@ -339,7 +339,7 @@ Client.prototype = {
         },
       },
       expiresAt: JSON.parse(JSON.stringify(new Date(new Date().getTime() + sourceTimeout))),
-    }).then(transfer => {
+    }, to).then(transfer => {
       // deal with bug in ilp-plugin-bells:
       transfer.account = transfer.to;
 
@@ -352,24 +352,89 @@ Client.prototype = {
       return this.plugins[from.ledger].sendTransfer(transfer).then(() => promise);
     });
   },
-  addCondition(transfer) {
-    // console.log('addCondition', transfer);
-    return new Promise((resolve, reject) => {
-      crypto.randomBytes(64, (err, secret) => { // much more than 32 bytes is not really useful here, I guess?
-        if (err) {
-          reject(err);
-          return;
+  getIPR(to) {
+    var host = this.ledger2host[to.ledger];
+    return request({
+      url: `https://${host}/.well-known/webfinger?resource=acct:${to.account}@${host}`,
+      json: true,
+    }).then(webfinger => {
+      var url;
+      for (var i=0; i<webfinger.links.length; i++) {
+        if (webfinger.links[i].rel === 'https://interledger.org/rel/receiver') {
+          return request({
+            method: 'POST',
+            url: webfinger.links[i].href,
+            json: true,
+            body: {
+              amount: to.amount,
+            },
+          });
         }
-        var paymentRequest = {
-          address: transfer.data.ilp_header.account,
-          amount: transfer.data.ilp_header.amount,
-        };
-        conditionPreimage = cryptoHelper.hmacJsonForPskCondition(paymentRequest, secret)
-        transfer.executionCondition = cc.toConditionUri(conditionPreimage);
-        this.fulfillments[transfer.id] = cc.toFulfillmentUri(conditionPreimage);
-        resolve(transfer);
-      });
+      }
+      // should not reach here
+      console.log(webfinger);
+      throw new Error('Could not find receivers endpoint for ' + JSON.stringify(to));
     });
+  },
+    
+  addCondition(transfer, to) {
+    var paymentToSelf = ((typeof this.messaging[to.ledger] !== 'undefined') && (this.credentials[this.ledger2host[to.ledger]].user === to.account));
+
+    if (paymentToSelf) {
+      // console.log('addCondition', transfer);
+      return new Promise((resolve, reject) => {
+        crypto.randomBytes(64, (err, secret) => { // much more than 32 bytes is not really useful here, I guess?
+          if (err) {
+            reject(err);
+            return;
+          }
+          var paymentRequest = {
+            address: transfer.data.ilp_header.account,
+            amount: transfer.data.ilp_header.amount,
+          };
+          conditionPreimage = cryptoHelper.hmacJsonForPskCondition(paymentRequest, secret)
+          transfer.executionCondition = cc.toConditionUri(conditionPreimage);
+          this.fulfillments[transfer.id] = cc.toFulfillmentUri(conditionPreimage);
+          resolve(transfer);
+        });
+      });
+    } else {
+      return this.getIPR(to).then(paymentRequest=> {
+        // paymentRequest = {
+        //   address: 'us.usd.cornelius.admin.~ipr.KuIVLqthTOY.07be617c-c252-44cc-8b30-526b012b7188',
+        //   amount: '11.8',
+        //   expires_at: '2017-03-16T14:00:24.971Z',
+        //   condition: 'cc:0:3:Ti1mIQg8c_N5wgVM9E74mhhEntuySrQzuca6TOsGg88:32'
+        // }
+
+        //   "transfer": {
+        //     "id": "57aad850-4ff9-43e4-8966-9335ce98ea2a",
+        //     "account": "lu.eur.michiel-eur.micmic",
+        //     "ledger": "lu.eur.michiel-eur.",
+        //     "amount": "0.02",
+        //     "data": {
+        //       "ilp_header": {
+        //         "account": "us.usd.cornelius.connectorland.~psk.ke-ITDdsqck.rB9F8q4EBsJtOLC5uaYerQ.65f43234-5a2b-49c4-a6a3-371737efa023",
+        //         "amount": "0.01",
+        //         "data": {
+        //           "expires_at": "2017-03-09T18:05:57.600Z"
+        //         }
+        //       }
+        //     },
+        //     "executionCondition": "cc:0:3:2ga6A_EOk_j6MnMVfF_asCcRfcyyD7C_essN6rVR8V4:32",
+        //     "expiresAt": "2017-03-09T18:05:38.393Z"
+        //   },
+        transfer.data.ilp_header.account = paymentRequest.address;
+        if (transfer.data.ilp_header.amount !== paymentRequest.amount) {
+          throw new Error(`wrong amount in IPR! ${transfer.data.ilp_header.amount} !== ${paymentRequest.amount}`);
+        }
+        transfer.data.ilp_header.data = {
+          expires_at: paymentRequest.expires_at,
+        };
+        transfer.executionCondition = paymentRequest.condition;
+        return transfer;
+      });
+    }
   },
   getAccounts() {
     var ret = [];
