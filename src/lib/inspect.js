@@ -28,7 +28,7 @@ function pingHost(hostname) {
 
 function getHealth(hostname) {
   return request({
-    url: `https://${hostname}/api/health`
+    url: `https://${hostname}/api/health`,
     timeout: 5000,
   }).then(str => {
     return (str === 'OK' ? 1 : 0);
