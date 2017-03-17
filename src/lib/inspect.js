@@ -27,7 +27,10 @@ function pingHost(hostname) {
 }
 
 function getHealth(hostname) {
-  return request(`https://${hostname}/api/health`).then(str => {
+  return request({
+    url: `https://${hostname}/api/health`
+    timeout: 5000,
+  }).then(str => {
     return (str === 'OK' ? 1 : 0);
   }, () => {
     return 0;
@@ -38,6 +41,7 @@ function getLedgerInfo(ledgerUri) {
    // console.log('requesting', ledgerUri);
   return request({
     uri: ledgerUri,
+    timeout: 5000,
     json: true,
   }).then(obj => {
     // set a rate for this ledger
@@ -51,6 +55,7 @@ function getCurrencyRates() {
   }
   return request({
     uri: 'https://api.fixer.io/latest',
+    timeout: 5000,
     json: true,
   }).then(body => {
     if (typeof body === 'object' && typeof body.rates === 'object') {
@@ -125,29 +130,9 @@ function exchangeRate(fromConn, toLedger) {
 }
 
 function checkUrl(i, path) {
-  return new Promise((resolve) => {
-    var request = https.request({
-      hostname: hostsArr[i].hostname,
-      port:443,
-      path: path,
-      method: 'GET'
-    }, function(response) {
-      var str = '';
-      response.on('data', function (chunk) {
-        str += chunk;
-      });
-
-      response.on('end', function () {
-        resolve({ status: response.statusCode, body: str });
-      });
-    });
-    request.setTimeout(10000, function(err) {
-      resolve({ error: 'Timed out' });
-    });
-    request.on('error', function(err) {
-      resolve({ error: 'Connection error' });
-    });
-    request.end();
+  return request({
+    url: `https://${hostsArr[i].hostname}${path}`,
+    timeout: 5000,
   });
 }
 
@@ -185,6 +170,7 @@ function getHostInfo(hostname) {
 function getWebFinger(hostname) {
   return request({
     uri: `https://${hostname}/.well-known/webfinger?resource=https://${hostname}`,
+    timeout: 5000,
     json: true,
   }).then(body => {
     var ret = {

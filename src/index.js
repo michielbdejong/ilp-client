@@ -16,6 +16,11 @@ var request = require('request-promise-native');
 var inspect = require('./lib/inspect');
 var rates = require('./lib/rates');
 
+// credentials should be an key-value hash (i.e., an Object), where:
+// * keys are <String> DNS hostnames, e.g. 'ilp-kit.michielbdejong.com'
+// * values are objects with:
+//   - user: <String> FiveBellsLedger username, e.g. 'admin'
+//   - password: <String> password for that FiveBellsLedger user, e.g, 'hunter2' ;)
 function Client(credentials) {
   if (typeof credentials !== 'object') {
     throw new Error(`Please construct as new Client({ 'example.com': { user: 'foo', password: 'bar' } });`);
@@ -29,26 +34,50 @@ function Client(credentials) {
 Client.prototype = {
   init() {
     var promise = [];
-    return Promise.all(Object.keys(this.credentials).map(host => {
-      return inspect.getHostInfo(host).then(obj => {
-        this.hosts[host] = obj;
-        return this.initLedger(host);
-      }).then(ledger => {
-        console.log(host);
-        return this.msgToSelf(ledger);
-      }).catch(err => {
-        // console.log('Error initializing ledger for', host, err);
+    var knownHosts = {};
+    const linePrefixWeWant = '  { "hostname": "'; // FIXME: better than eval(), but not robust
+    return request({
+      url: 'https://connector.land/data/hosts.js',
+      timeout: 5000,
+    }).then(body => {
+      body.split('\n').filter(line => {
+console.log(line.substring(0, linePrefixWeWant.length));
+        return (line.substring(0, linePrefixWeWant.length) === linePrefixWeWant);
+      }).map(lineWeWant => lineWeWant.substring(linePrefixWeWant.length).split('"')[0]).map(hostname => {
+        knownHosts[hostname] = false;
       });
-    }));
+    }).catch(err => {
+      // use just the hosts where we have credentials
+      console.log(err);
+    }).then(() => {
+      for (var hostname in this.credentials) {
+        knownHosts[hostname] = true;
+      }
+      console.log(knownHosts);
+      return Promise.all(Object.keys(knownHosts).map(hostname => {
+        return inspect.getHostInfo(hostname).then(obj => {
+          this.hosts[hostname] = obj;
+          return this.initLedger(hostname);
+        }).then(ledger => {
+          console.log(hostname);
+          return this.msgToSelf(ledger);
+        }).catch(err => {
+          console.log('Error initializing ledger for', hostname, err);
+        });
+      }));
+    });
   },
   msgToSelf(ledger) {
     // console.log('got username', ledger, this.ledger2host[ledger], this.credentials[this.ledger2host[ledger]]);
-    var account = this.credentials[this.ledger2host[ledger]].user;
+    var credentials = this.credentials[this.ledger2host[ledger]];
+    if (!credentials) {
+      return Promise.resolve();
+    }
     var startTime = new Date().getTime();
     return this.getQuote({
       ledger,
-      account,
-    }, {}, account, 7000, 10000).then(() => {
+      account: credentials.user,
+    }, {}, credentials.user, 7000, 10000).then(() => {
       this.messaging[ledger] = new Date().getTime() - startTime;
     }, () => {
       this.messaging[ledger] = Infinity;
@@ -80,6 +109,11 @@ Client.prototype = {
       });
     });
   },
+  getReachableLedgers() {
+    //TODO: check if a route really exists from one of our accounts
+    // to this host
+    return Object.keys(this.ledgerInfo);
+  },
   initConnectors(ledger) {
     // console.log('getting connectors', ledger, this.ledgerInfo);
     var defaultConnectors = this.ledgerInfo[ledger].connectors.map(obj => obj.name);
@@ -99,6 +133,9 @@ Client.prototype = {
   },
   initPlugin(ledger) {
     var credentials = this.credentials[this.ledger2host[ledger]];
+    if (typeof credentials === 'undefined') {
+      return Promise.reject();
+    }
     // console.log('getting plugin for', ledger, credentials);
     this.plugins[ledger] = new Plugin({
       ledger,
@@ -357,6 +394,7 @@ Client.prototype = {
     var host = this.ledger2host[to.ledger];
     return request({
       url: `https://${host}/.well-known/webfinger?resource=acct:${to.account}@${host}`,
+      timeout: 5000,
       json: true,
     }).then(webfinger => {
       var url;
@@ -364,6 +402,7 @@ Client.prototype = {
         if (webfinger.links[i].rel === 'https://interledger.org/rel/receiver') {
           return request({
             method: 'POST',
+            timeout: 5000,
             url: webfinger.links[i].href,
             json: true,
             body: {

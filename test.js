@@ -105,7 +105,7 @@ function doTask(task) {
     message: 'To which destination ledger?',
     type: 'list',
     name: 'destinationLedger',
-    choices: client.getAccounts().map(obj => obj.ledger),
+    choices: client.getReachableLedgers(),
   }]).then(answers1 => {
     console.log({ answers1 });
     var sourceHost = client.ledger2host[answers1.sourceLedger];
