@@ -6,6 +6,18 @@ var credentials = {};
 const user = 'connectorland';
 
 passwords.map(arr => {
+  if (arr.length !== 3) {
+    throw new Error(`Entry with ${arr.length} fields found in passwords.js file, please follow the format of passwords.js-sample`);
+  }
+  arr.map(field => {
+    if (typeof field !== 'string') {
+      throw new Error(`Non-string field found in passwords.js file, please follow the format of passwords.js-sample`);
+    }
+    if (field.length === 0) {
+      throw new Error(`Empty string field found in passwords.js file, please follow the format of passwords.js-sample`);
+    }
+  });
+  console.log(`Have a password for user ${arr[1]} on host ${arr[0]}`);
   credentials[arr[0]] = {
    user: arr[1],
    password: arr[2],
