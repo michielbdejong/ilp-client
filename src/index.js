@@ -41,7 +41,6 @@ Client.prototype = {
       timeout: 5000,
     }).then(body => {
       body.split('\n').filter(line => {
-console.log(line.substring(0, linePrefixWeWant.length));
         return (line.substring(0, linePrefixWeWant.length) === linePrefixWeWant);
       }).map(lineWeWant => lineWeWant.substring(linePrefixWeWant.length).split('"')[0]).map(hostname => {
         knownHosts[hostname] = false;
@@ -94,7 +93,10 @@ console.log(line.substring(0, linePrefixWeWant.length));
       ledger = ledgerInfo.ilp_prefix;
       this.ledgerInfo[ledger] = ledgerInfo;
       this.ledger2host[ledger] = host;
-      // console.log('calling initPlugin', ledger);
+      if (typeof this.credentials[host] === 'undefined') {
+        return Promise.resolve();
+      }
+      console.log('calling initPlugin', ledger);
       return this.initPlugin(ledger).then(() => {
         return this.plugins[ledger].getBalance();
       }).then(balance => {
@@ -136,7 +138,7 @@ console.log(line.substring(0, linePrefixWeWant.length));
     if (typeof credentials === 'undefined') {
       return Promise.reject();
     }
-    // console.log('getting plugin for', ledger, credentials);
+    console.log('getting plugin for', ledger, credentials);
     this.plugins[ledger] = new Plugin({
       ledger,
       account: `https://${this.ledger2host[ledger]}/ledger/accounts/${credentials.user}`,
