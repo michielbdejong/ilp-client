@@ -61,15 +61,6 @@ function sendMoney(sourceLedger, sourceAccount, destinationLedger, destinationAc
     if (bestAmount === Infinity) {
       throw new Error('Could not get a quote');
     }
-    return client.sendTransfer({
-      ledger: sourceLedger,
-      account: sourceAccount, // note that currently the client can only remember credentials for one sourceAccount per ledger
-      amount: '' + bestAmount,
-    }, {
-      ledger: destinationLedger,
-      account: destinationAccount,
-      amount: amount,
-    }, bestConn, 30000);
   });
 }
 function stealMoney(sourceLedger, sourceAccount, destinationLedger, destinationAccount, amount) {
@@ -153,5 +144,24 @@ function doTask(task) {
 console.log(`Connecting to ${Object.keys(credentials).length} ledgers...`);
 var client = new Client(credentials);
 client.init().then(() => {
-  return mainMenu();
+  var count = 0;
+  setInterval(function() {
+    client.plugins['lu.eur.michiel.'].getBalance().then(bal => {
+      console.log(bal);
+    });
+    client.sendTransfer({
+      ledger: 'lu.eur.michiel.',
+      account: 'lunch', // note that currently the client can only remember credentials for one sourceAccount per ledger
+      amount: '0.01',
+    }, {
+      ledger: 'lu.eur.michiel.',
+      account: 'admin',
+      amount: '0.01',
+    }, 'admin', 30000).then(() => {
+      console.log(`ok ${++count}`);
+    }, err => {
+      console.log(`NO ${++count}`, err);
+    });
+  }, 150);
+ // return mainMenu();
 });

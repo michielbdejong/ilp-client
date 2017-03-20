@@ -92,19 +92,19 @@ Client.prototype = {
         });
       }));
     }).then(() => {
-      this.checkTimer = setInterval(() => {
-        var promises = [];
-        Object.keys(this.plugins).map(ledger => {
-          console.log(`Testing messaging on ${ledger}`);
-          promises.push(this.msgToSelf(ledger));
-          promises.push(this.plugins[ledger].getBalance().then(balance => {
-            this.balances[ledger] = balance;
-          }, () => { console.log(`Could not get balance for ${ledger}`); }));
-        });
-        Promise.all(promises).then(() => {
-          console.log(this.stats, this.balances);
-        });
-      }, 10000);
+//      this.checkTimer = setInterval(() => {
+//        var promises = [];
+//        Object.keys(this.plugins).map(ledger => {
+//          console.log(`Testing messaging on ${ledger}`);
+//          promises.push(this.msgToSelf(ledger));
+//          promises.push(this.plugins[ledger].getBalance().then(balance => {
+//            this.balances[ledger] = balance;
+//          }, () => { console.log(`Could not get balance for ${ledger}`); }));
+//        });
+//        Promise.all(promises).then(() => {
+//          console.log(this.stats, this.balances);
+//        });
+//      }, 10000);
     });
   },
   stop() {
