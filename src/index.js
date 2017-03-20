@@ -26,7 +26,7 @@ function Client(credentials) {
     throw new Error(`Please construct as new Client({ 'example.com': { user: 'foo', password: 'bar' } });`);
   }
   this.credentials = credentials;
-  ['stats', 'hosts', 'ledgerInfo', 'ledger2host', 'plugins', 'fulfillments', 'balances', 'rates', 'quoteRequests', 'pending'].map(field => {
+  ['stats', 'plugins', 'fulfillments', 'quoteRequests', 'transfers'].map(field => {
     this[field] = {};
   });
   this.stats.ledgers = {};
@@ -82,7 +82,9 @@ Client.prototype = {
       console.log(knownHosts);
       return Promise.all(Object.keys(knownHosts).map(hostname => {
         return inspect.getHostInfo(hostname).then(obj => {
-          this.hosts[hostname] = obj;
+          for (var field in obj) {
+            this.stats.hosts[hostname][field] = obj[field];
+          }
           return this.initLedger(hostname);
         }).then(ledger => {
           console.log(hostname);
@@ -92,19 +94,19 @@ Client.prototype = {
         });
       }));
     }).then(() => {
-      this.checkTimer = setInterval(() => {
-        var promises = [];
-        Object.keys(this.plugins).map(ledger => {
-          console.log(`Testing messaging on ${ledger}`);
-          promises.push(this.msgToSelf(ledger));
-          promises.push(this.plugins[ledger].getBalance().then(balance => {
-            this.balances[ledger] = balance;
-          }, () => { console.log(`Could not get balance for ${ledger}`); }));
-        });
-        Promise.all(promises).then(() => {
-          console.log(this.stats, this.balances);
-        });
-      }, 10000);
+      //  this.checkTimer = setInterval(() => {
+      //    var promises = [];
+      //    Object.keys(this.plugins).map(ledger => {
+      //      console.log(`Testing messaging on ${ledger}`);
+      //      promises.push(this.msgToSelf(ledger));
+      //      promises.push(this.plugins[ledger].getBalance().then(balance => {
+      //        this.balances[ledger] = balance;
+      //      }, () => { console.log(`Could not get balance for ${ledger}`); }));
+      //    });
+      //    Promise.all(promises).then(() => {
+      //      console.log(this.stats, this.balances);
+      //    });
+      //  }, 10000);
     });
   },
   stop() {
@@ -119,8 +121,8 @@ Client.prototype = {
     });
   },
   msgToSelf(ledger) {
-    // console.log('got username', ledger, this.ledger2host[ledger], this.credentials[this.ledger2host[ledger]]);
-    var credentials = this.credentials[this.ledger2host[ledger]];
+    // console.log('got username', ledger, this.ledger2host(ledger), this.credentials[this.ledger2host(ledger)]);
+    var credentials = this.credentials[this.ledger2host(ledger)];
     if (!credentials) {
       return Promise.resolve();
     }
@@ -138,16 +140,18 @@ Client.prototype = {
     });
   },
   initLedger(host) {
-    var ledgerUri = this.hosts[host].ledgerUri;
+    var ledgerUri = this.stats.hosts[host].ledgerUri;
     if (typeof ledgerUri !== 'string') {
-      // console.log('skipping initLedger', host, this.hosts[host]);
+      // console.log('skipping initLedger', host, this.stats.hosts[host]);
       return Promise.resolve();
     }
     var ledger;
     return inspect.getLedgerInfo(ledgerUri).then(ledgerInfo => {
       ledger = ledgerInfo.ilp_prefix;
-      this.ledgerInfo[ledger] = ledgerInfo;
-      this.ledger2host[ledger] = host;
+      for (var field in ledgerInfo) {
+        this.stats.ledgers[ledger][field] = ledgerInfo[field];
+      }
+      this.stats.ledgers[ledger].hostname = host;
       if (typeof this.credentials[host] === 'undefined') {
         return Promise.resolve();
       }
@@ -155,7 +159,9 @@ Client.prototype = {
       return this.initPlugin(ledger).then(() => {
         return this.plugins[ledger].getBalance();
       }).then(balance => {
-        this.balances[ledger] = balance;
+        // TODO: support multiple accounts per ledger here
+        this.stats.ledgers[ledger].balances = {};
+        this.stats.ledgers[ledger].balances[this.credentials[host].user] = balance;
         return this.msgToSelf(ledger);
       }).then(() => {
         return this.getRate(ledger);
@@ -169,19 +175,25 @@ Client.prototype = {
   getReachableLedgers() {
     //TODO: check if a route really exists from one of our accounts
     // to this host
-    return Object.keys(this.ledgerInfo);
+    return Object.keys(this.stats.ledgers);
   },
   initConnectors(ledger) {
-    // console.log('getting connectors', ledger, this.ledgerInfo);
-    var defaultConnectors = this.ledgerInfo[ledger].connectors.map(obj => obj.name);
+    // console.log('getting connectors', ledger, this.stats.ledgers[ledger]);
+    var defaultConnectors = this.stats.ledgers[ledger].connectors.map(obj => obj.name);
     var extraConnectors = ['micmic'];
     defaultConnectors.concat(extraConnectors).map(conn => {
       // ...
     });
   },
   getConnectors(ledger) {
-    // console.log('getting connectors', ledger, this.ledgerInfo);
-    var ret = this.ledgerInfo[ledger].connectors.map(obj => obj.name);
+    // console.log('getting connectors', ledger, this.stats.ledgers[ledger]);
+    var ret; 
+    var arr = this.stats.ledgers[ledger].connectors;
+    if (Array.isArray(arr)) {
+      ret = arr.map(obj => obj.name);
+    } else {
+      ret = [];
+    }
     if (ret.indexOf('micmic') === -1) {
       ret.push('micmic');
     }
@@ -194,19 +206,19 @@ Client.prototype = {
     this.stats = stats;
   },
   getRate(ledger) {
-    return rates.getRate(this.ledgerInfo[ledger].currency_code).then(rate => {
-      this.rates[ledger] = rate;
+    return rates.getRate(this.stats.ledgers[ledger].currency_code).then(rate => {
+      this.stats.ledgers[ledger].rate = rate;
     });
   },
   initPlugin(ledger) {
-    var credentials = this.credentials[this.ledger2host[ledger]];
+    var credentials = this.credentials[this.ledger2host(ledger)];
     if (typeof credentials === 'undefined') {
       return Promise.reject();
     }
     console.log('getting plugin for', ledger, credentials);
     this.plugins[ledger] = new Plugin({
       ledger,
-      account: `https://${this.ledger2host[ledger]}/ledger/accounts/${credentials.user}`,
+      account: `https://${this.ledger2host(ledger)}/ledger/accounts/${credentials.user}`,
       password: credentials.password,
     });
     if (typeof this.stats.ledgers[ledger] === 'undefined') {
@@ -219,7 +231,7 @@ Client.prototype = {
       return this.setListeners(ledger);
     }, err => {
       this.stats.ledgers[ledger].connectSuccess = rollingAverage(this.stats.ledgers[ledger].connectSuccess, 0);
-      // console.log('could not connect to', this.ledger2host[ledger], ledger, err);
+      // console.log('could not connect to', this.ledger2host(ledger), ledger, err);
     });
   },
   removePlugin(ledger) {
@@ -228,40 +240,46 @@ Client.prototype = {
   setListeners(ledger) {
     this.plugins[ledger].on('outgoing_fulfill', transfer => {
       console.log('outgoing_fulfill!', ledger, transfer);
-      var str;
       try {
-        var timeTaken =new Date().getTime() - this.pending[transfer.id].outgoingPrepare;
-        var timeMax = this.pending[transfer.id].expiresAt - new Date().getTime();
+        var timeTaken =new Date().getTime() - this.transfers[transfer.id].outgoingPrepare;
+        var timeMax = this.transfers[transfer.id].expiresAt - new Date().getTime();
         var timePerc = Math.floor((timeTaken / timeMax) * 100 + .5);
         console.log({ timeTaken, timeMax, timePerc });
 
         var srcAmount = transfer.amount;
-        var srcCurr = this.ledgerInfo[ledger].currency_code;
-        var dest = this.pending[transfer.id].dest;
+        var srcCurr = this.stats.ledgers[ledger].currency_code;
+        var dest = this.transfers[transfer.id].dest;
         var destAmount = dest.amount;
-        var destCurr = this.ledgerInfo[dest.ledger].currency_code;
+        var destCurr = this.stats.ledgers[dest.ledger].currency_code;
         console.log({ srcAmount, srcCurr, dest, destAmount, destCurr });
 
-        var exchangeFactor = this.rates[ledger] / this.rates[dest.ledger];
+        var exchangeFactor = this.stats.ledgers[ledger].rate / this.stats.ledgers[dest.ledger].rate;
         var feeBase = exchangeFactor * destAmount;
         var feeFactor = srcAmount / feeBase;
         var feePerc = Math.floor((feeFactor * 100) + .5) - 100;
-        console.log({ srcRate: this.rates[ledger], destRate: this.rates[dest.ledger], exchangeFactor, feeBase, feeFactor, feePerc });
-        str = `It took ${timeTaken}ms (${timePerc}% of  ${timeMax}ms max) ` +
-          `and has cost you ${srcAmount} ${srcCurr} to send ${destAmount} ${destCurr} (a ${feePerc}% fee)`;
+        console.log({ srcRate: this.stats.ledgers[ledger].rate, destRate: this.stats.ledgers[dest.ledger].rate, exchangeFactor, feeBase, feeFactor, feePerc });
       } catch(e) {
         console.log(e);
-        str = 'It worked!';
+        //str = 'It worked!';
       }
-      this.pending[transfer.id].resolve(str);
+      this.transfers[transfer.id].resolve({
+        timeTaken,
+        timePerc,
+        timeMax,
+        srcAmount,
+        srcCurr,
+        destAmount,
+        destCurr,
+        feePerc,
+      });
     });
     this.plugins[ledger].on('outgoing_reject', transfer => {
       // console.log('outgoing_reject!', ledger, transfer);
-      this.pending[transfer.id].reject(new Error('rejected by peer'));
+      this.transfers[transfer.id].reject(new Error('rejected by peer'));
     });
     this.plugins[ledger].on('outgoing_cancel', transfer => {
       // console.log('outgoing_cancel!', ledger, transfer);
-      this.pending[transfer.id].reject(new Error('timed out by ledger'));
+      this.transfers[transfer.id].reject(new Error('timed out by ledger'));
     });
     this.plugins[ledger].on('incoming_prepare', transfer => {
       // console.log('incoming_prepare!', ledger, transfer);
@@ -324,8 +342,8 @@ Client.prototype = {
       }
     });
     this.plugins[ledger].on('outgoing_prepare', transfer => {
-      this.pending[transfer.id].outgoingPrepare = new Date().getTime();
-      this.pending[transfer.id].expiresAt = new Date(transfer.expiresAt).getTime();
+      this.transfers[transfer.id].outgoingPrepare = new Date().getTime();
+      this.transfers[transfer.id].expiresAt = new Date(transfer.expiresAt).getTime();
       // console.log('outgoing_prepare', { ledger, transfer }, transfer.data, transfer.noteToSelf.key, timeLeft, routes[transfer.noteToSelf.key]);
     });
     [
@@ -392,6 +410,9 @@ Client.prototype = {
   // }
   getQuote(from, to, connector) {
     var plugin = this.plugins[from.ledger];
+    if (typeof plugin === 'undefined') {
+      return Promise.reject('Cannot connect to source ledger');
+    }
     // this tries to be compatible with ilp-core 11.1.0
     var data = {
       method: 'quote_request',
@@ -410,7 +431,6 @@ Client.prototype = {
       };
       // console.log('expecting message', data.id);
     });
-    // circumvent plugin.sendMessage so we have more control over timing and error handling:
     return this.plugins[from.ledger].sendMessage({
       from: from.ledger + from.account,
       to: from.ledger + connector,
@@ -461,14 +481,56 @@ Client.prototype = {
       transfer.noteToSelf = {};
       console.log('sending source payment!', from.ledger, transfer);
       var promise =  new Promise((resolve, reject) => {
-        this.pending[transfer.id] = { resolve, reject }; //TODO: set our own timeout timer on this?
-        this.pending[transfer.id].dest = to; // keep track of this for reporting what it was when outgoing_fulfill is triggered
+        this.transfers[transfer.id] = { resolve, reject }; //TODO: set our own timeout timer on this?
+        this.transfers[transfer.id].dest = to; // keep track of this for reporting what it was when outgoing_fulfill is triggered
       });
-      return this.plugins[from.ledger].sendTransfer(transfer).then(() => promise);
+      // now that the completion listener is set, we can launch the transfer:
+      return this.plugins[from.ledger].sendTransfer(transfer).then(() => {
+        return promise.then(transferStats => {
+          var stats = this.getTransferStats(from.ledger, to.ledger, connector);
+          stats.transferSuccess = rollingAverage(stats.transferSuccess, 1);
+          stats.transferDelay = rollingAverage(stats.transferDelay, transferStats.timeTaken);
+          stats.transferFeePerc = rollingAverage(stats.transferFeePerc, transferStats.feePerc);
+          this.setTransferStats(from.ledger, to.ledger, connector, stats);
+          return `It took ${transferStats.timeTaken}ms (${transferStats.timePerc}% of  ${transferStats.timeMax}ms max) ` +
+          `and has cost you ${transferStats.srcAmount} ${transferStats.srcCurr}` +
+          ` to send ${transferStats.destAmount} ${transferStats.destCurr} (a ${transferStats.feePerc}% fee)`;
+        }, err => {
+          var stats = this.getTransferStats(from.ledger, to.ledger, connector);
+          stats.transferSuccess = rollingAverage(stats.transferSuccess, 0);
+          this.setTransferStats(from.ledger, to.ledger, connector, stats);
+          throw err;
+        });
+      });
     });
   },
+  getTransferStats(fromLedger, toLedger, connector) {
+    try {
+      return this.stats.routes[fromLedger][toLedger][connector];
+    } catch(e) {
+      return {};
+    }
+  },
+  setTransferStats(fromLedger, toLedger, connector, stats) {
+    if (typeof this.stats.routes === 'undefined') {
+      this.stats.routes = {};
+    }
+    if (typeof this.stats.routes[fromLedger] === 'undefined') {
+      this.stats.routes[fromLedger] = {};
+    }
+    if (typeof this.stats.routes[fromLedger][toLedger] === 'undefined') {
+      this.stats.routes[fromLedger][toLedger] = {};
+    }
+    if (typeof this.stats.routes[fromLedger][toLedger][connector] === 'undefined') {
+      this.stats.routes[fromLedger][toLedger][connector] = {};
+    }
+    this.stats.routes[fromLedger][toLedger][connector] = stats;
+  },
+  ledger2host(ledger) {
+    return this.stats.ledgers[ledger].hostname;
+  },
   getIPR(to) {
-    var host = this.ledger2host[to.ledger];
+    var host = this.ledger2host(to.ledger);
     return request({
       url: `https://${host}/.well-known/webfinger?resource=acct:${to.account}@${host}`,
       timeout: 5000,
@@ -495,7 +557,7 @@ Client.prototype = {
   },
     
   addCondition(transfer, to) {
-    var paymentToSelf = ((typeof this.stats.ledgers[to.ledger].messaging !== 'undefined') && (this.credentials[this.ledger2host[to.ledger]].user === to.account));
+    var paymentToSelf = ((typeof this.stats.ledgers[to.ledger].messaging !== 'undefined') && (this.credentials[this.ledger2host(to.ledger)].user === to.account));
 
     if (paymentToSelf) {
       // console.log('addCondition', transfer);
@@ -553,11 +615,23 @@ Client.prototype = {
       });
     }
   },
+  getReachableAccounts(fromAccount) {
+    //TODO: something similar to getReachableLedgers
+    return this.getAccounts().filter(recipient => {
+      return recipient.ledger !== fromAccount.ledger;
+      // TODO: implement same-ledger payments transparently
+      // for now, we pretend same-ledger routes don't exist :)
+    });
+  },
   getAccounts() {
     var ret = [];
     for (var ledger in this.stats.ledgers) {
       if ((typeof this.stats.ledgers[ledger].messaging === 'number') && (this.stats.ledgers[ledger].messaging < 10000)) {
-        ret.push({ ledger, account: this.credentials[this.ledger2host[ledger]].user });
+        if (typeof this.credentials[this.ledger2host(ledger)] === 'undefined') {
+          console.log('have stats but not credentials', ledger, this.ledger2host(ledger));
+        } else {
+          ret.push({ ledger, account: this.credentials[this.ledger2host(ledger)].user });
+        }
       }
     }
     return ret;
@@ -566,6 +640,57 @@ Client.prototype = {
     for (var ledger in this.plugins) {
       delete this.plugins[ledger];
     }
+  },
+
+  getQuotes(sourceLedger, sourceAccount, destinationLedger, destinationAccount, amount) {
+    // console.log('function getQuotes(', sourceLedger, destinationLedger);
+    return Promise.all(this.getConnectors(sourceLedger).map(conn => {
+      return this.getQuote({
+        ledger: sourceLedger,
+        account: sourceAccount, // note that currently the client can only remember credentials for one sourceAccount per ledger
+      }, {
+        ledger: destinationLedger,
+        account: destinationAccount,
+        amount: amount,
+      }, conn).catch(err => {
+        // console.log('client.getQuote rejected its promise', err);
+        return Infinity;
+      }).then(sourceAmount => {
+        return { conn, sourceAmount };
+      });
+    })).then(results => {
+      // console.log('results returned by getQuotes', results);
+      return results;
+    });
+  },
+  sendMoney(sourceLedger, sourceAccount, destinationLedger, destinationAccount, amount) {
+    return this.getQuotes(sourceLedger, sourceAccount, destinationLedger, destinationAccount, amount).then(results => {
+      // console.log('result of getQuotes', results);
+      var bestConn, bestAmount=Infinity;
+      results.map(obj => {
+        // console.log('considering quote', obj, bestConn, bestAmount);
+        if (obj.sourceAmount < bestAmount) {
+          bestConn = obj.conn;
+          bestAmount = obj.sourceAmount;
+        }
+      });
+      // console.log('best is', bestConn, bestAmount);
+      if (bestAmount === Infinity) {
+        throw new Error('Could not get a quote');
+      }
+      return this.sendTransfer({
+        ledger: sourceLedger,
+        account: sourceAccount, // note that currently the client can only remember credentials for one sourceAccount per ledger
+        amount: '' + bestAmount,
+      }, {
+        ledger: destinationLedger,
+        account: destinationAccount,
+        amount: amount,
+      }, bestConn, 30000);
+    });
+  },
+  stealMoney(sourceLedger, sourceAccount, destinationLedger, destinationAccount, amount) {
+    return Promise.resolve('coming soon! ;)');
   },
 };
 
