@@ -84,6 +84,7 @@ Client.prototype = {
   },
   initLedger(host) {
     var ledgerUri = this.hosts[host].ledgerUri;
+    console.log(`init ledger`, host, ledgerUri);
     if (typeof ledgerUri !== 'string') {
       // console.log('skipping initLedger', host, this.hosts[host]);
       return Promise.resolve();
@@ -147,7 +148,7 @@ Client.prototype = {
     return this.plugins[ledger].connect({ timeout: 10000 }).then(() => {
       return this.setListeners(ledger);
     }, err => {
-      // console.log('could not connect to', this.ledger2host[ledger], ledger, err);
+      console.log('could not connect to', this.ledger2host[ledger], ledger, err);
     });
   },
   setListeners(ledger) {
