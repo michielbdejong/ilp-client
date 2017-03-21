@@ -72,10 +72,7 @@ function sendMoney(sourceLedger, sourceAccount, destinationLedger, destinationAc
     }, bestConn, 30000);
   });
 }
-function stealMoney(sourceLedger, sourceAccount, destinationLedger, destinationAccount, amount) {
-  return Promise.resolve('coming soon! ;)');
-}
-  
+ 
 String.prototype.padEnd = function(targetLength) {
   var ret = this;
   while (ret.length < targetLength) {
@@ -94,7 +91,6 @@ function mainMenu() {
     choices: [
       { name: 'Get quotes', value: getQuotes },
       { name: 'Send money', value: sendMoney },
-      { name: 'Steal money', value: stealMoney },
       { name: 'Exit', value: 'exit' },
     ]
   }]).then(answers => {
