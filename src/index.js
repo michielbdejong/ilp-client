@@ -32,22 +32,26 @@ function Client(credentials) {
 }
 
 Client.prototype = {
-  init() {
-    var promise = [];
+  init(addOtherLedgers) {
+    var promise = Promise.resolve();
     var knownHosts = {};
-    const linePrefixWeWant = '  { "hostname": "'; // FIXME: better than eval(), but not robust
-    return request({
-      url: 'https://connector.land/data/hosts.js',
-      timeout: 5000,
-    }).then(body => {
-      body.split('\n').filter(line => {
-        return (line.substring(0, linePrefixWeWant.length) === linePrefixWeWant);
-      }).map(lineWeWant => lineWeWant.substring(linePrefixWeWant.length).split('"')[0]).map(hostname => {
-        knownHosts[hostname] = false;
-      });
-    }).catch(err => {
-      // use just the hosts where we have credentials
-      console.log(err);
+    return Promise.resolve().then(() => {
+      if (addOtherLedgers) {
+        const linePrefixWeWant = '  { "hostname": "'; // FIXME: better than eval(), but not robust
+        return request({
+          url: 'https://connector.land/data/hosts.js',
+          timeout: 5000,
+        }).then(body => {
+          body.split('\n').filter(line => {
+            return (line.substring(0, linePrefixWeWant.length) === linePrefixWeWant);
+           }).map(lineWeWant => lineWeWant.substring(linePrefixWeWant.length).split('"')[0]).map(hostname => {
+            knownHosts[hostname] = false;
+          });
+        }).catch(err => {
+          // use just the hosts where we have credentials
+          console.log(err);
+        })
+      }
     }).then(() => {
       for (var hostname in this.credentials) {
         knownHosts[hostname] = true;

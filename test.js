@@ -148,6 +148,7 @@ function doTask(task) {
 // ...
 console.log(`Connecting to ${Object.keys(credentials).length} ledgers...`);
 var client = new Client(credentials);
-client.init().then(() => {
+// client.init(true /* add destination ledgers which https://connector.land should be reachable destinations */).then(() => {
+client.init().then(() => { // add just destination ledgers where we have an account
   return mainMenu();
 });
