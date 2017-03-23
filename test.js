@@ -143,25 +143,7 @@ function doTask(task) {
 // ...
 console.log(`Connecting to ${Object.keys(credentials).length} ledgers...`);
 var client = new Client(credentials);
-client.init().then(() => {
-  var count = 0;
-  setInterval(function() {
-    client.plugins['lu.eur.michiel.'].getBalance().then(bal => {
-      console.log(bal);
-    });
-    client.sendTransfer({
-      ledger: 'lu.eur.michiel.',
-      account: 'lunch', // note that currently the client can only remember credentials for one sourceAccount per ledger
-      amount: '0.01',
-    }, {
-      ledger: 'lu.eur.michiel.',
-      account: 'admin',
-      amount: '0.01',
-    }, 'admin', 30000).then(() => {
-      console.log(`ok ${++count}`);
-    }, err => {
-      console.log(`NO ${++count}`, err);
-    });
-  }, 150);
- // return mainMenu();
+// client.init(true /* add destination ledgers which https://connector.land should be reachable destinations */).then(() => {
+client.init().then(() => { // add just destination ledgers where we have an account
+  return mainMenu();
 });
