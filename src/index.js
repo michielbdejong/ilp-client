@@ -7,7 +7,17 @@
 // * checking each hour
 // the cache file is updated on each check
 //
-var Plugin = require('ilp-plugin-bells');  // TODO: allow other ledger types
+
+function getPluginConstructor(ledgerVersion) {
+  var pluginMap = {
+    'five-bells@19': 'ilp-plugin-bells-10',
+    'five-bells@20': 'ilp-plugin-bells',
+  };
+  var module = pluginMap[ledgerVersion || 'five-bells@19'];
+  return require(module);
+}
+
+var Plugin = require('ilp-plugin-bells');
 var cryptoHelper = require('ilp/src/utils/crypto');
 var cc           = require('ilp/src/utils/condition');
 var uuidV4 = require('uuid/v4');
@@ -29,6 +39,7 @@ function Client(credentials) {
   ['stats', 'plugins', 'fulfillments', 'quoteRequests', 'transfers'].map(field => {
     this[field] = {};
   });
+  this.stats.hosts = {};
   this.stats.ledgers = {};
   this.stats.connectors = {};
 }
@@ -85,6 +96,9 @@ Client.prototype = {
       }
       console.log(knownHosts);
       return Promise.all(Object.keys(knownHosts).map(hostname => {
+        if (typeof this.stats.hosts[hostname] === 'undefined') {
+          this.stats.hosts[hostname] = {};
+        }
         return inspect.getHostInfo(hostname).then(obj => {
           for (var field in obj) {
             this.stats.hosts[hostname][field] = obj[field];
@@ -144,18 +158,25 @@ Client.prototype = {
     });
   },
   initLedger(host) {
+console.log('START initLedger', host)
     var ledgerUri = this.stats.hosts[host].ledgerUri;
     if (typeof ledgerUri !== 'string') {
-      // console.log('skipping initLedger', host, this.stats.hosts[host]);
-      return Promise.resolve();
+      console.log('skipping initLedger', host, this.stats.hosts[host]);
+      return Promise.reject(new Error('no ledgerUri found for ' + host));
     }
     var ledger;
+console.log('START getLedgerInfo', ledgerUri, host)
     return inspect.getLedgerInfo(ledgerUri).then(ledgerInfo => {
       ledger = ledgerInfo.ilp_prefix;
+      if (typeof this.stats.ledgers[ledger] === 'undefined') {
+        this.stats.ledgers[ledger] = {};
+      }
       for (var field in ledgerInfo) {
         this.stats.ledgers[ledger][field] = ledgerInfo[field];
       }
+console.log('MAPPING', ledger, host)
       this.stats.ledgers[ledger].hostname = host;
+      this.stats.hosts[host].ledger = ledger; // for now, one host can only announce one ledger
       if (typeof this.credentials[host] === 'undefined') {
         return Promise.resolve();
       }
@@ -220,6 +241,7 @@ Client.prototype = {
       return Promise.reject();
     }
     console.log('getting plugin for', ledger, credentials);
+    var Plugin = getPluginConstructor(this.stats.ledgers[ledger].apiVersion);
     this.plugins[ledger] = new Plugin({
       ledger,
       account: `https://${this.ledger2host(ledger)}/ledger/accounts/${credentials.user}`,

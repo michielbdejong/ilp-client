@@ -77,7 +77,17 @@ String.prototype.padEnd = function(targetLength) {
 
 function mainMenu() {
   console.log(['Host', 'Ledger', 'Account', 'Balance'].map(col => col.padEnd(50)).join('\t'));
-  console.log(Object.keys(client.balances).map(ledger => `${client.ledger2host[ledger].padEnd(50)}\t${ledger.padEnd(50)}\t${client.credentials[client.ledger2host[ledger]].user.padEnd(50)}\t${client.balances[ledger]}`).join('\n'));
+  console.log(passwords.map(obj => {
+    try {
+      var host = obj[0];
+      var user = obj[1];
+      var ledger = client.stats.hosts[host].ledger;
+      var balance = client.stats.ledgers[ledger].balances[user];
+      return `${host.padEnd(50)}\t${ledger.padEnd(50)}\t${user.padEnd(50)}\t${balance}\n`;
+    } catch (e) {
+      return '';
+    }
+  }).join(''));
   return inquirer.prompt([{
     message: 'What do you want to do?',
     type: 'list',
@@ -145,5 +155,6 @@ console.log(`Connecting to ${Object.keys(credentials).length} ledgers...`);
 var client = new Client(credentials);
 // client.init(true /* add destination ledgers which https://connector.land should be reachable destinations */).then(() => {
 client.init().then(() => { // add just destination ledgers where we have an account
+  console.log('client init done');
   return mainMenu();
 });
