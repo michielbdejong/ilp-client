@@ -1,7 +1,7 @@
 var Client = require('.');
 var inquirer = require('inquirer');
 var passwords = require('./passwords');
-var credentials = {};
+var addressBook = require('./addressbook.json');
 
 passwords.map(arr => {
   if (arr.length !== 3) {
@@ -16,10 +16,6 @@ passwords.map(arr => {
     }
   });
   console.log(`Have a password for user ${arr[1]} on ledger ${arr[0]}`);
-  credentials[arr[0]] = {
-   user: arr[1],
-   password: arr[2],
- };
 });
  
 String.prototype.padEnd = function(targetLength) {
@@ -48,9 +44,9 @@ function mainMenu() {
     type: 'list',
     name: 'task',
     choices: [
-      { name: 'Get quotes', value: getQuotes },
-      { name: 'Send money', value: sendMoney },
-      { name: 'Steal money', value: stealMoney },
+      { name: 'Add an address to the addressbook', value: addressBookAdds },
+      { name: 'Send money to someone', value: sendMoney },
+      { name: 'Balance my own money', value: balanceMoney },
       { name: 'Exit', value: 'exit' },
     ]
   }]).then(answers => {
@@ -65,25 +61,13 @@ function mainMenu() {
 }
 function doTask(task) {
   return inquirer.prompt([{
-    message: 'From which source ledger?',
-    type: 'list',
-    name: 'sourceLedger',
-    choices: client.getAccounts().map(obj => obj.ledger),
-  }, {
     message: 'To which destination ledger?',
     type: 'list',
     name: 'destinationLedger',
     choices: client.getReachableLedgers(),
   }]).then(answers1 => {
     console.log({ answers1 });
-    var sourceHost = client.ledger2host[answers1.sourceLedger];
-    var sourceUser = client.credentials[sourceHost].user;
     return inquirer.prompt([{
-      message: `From which source account on ${answers1.sourceLedger}?`,
-      type: 'list',
-      name: 'sourceAccount',
-      choices: [ { value: sourceUser, name: `${sourceUser} (balance: ${client.balances[answers1.sourceLedger]} ${client.ledgerInfo[answers1.sourceLedger].currency_code})` } ],
-    }, {
       message: `To which destination account on ${answers1.destinationLedger}?`,
       type: 'input',
       name: 'destinationAccount',
@@ -94,6 +78,7 @@ function doTask(task) {
       validate: (val) => { return (isNaN(parseInt(val)) ? 'Please specify a number' : true) },
     }]).then(answers2 => {
       console.log({ answers2 });
+console.log('this is where we would get quotes from all known connectors, on ledgers where we have at least one account, and present all the options')
       return task(answers1.sourceLedger, answers2.destinationAccount, answers1.destinationLedger, answers2.destinationAccount, answers2.amount);
     });
   }).then(result => {
