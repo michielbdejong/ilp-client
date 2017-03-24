@@ -3,8 +3,6 @@ var inquirer = require('inquirer');
 var passwords = require('./passwords');
 var credentials = {};
 
-const user = 'connectorland';
-
 passwords.map(arr => {
   if (arr.length !== 3) {
     throw new Error(`Entry with ${arr.length} fields found in passwords.js file, please follow the format of passwords.js-sample`);
@@ -17,56 +15,13 @@ passwords.map(arr => {
       throw new Error(`Empty string field found in passwords.js file, please follow the format of passwords.js-sample`);
     }
   });
-  console.log(`Have a password for user ${arr[1]} on host ${arr[0]}`);
+  console.log(`Have a password for user ${arr[1]} on ledger ${arr[0]}`);
   credentials[arr[0]] = {
    user: arr[1],
    password: arr[2],
  };
 });
-
-
-function getQuotes(sourceLedger, sourceAccount, destinationLedger, destinationAccount, amount) {
-  // console.log('function getQuotes(', sourceLedger, destinationLedger);
-  return Promise.all(client.getConnectors(sourceLedger).map(conn => {
-    return client.getQuote({
-      ledger: sourceLedger,
-      account: sourceAccount, // note that currently the client can only remember credentials for one sourceAccount per ledger
-    }, {
-      ledger: destinationLedger,
-      account: destinationAccount,
-      amount: amount,
-    }, conn).catch(err => {
-      // console.log('client.getQuote rejected its promise', err);
-      return Infinity;
-    }).then(sourceAmount => {
-      return { conn, sourceAmount };
-    });
-  })).then(results => {
-    // console.log('results returned by getQuotes', results);
-    return results;
-  });
-}
-function sendMoney(sourceLedger, sourceAccount, destinationLedger, destinationAccount, amount) {
-  return getQuotes(sourceLedger, sourceAccount, destinationLedger, destinationAccount, amount).then(results => {
-    // console.log('result of getQuotes', results);
-    var bestConn, bestAmount=Infinity;
-    results.map(obj => {
-      // console.log('considering quote', obj, bestConn, bestAmount);
-      if (obj.sourceAmount < bestAmount) {
-        bestConn = obj.conn;
-        bestAmount = obj.sourceAmount;
-      }
-    });
-    // console.log('best is', bestConn, bestAmount);
-    if (bestAmount === Infinity) {
-      throw new Error('Could not get a quote');
-    }
-  });
-}
-function stealMoney(sourceLedger, sourceAccount, destinationLedger, destinationAccount, amount) {
-  return Promise.resolve('coming soon! ;)');
-}
-  
+ 
 String.prototype.padEnd = function(targetLength) {
   var ret = this;
   while (ret.length < targetLength) {
@@ -76,14 +31,14 @@ String.prototype.padEnd = function(targetLength) {
 };
 
 function mainMenu() {
-  console.log(['Host', 'Ledger', 'Account', 'Balance'].map(col => col.padEnd(50)).join('\t'));
+  console.log(['Ledger', 'Account', 'Balance', '(Host)'].map(col => col.padEnd(50)).join('\t'));
   console.log(passwords.map(obj => {
     try {
-      var host = obj[0];
+      var ledger = obj[0];
       var user = obj[1];
-      var ledger = client.stats.hosts[host].ledger;
       var balance = client.stats.ledgers[ledger].balances[user];
-      return `${host.padEnd(50)}\t${ledger.padEnd(50)}\t${user.padEnd(50)}\t${balance}\n`;
+      var host = client.stats.ledgers[ledger].hostname || '(Unhosted)';
+      return `${host.padEnd(50)}\t${ledger.padEnd(50)}\t${user.padEnd(50)}\t${balance}\t${host}\n`;
     } catch (e) {
       return '';
     }
