@@ -5,8 +5,8 @@ Common parts between [micmic](https://github.com/michielbdejong/micmic) and [con
 # Usage
 
 ```sh
-git clone https://github.com/michielbdejong/ilp-client
-cd ilp-client
+git clone https://github.com/michielbdejong/ilp-node
+cd ilp-node
 npm install
 cp passwords.js-sample passwords.js
 vim passwords.js
