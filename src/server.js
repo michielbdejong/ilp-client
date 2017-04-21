@@ -1,17 +1,40 @@
 var http = require('http');
+var crypto = require('crypto');
+const tweetnacl = require('tweetnacl');
+const base64url = require('base64url');
 
 const WEBFINGER_PREFIX = '/.well-known/webfinger?resource=';
 const WEBFINGER_PREFIX_LENGTH =  WEBFINGER_PREFIX.length;
 
+
+const generateSecret = (secret, name) => {
+}
+const publicKey = (seed) => {
+  // seed should be a base64url string
+  const seedBuffer = base64url.toBuffer(seed)
+
+}
+
+var keypair; // TODO: persist this to disk inbetween restarts
+
 function getPubKey() {
-  return 'Sk0gGc3mz9_Ci2eLTTBPfuMdgFEW3hRj0QTRvWFZBEQ';
+  if (!keypair) {
+    keypair = {
+      priv: crypto.createHmac('sha256', base64url(crypto.randomBytes(33))).update('CONNECTOR_ED25519').digest('base64'),
+    };
+    keypair.pub = base64url(tweetnacl.scalarMult.base(
+      crypto.createHash('sha256').update(base64url.toBuffer(keypair.priv)).digest()
+    ));
+  }
+  return keypair.pub;
 }
 
 function webfingerRecord (host, resource) {
   var ret = {
     subject: resource
   };
-  if (resource === host) { // host
+  console.log({ host, resource })
+  if ([host, 'https://'+host, 'http://'+host].indexOf(resource) !== -1) { // host
     ret.properties = {
      'https://interledger.org/rel/publicKey': getPubKey(),
      'https://interledger.org/rel/protocolVersion': 'Compatible: ilp-kit v2.0.0-alpha'
