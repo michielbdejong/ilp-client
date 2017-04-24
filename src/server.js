@@ -64,6 +64,10 @@ function handleRpc(params, bodyObj) {
   }
 }
 
+function handleSpsp(acct) {
+  return 'not implemented yet';
+}
+
 module.exports.listen = function(port) {
   var server = http.createServer(function(req, res) {
     if (req.url.substring(0, WEBFINGER_PREFIX_LENGTH) === WEBFINGER_PREFIX) {
