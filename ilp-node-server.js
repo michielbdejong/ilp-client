@@ -40,7 +40,7 @@ function makeToken(input, peerPublicKey) {
 var spspSecret;
 
 function getSpspSecret() {
-  return spspSecret || (spspSecret = crypto.randomBytes(33).toString('hex'));
+  return spspSecret || (spspSecret = base64url(crypto.randomBytes(16)));
 }
 
 function getPeerPublicKey(hostname, callback) {
@@ -126,7 +126,7 @@ function handleRpc(params, bodyObj) {
           data: {
             new_routes: [ {
               source_ledger: ledger,
-              destination_ledger: 'mylp.longplayer.',
+              destination_ledger: 'g.mylp.longplayer.',
               points: [
                 [1e-12,0],
                 [100000000000000000, 11009463495575220000]
@@ -186,7 +186,8 @@ http.createServer(function(req, res) {
   
   if (req.url.substring(0, WEBFINGER_PREFIX_LENGTH) === WEBFINGER_PREFIX) {
     res.writeHead(200, {
-      'Access-Control-Allow-Origin': '*'
+      'Access-Control-Allow-Origin': '*',
+      'Content-Type': 'application/json'
     });
     res.end(webfingerRecord(req.headers.host, req.url.substring(WEBFINGER_PREFIX_LENGTH)));
   } else {
