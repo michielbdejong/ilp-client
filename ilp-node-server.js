@@ -10,19 +10,19 @@ const base64url = require('base64url');
 const WEBFINGER_PREFIX = '/.well-known/webfinger?resource=';
 const WEBFINGER_PREFIX_LENGTH =  WEBFINGER_PREFIX.length;
 
-var keypair; // TODO: persist this to disk inbetween restarts
-
-function getKeyPair() {
-  if (!keypair) {
-    keypair = {
-      priv: crypto.createHmac('sha256', base64url(crypto.randomBytes(33))).update('CONNECTOR_ED25519').digest('base64'),
-    };
-    keypair.pub = base64url(tweetnacl.scalarMult.base(
-      crypto.createHash('sha256').update(base64url.toBuffer(keypair.priv)).digest()
-    ));
-    fs.writeFile('privKey', JSON.stringify(keypair, null, 2), function(err) { console.log('written keypair', err); });
-  }
-  return keypair;
+var keypair;
+try {
+  keypair = JSON.parse(fs.readFileSync('keyPair'));
+  console.log('read keypair');
+} catch(e) {
+  keypair = {
+    priv: crypto.createHmac('sha256', base64url(crypto.randomBytes(33))).update('CONNECTOR_ED25519').digest('base64'),
+  };
+  keypair.pub = base64url(tweetnacl.scalarMult.base(
+    crypto.createHash('sha256').update(base64url.toBuffer(keypair.priv)).digest()
+  ));
+  fs.writeFileSync('keyPair', JSON.stringify(keypair, null, 2));
+  console.log('wrote keypair');
 }
 
 var tokens = {
@@ -32,7 +32,7 @@ var tokens = {
 
 function makeToken(input, peerPublicKey) {
   return tokens[input][peerPublicKey] || (tokens[input][peerPublicKey] = base64url(crypto.createHmac('sha256', tweetnacl.scalarMult(
-    crypto.createHash('sha256').update(base64url.toBuffer(getKeyPair().priv)).digest(),
+    crypto.createHash('sha256').update(base64url.toBuffer(keypair.priv)).digest(),
     base64url.toBuffer(peerPublicKey)
   )).update(input, 'ascii').digest()));
 }
@@ -72,7 +72,7 @@ function webfingerRecord (host, resource) {
   console.log({ host, resource })
   if ([host, 'https://'+host, 'http://'+host].indexOf(resource) !== -1) { // host
     ret.properties = {
-     'https://interledger.org/rel/publicKey': getKeyPair().pub,
+     'https://interledger.org/rel/publicKey': keypair.pub,
      'https://interledger.org/rel/protocolVersion': 'Compatible: ilp-kit v2.0.0-alpha'
     };
     ret.links = [
@@ -108,14 +108,39 @@ function handleRpc(params, bodyObj) {
       }
       var ledger = 'peer.' + makeToken('token', peerPublicKey).substring(0, 5) + '.usd.9.';
       console.log({ err, ledger });
-      var req = https.request({
+      var options = {
         host: 'ilp-kit.michielbdejong.com',
-        path: `/peers/rpc?method=send_message&prefix=${ledger}`,
+        path: `/api/peers/rpc?method=send_message&prefix=${ledger}`,
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           Authorization: 'Bearer ' + makeToken('authorization', peerPublicKey)
         },
-      }, (res) => {
+      };
+      var postData = [ {
+        ledger,
+        from: ledger + keypair.pub,
+        to: ledger + peerPublicKey,
+        data: {
+          method: 'broadcast_routes',
+          data: {
+            new_routes: [ {
+              source_ledger: ledger,
+              destination_ledger: 'mylp.longplayer.',
+              points: [
+                [1e-12,0],
+                [100000000000000000, 11009463495575220000]
+              ],
+              min_message_window: 1,
+              source_account: ledger + keypair.pub
+            } ],
+            hold_down_time: 45000,
+            unreachable_through_me: []
+          }
+        }
+      } ];
+      console.log('making request!', options, postData);
+      var req = https.request(options, (res) => {
         console.log(`STATUS: ${res.statusCode}`);
         console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
         res.setEncoding('utf8');
@@ -130,28 +155,8 @@ function handleRpc(params, bodyObj) {
       req.on('error', (e) => {
         console.error(`problem with request: ${e.message}`);
       });
-      req.end(JSON.stringify([ {
-        ledger,
-        from: ledger + getKeyPair().pub,
-        to: ledger + peerPublicKey,
-        data: {
-          method: 'broadcast_routes',
-          data: {
-            new_routes: [ {
-              source_ledger: ledger,
-              destination_ledger: 'mylp.longplayer.',
-              points: [
-                [1e-12,0],
-                [100000000000000000, 11009463495575220000]
-              ],
-              min_message_window: 1,
-              source_account: ledger + getKeyPair().pub,
-              hold_down_time: 45000,
-              unreachable_through_me: []
-            } ],
-          }
-        }
-      } ], null, 2));
+      req.write(JSON.stringify(postData, null, 2));
+      req.end();
     });
     break;
   default:
@@ -172,7 +177,7 @@ function handleRpc(params, bodyObj) {
 //   server.listen(port);
 // };
 
-
+console.log('starting server!')
 http.createServer(function(req, res) {
   console.log(req.method, req.url, req.headers);
   req.on('data', function(chunk) {
@@ -224,9 +229,3 @@ http.createServer(function(req, res) {
     }
   }
 }).listen(6000);
-fs.readFile('keyPair', function(err, data) {
-  if (!err) {
-    keypair = JSON.parse(data);
-    console.log('read keypair');
-   }
-});
