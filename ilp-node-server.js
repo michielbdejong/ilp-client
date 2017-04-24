@@ -1,4 +1,5 @@
 var http = require('http');
+var https = require('https');
 var fs = require('fs');
 var stats = fs.readFileSync('../data/stats.json');
 
@@ -11,7 +12,7 @@ const WEBFINGER_PREFIX_LENGTH =  WEBFINGER_PREFIX.length;
 
 var keypair; // TODO: persist this to disk inbetween restarts
 
-function getPubKey() {
+function getKeyPair() {
   if (!keypair) {
     keypair = {
       priv: crypto.createHmac('sha256', base64url(crypto.randomBytes(33))).update('CONNECTOR_ED25519').digest('base64'),
@@ -19,14 +20,48 @@ function getPubKey() {
     keypair.pub = base64url(tweetnacl.scalarMult.base(
       crypto.createHash('sha256').update(base64url.toBuffer(keypair.priv)).digest()
     ));
+    fs.writeFile('privKey', JSON.stringify(keypair, null, 2), function(err) { console.log('written keypair', err); });
   }
-  return keypair.pub;
+  return keypair;
+}
+
+var tokens = {
+  token: {},
+  authorization: {},
+};
+
+function makeToken(input, peerPublicKey) {
+  return tokens[input][peerPublicKey] || (tokens[input][peerPublicKey] = base64url(crypto.createHmac('sha256', tweetnacl.scalarMult(
+    crypto.createHash('sha256').update(base64url.toBuffer(getKeyPair().priv)).digest(),
+    base64url.toBuffer(peerPublicKey)
+  )).update(input, 'ascii').digest()));
 }
 
 var spspSecret;
 
 function getSpspSecret() {
   return spspSecret || (spspSecret = crypto.randomBytes(33).toString('hex'));
+}
+
+function getPeerPublicKey(hostname, callback) {
+  https.get({
+    hostname,
+    path: '/.well-known/webfinger?resource=https://' + hostname,
+  }, (res) => {
+    var body = '';
+    res.on('data', chunk => {
+      body += chunk;
+    });
+    res.on('end', () => {
+      // {"subject":"https://ilp-kit.michielbdejong.com","properties":{"https://interledger.org/rel/publicKey":"Sk0gGc3mz9_Ci2eLTTBPfuMdgFEW3hRj0QTRvWFZBEQ","https://interledger.org/rel/protocolVersion":"Compatible: ilp-kit v2.0.0-alpha"},"links":[{"rel":"https://interledger.org/rel/ledgerUri","href":"https://ilp-kit.michielbdejong.com/ledger"},{"rel":"https://interledger.org/rel/peersRpcUri","href":"https://ilp-kit.michielbdejong.com/api/peers/rpc"},{"rel":"https://interledger.org/rel/settlementMethods","href":"https://ilp-kit.michielbdejong.com/api/settlement_methods"}]}
+      try {
+        callback(null, JSON.parse(body).properties['https://interledger.org/rel/publicKey']);
+      } catch (e) {
+console.log(e);
+        callback(e);
+      }
+    });
+  });
 }
 
 function webfingerRecord (host, resource) {
@@ -37,7 +72,7 @@ function webfingerRecord (host, resource) {
   console.log({ host, resource })
   if ([host, 'https://'+host, 'http://'+host].indexOf(resource) !== -1) { // host
     ret.properties = {
-     'https://interledger.org/rel/publicKey': getPubKey(),
+     'https://interledger.org/rel/publicKey': getKeyPair().pub,
      'https://interledger.org/rel/protocolVersion': 'Compatible: ilp-kit v2.0.0-alpha'
     };
     ret.links = [
@@ -64,6 +99,61 @@ function handleRpc(params, bodyObj) {
   case 'send_transfer':
     // TODO: try to fulfill SPSP payment, otherwise, try to forward
     break;
+  case 'send_message':
+    console.log('GOT MESSAGE!!', params, bodyObj);
+    getPeerPublicKey('ilp-kit.michielbdejong.com', (err, peerPublicKey) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      var ledger = 'peer.' + makeToken('token', peerPublicKey).substring(0, 5) + '.usd.9.';
+      console.log({ err, ledger });
+      var req = https.request({
+        host: 'ilp-kit.michielbdejong.com',
+        path: `/peers/rpc?method=send_message&prefix=${ledger}`,
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + makeToken('authorization', peerPublicKey)
+        },
+      }, (res) => {
+        console.log(`STATUS: ${res.statusCode}`);
+        console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => {
+          console.log(`BODY: ${chunk}`);
+        });
+        res.on('end', () => {
+          console.log('No more data in response.');
+        });
+      });
+      
+      req.on('error', (e) => {
+        console.error(`problem with request: ${e.message}`);
+      });
+      req.end(JSON.stringify([ {
+        ledger,
+        from: ledger + getKeyPair().pub,
+        to: ledger + peerPublicKey,
+        data: {
+          method: 'broadcast_routes',
+          data: {
+            new_routes: [ {
+              source_ledger: ledger,
+              destination_ledger: 'mylp.longplayer.',
+              points: [
+                [1e-12,0],
+                [100000000000000000, 11009463495575220000]
+              ],
+              min_message_window: 1,
+              source_account: ledger + getKeyPair().pub,
+              hold_down_time: 45000,
+              unreachable_through_me: []
+            } ],
+          }
+        }
+      } ], null, 2));
+    });
+    break;
   default:
     return 'Unknown method';
   }
@@ -81,6 +171,7 @@ function handleRpc(params, bodyObj) {
 //   });
 //   server.listen(port);
 // };
+
 
 http.createServer(function(req, res) {
   console.log(req.method, req.url, req.headers);
@@ -114,7 +205,7 @@ http.createServer(function(req, res) {
         maximum_destination_amount: '18446744073709552000',
         minimum_destination_amount: '1',
         ledger_info: {
-          currency_code: 'UCR',
+          currency_code: 'USD',
           currency_scale: 9
         },
         receiver_info: {
@@ -133,3 +224,9 @@ http.createServer(function(req, res) {
     }
   }
 }).listen(6000);
+fs.readFile('keyPair', function(err, data) {
+  if (!err) {
+    keypair = JSON.parse(data);
+    console.log('read keypair');
+   }
+});
