@@ -50,12 +50,33 @@ function webfingerRecord (host, resource) {
   return JSON.stringify(ret, null, 2);
 }
 
+function handleRpc(params, bodyObj) {
+  switch(params[method]) {
+  case 'getLimit':
+  case 'getBalance':
+    return '0';
+    break;
+  case 'sendTransfer':
+    // TODO: try to fulfill SPSP payment, otherwise, try to forward
+    break;
+  default:
+    return 'Unknown method';
+  }
+}
+
 module.exports.listen = function(port) {
   var server = http.createServer(function(req, res) {
     if (req.url.substring(0, WEBFINGER_PREFIX_LENGTH) === WEBFINGER_PREFIX) {
       res.end(webfingerRecord(req.headers.host, req.url.substring(WEBFINGER_PREFIX_LENGTH)));
     } else {
-      res.end(req.url);
+      parts = req.url.split('?');
+      if (parts[0] === '/rpc') {
+        var params = {};
+        parts[1].split('&').map(str => str.split('=')).map(arr => { params[arr[0]] = arr[1]; });
+        res.end(handleRpc(params));
+      } else {
+        res.end(handleSpsp(req.url.substring('/spsp/acct:'.length).split('@')));
+      }
     }
   });
   server.listen(port);
