@@ -1,14 +1,66 @@
 var http = require('http');
 var https = require('https');
 var fs = require('fs');
-var stats = fs.readFileSync('../data/stats.json');
-
 var crypto = require('crypto');
+
+// include hardcoded tweetnacl dependency:
 const tweetnacl = require('tweetnacl');
-const base64url = require('base64url');
+
+// include hardcoded base64url dependency;
+function fromBase64(base64) {
+  return base64
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+function base64url(input) {
+  if (Buffer.isBuffer(input)) {
+      return fromBase64(input.toString("base64"));
+  }
+  return fromBase64(new Buffer(input, 'utf-8').toString("base64"));
+}
+function padString(input) {
+    var segmentLength = 4;
+    var stringLength = input.length;
+    var diff = stringLength % segmentLength;
+    if (!diff) {
+        return input;
+    }
+    var position = stringLength;
+    var padLength = segmentLength - diff;
+    var paddedStringLength = stringLength + padLength;
+    var buffer = new Buffer(paddedStringLength);
+    buffer.write(input);
+    while (padLength--) {
+        buffer.write("=", position++);
+    }
+    return buffer.toString();
+}
+function toBase64(base64url) {
+    base64url = base64url.toString();
+    return padString(base64url)
+        .replace(/\-/g, "+")
+        .replace(/_/g, "/");
+}
+function toBuffer(base64url) {
+    return new Buffer(toBase64(base64url), "base64");
+}
+// end base64url
+
+var stats = fs.readFileSync('../data/stats.json');
 
 const WEBFINGER_PREFIX = '/.well-known/webfinger?resource=';
 const WEBFINGER_PREFIX_LENGTH =  WEBFINGER_PREFIX.length;
+
+var quoteId = 0;
+function newQuoteId() {
+  var newQuoteId = new Date().getTime();
+  while (newQuoteId < quoteId) {
+    newQuoteId++;
+  }
+  quoteId = newQuoteId;
+  return quoteId;
+}
 
 var keypair;
 try {
@@ -19,7 +71,7 @@ try {
     priv: crypto.createHmac('sha256', base64url(crypto.randomBytes(33))).update('CONNECTOR_ED25519').digest('base64'),
   };
   keypair.pub = base64url(tweetnacl.scalarMult.base(
-    crypto.createHash('sha256').update(base64url.toBuffer(keypair.priv)).digest()
+    crypto.createHash('sha256').update(toBuffer(keypair.priv)).digest()
   ));
   fs.writeFileSync('keyPair', JSON.stringify(keypair, null, 2));
   console.log('wrote keypair');
@@ -32,8 +84,8 @@ var tokens = {
 
 function makeToken(input, peerPublicKey) {
   return tokens[input][peerPublicKey] || (tokens[input][peerPublicKey] = base64url(crypto.createHmac('sha256', tweetnacl.scalarMult(
-    crypto.createHash('sha256').update(base64url.toBuffer(keypair.priv)).digest(),
-    base64url.toBuffer(peerPublicKey)
+    crypto.createHash('sha256').update(toBuffer(keypair.priv)).digest(),
+    toBuffer(peerPublicKey)
   )).update(input, 'ascii').digest()));
 }
 
@@ -44,6 +96,7 @@ function getSpspSecret() {
 }
 
 function getPeerPublicKey(hostname, callback) {
+  console.log('getting peer public key', hostname);
   https.get({
     hostname,
     path: '/.well-known/webfinger?resource=https://' + hostname,
@@ -90,6 +143,82 @@ function webfingerRecord (host, resource) {
   return JSON.stringify(ret, null, 2);
 }
 
+function postToPeer(host, postDataFn, cb) {
+  getPeerPublicKey(host, (err, peerPublicKey) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+    var ledger = 'peer.' + makeToken('token', peerPublicKey).substring(0, 5) + '.usd.9.';
+    console.log({ err, ledger });
+    var postData = postDataFn(ledger);
+    var options = {
+      host,
+      path: `/api/peers/rpc?method=send_message&prefix=${ledger}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + makeToken('authorization', peerPublicKey)
+      },
+    };
+    console.log('making request!', options, postData);
+    var req = https.request(options, (res) => {
+      console.log(`STATUS: ${res.statusCode}`);
+      console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
+      res.setEncoding('utf8');
+      var str = '';
+      res.on('data', (chunk) => {
+        str += chunk;
+      });
+      res.on('end', () => {
+        cb(null, str);
+      });
+    });
+    req.on('error', cb);
+    req.write(JSON.stringify([ {
+      ledger,
+      from: ledger + keypair.pub,
+      to: ledger + peerPublicKey,
+      data: postData
+    } ], null, 2));
+    req.end();
+  });
+}
+
+function getQuote(host, destinationLedger) {
+  console.log('quoting on new route!', host, destinationLedger);
+  postToPeer(host, ledger => {
+    return {
+      method: 'quote_request',
+      id: newQuoteId(),
+      data: {
+        source_amount: '10025',
+        source_address: ledger + 'alice',
+        destination_address: destinationLedger + 'bobby.tables',
+        source_expiry_duration: '6000',
+        destination_expiry_duration: '5'
+      }
+    };
+  }, function (err, res) { console.log('requested a quote', err, res) });
+}
+
+function pay(host, destinationLedger) {
+  console.log('paying bobby', host, destinationLedger);
+  postToPeer(host, ledger => {
+    return {
+      method: 'send_transfer',
+      id: newQuoteId(),
+      data: {
+        source_amount: '10025',
+        source_address: ledger + 'alice',
+        destination_address: destinationLedger + 'bobby.tables',
+        source_expiry_duration: '6000',
+        destination_expiry_duration: '5'
+      }
+    };
+  }, function (err, res) { console.log('requested a quote', err, res) });
+}
+
 function handleRpc(params, bodyObj) {
   switch(params.method) {
   case 'get_limit':
@@ -101,27 +230,11 @@ function handleRpc(params, bodyObj) {
     break;
   case 'send_message':
     console.log('GOT MESSAGE!!', params, bodyObj);
-    getPeerPublicKey('ilp-kit.michielbdejong.com', (err, peerPublicKey) => {
-      if (err) {
-        console.error(err);
-        return;
-      }
-      var ledger = 'peer.' + makeToken('token', peerPublicKey).substring(0, 5) + '.usd.9.';
-      console.log({ err, ledger });
-      var options = {
-        host: 'ilp-kit.michielbdejong.com',
-        path: `/api/peers/rpc?method=send_message&prefix=${ledger}`,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer ' + makeToken('authorization', peerPublicKey)
-        },
-      };
-      var postData = [ {
-        ledger,
-        from: ledger + keypair.pub,
-        to: ledger + peerPublicKey,
-        data: {
+    // reverse engineered from https://github.com/interledgerjs/ilp-plugin-virtual/blob/v15.0.1/src/lib/plugin.js#L152:
+    if (Array.isArray(bodyObj) && bodyObj[0].data && bodyObj[0].data.method === 'broadcast_routes') {
+      console.log('its routes!', bodyObj[0].data.data);
+      postToPeer('ilp-kit.michielbdejong.com', ledger => {
+        return {
           method: 'broadcast_routes',
           data: {
             new_routes: [ {
@@ -137,27 +250,17 @@ function handleRpc(params, bodyObj) {
             hold_down_time: 45000,
             unreachable_through_me: []
           }
-        }
-      } ];
-      console.log('making request!', options, postData);
-      var req = https.request(options, (res) => {
-        console.log(`STATUS: ${res.statusCode}`);
-        console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
-        res.setEncoding('utf8');
-        res.on('data', (chunk) => {
-          console.log(`BODY: ${chunk}`);
-        });
-        res.on('end', () => {
-          console.log('No more data in response.');
-        });
-      });
-      
-      req.on('error', (e) => {
-        console.error(`problem with request: ${e.message}`);
-      });
-      req.write(JSON.stringify(postData, null, 2));
-      req.end();
-    });
+        };
+      }, function (err, res) { console.log('announced my own route', err, res) });
+      var newRoutes = bodyObj[0].data.data.new_routes;
+      for (var i=0; i<newRoutes.length; i++) {
+        getQuote('ilp-kit.michielbdejong.com', newRoutes[i].destination_ledger);
+      }
+    }
+    break;
+  case 'quote_response':
+    console.log('QUOTE RESPONSE!', bodyObj[0].data.destination_ledger);
+    // 10|ilp-nod | CHUNK! [{"ledger":"peer.a1Mg_.usd.9.","from":"peer.a1Mg_.usd.9.Sk0gGc3mz9_Ci2eLTTBPfuMdgFEW3hRj0QTRvWFZBEQ","to":"peer.a1Mg_.usd.9.8Zq10b79NO7RGHgfrX4lCXPbhVXL3Gt63SVLRH-BvR0","data":{"id":1493113353887,"method":"quote_response","data":{"source_ledger":"peer.a1Mg_.usd.9.","destination_ledger":"us.usd.cornelius.","source_connector_account":"peer.a1Mg_.usd.9.Sk0gGc3mz9_Ci2eLTTBPfuMdgFEW3hRj0QTRvWFZBEQ","source_amount":"10025","destination_amount":"9","source_expiry_duration":"6000","destination_expiry_duration":"5","liquidity_curve":[[10.02004008016032,0],[100000000000000000,99799999999999.98]]}}}]
     break;
   default:
     return 'Unknown method';
@@ -180,8 +283,10 @@ function handleRpc(params, bodyObj) {
 console.log('starting server!')
 http.createServer(function(req, res) {
   console.log(req.method, req.url, req.headers);
+  var str = '';
   req.on('data', function(chunk) {
     console.log('CHUNK!', chunk.toString('utf-8'));
+    str += chunk;
   });
   
   if (req.url.substring(0, WEBFINGER_PREFIX_LENGTH) === WEBFINGER_PREFIX) {
@@ -199,7 +304,11 @@ http.createServer(function(req, res) {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json'
       });
-      res.end(handleRpc(params));
+      console.log('WILL HANDLE AS RPC WHEN REQ ENDS')
+      req.on('end', function() {
+        console.log('req ended')
+        res.end(handleRpc(params, JSON.parse(str)));
+      });
     } else if (parts[0] === '/spsp') {
       res.writeHead(200, {
         'Access-Control-Allow-Origin': '*',
