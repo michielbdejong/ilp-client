@@ -1,4 +1,0 @@
-module.exports = [
- 'red.ilpdemo.org',
- 'blue.ilpdemo.org'
-];

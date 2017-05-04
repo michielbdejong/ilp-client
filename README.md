@@ -1,4 +1,4 @@
-# ilp-client
+# ilp-node
 Common parts between [micmic](https://github.com/michielbdejong/micmic) and [connectorland](https://github.com/interledger/connector.land).
 
 # Usage
@@ -7,8 +7,5 @@ Common parts between [micmic](https://github.com/michielbdejong/micmic) and [con
 git clone https://github.com/michielbdejong/ilp-client
 cd ilp-client
 npm install
-cp passwords.js-sample passwords.js
-vim passwords.js
-# put in the passwords for your accounts at ilp-kit hosts and other five-bells ledgers.
-node test
+node src/index.js ./stats.js ./credentials.js
 ```

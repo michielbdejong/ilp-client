@@ -1,20 +1,19 @@
-const fetch = require('node-fetch');
+const fs = require('fs')
+const getHostInfo = require('./hostInfo')
 
-async function getHostInfo(hostname) {
-  try {
-    const webFingerUri = `https://${hostname}/.well-known/webfinger?resource=https://${hostname}`
-    // request
-    const response = await fetch(webFingerUri)
-    // parsing
-    const data = await response.json()
-    console.log('data: ', data)
-  } catch (error) {
-    console.log('error: ', error)
-  }
+if (process.argv.length < 3) {
+  throw new Error('Usage: node src/index.js statistics.json credentials.json')
 }
 
-const config = require(../config.js)
-console.log(config)
-for (let hostname of config) {
-  getHostInfo(hostname)
-}
+const statsFileName = process.argv[2]
+const credsFileName = process.argv[3]
+
+const stats = JSON.parse(fs.readFileSync(statsFileName))
+const creds = JSON.parse(fs.readFileSync(credsFileName))
+console.log(stats, creds)
+
+Promise.all(Object.keys(stats.hosts).map(async function(hostname) {
+  stats.hosts[hostname] = await getHostInfo(hostname, stats.hosts[hostname])
+})).then(() => {
+  fs.writeFileSync(statsFileName, JSON.stringify(stats, null, 2))
+})
