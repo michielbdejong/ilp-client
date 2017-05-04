@@ -1,13 +1,20 @@
-let fetch = require('node-fetch');
+const fetch = require('node-fetch');
 
-(async () => {
+async function getHostInfo(hostname) {
   try {
+    const webFingerUri = `https://${hostname}/.well-known/webfinger?resource=https://${hostname}`
     // request
-    let response = await fetch('http://localhost:8088/api/v1/hooy');
+    const response = await fetch(webFingerUri)
     // parsing
-    let data = await response.json();
-    console.log('data: ', data);
+    const data = await response.json()
+    console.log('data: ', data)
   } catch (error) {
-    console.log('error: ', error);
+    console.log('error: ', error)
   }
-})(); // <--------- parenthesis should be like this.
+}
+
+const config = require(../config.js)
+console.log(config)
+for (let hostname of config) {
+  getHostInfo(hostname)
+}

@@ -1,4 +1,4 @@
 module.exports = [
- [ 'red.ilpdemo.org',                        'alice',  'alice'],
- [ 'blue.ilpdemo.org',                       'bob',  'bobbob'],
+ 'red.ilpdemo.org',
+ 'blue.ilpdemo.org'
 ];
