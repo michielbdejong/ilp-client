@@ -1,0 +1,89 @@
+ilp-node:
+* store all discovered info in JSON files
+* keep input data separate (config.js)
+
+config:
+  * hostNames
+
+require('ilp-node').makeHandler({
+  hostNames: ['ilp-kit.michielbdejong.com'],
+  dataFile: '/home/michiel/connector.land/data/stats-raw.json'
+})
+
+// just run this, and stats will appear in dataFile:
+
+  "hosts": {
+    "red.ilpdemo.org": {
+      "hostname": "red.ilpdemo.org",
+      "owner": "",
+      "prefix": "us.usd.red.",
+      "version": "<span style=\"color:green\">Compatible: ilp-kit v1.1.0</span>",
+      "health": 1,
+      "settlements": "<span style=\"color:green\"></span>",
+      "ping": 0,
+      "protocolVersion": "Compatible: ilp-kit v2.0.0-alpha",
+      "publicKey": "0ZwLzlPLd2UWJPwYSz6RhOh3S-N-cdAhVqG62iqb6xI",
+      "ledgerUri": "https://red.ilpdemo.org/ledger",
+      "peersRpcUri": "https://red.ilpdemo.org/api/peers/rpc",
+      "settlementMethods": "https://red.ilpdemo.org/api/settlement_methods"
+    },
+
+"ledgers": {
+    "us.usd.red.": {
+      "hostname": "red.ilpdemo.org",
+      "prefix": "us.usd.red.",
+      "maxBalance": "10^10 centi-USD",
+      "messaging": 2806.5713899841808,
+      "messageToSelf": 669.4989225055264,
+      "connectDelay": 2513.364325280173,
+      "connectSuccess": 1,
+      "msgDelay": 601.8304618204147,
+      "msgSuccess": 1,
+      "connectors": [
+        {
+          "id": "https://red.ilpdemo.org/ledger/accounts/connie",
+          "name": "connie"
+        }
+      ],
+      "currency_code": "USD",
+      "currency_symbol": "$",
+      "ilp_prefix": "us.usd.red.",
+      "condition_sign_public_key": "OWwcKepF/fAhVaaxRNUqoJ9Zqpd8j66DORbCFvNP5GY=",
+      "urls": {
+        "health": "https://red.ilpdemo.org/ledger/health",
+        "transfer": "https://red.ilpdemo.org/ledger/transfers/:id",
+        "transfer_fulfillment": "https://red.ilpdemo.org/ledger/transfers/:id/fulfillment",
+        "transfer_rejection": "https://red.ilpdemo.org/ledger/transfers/:id/rejection",
+        "transfer_state": "https://red.ilpdemo.org/ledger/transfers/:id/state",
+        "accounts": "https://red.ilpdemo.org/ledger/accounts",
+        "account": "https://red.ilpdemo.org/ledger/accounts/:name",
+        "auth_token": "https://red.ilpdemo.org/ledger/auth_token",
+        "websocket": "wss://red.ilpdemo.org/ledger/websocket",
+        "message": "https://red.ilpdemo.org/ledger/messages"
+      },
+      "precision": 19,
+      "scale": 9,
+      "balances": {
+        "connectorland": "993.57"
+      },
+      "rate": 1.0919,
+      "version": "five-bells@20"
+    },
+
+
+
+
+
+code style:
+same as interledgerjs, async functions only.
+
+getHostInfo(domainName)
+-> host-wide webfinger data
+-> ledgers
+
+getLedgerInfo(ledgerUri)
+-> ledger info
+-> connectors
+
+serve()
+
