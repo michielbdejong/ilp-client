@@ -49,6 +49,8 @@ function toBuffer(base64url) {
 
 var stats = fs.readFileSync('../data/stats.json');
 
+var hosts = {};
+
 const WEBFINGER_PREFIX = '/.well-known/webfinger?resource=';
 const WEBFINGER_PREFIX_LENGTH =  WEBFINGER_PREFIX.length;
 
@@ -150,6 +152,7 @@ function postToPeer(host, postDataFn, cb) {
       return;
     }
     var ledger = 'peer.' + makeToken('token', peerPublicKey).substring(0, 5) + '.usd.9.';
+    hosts[ledger] = host;
     console.log({ err, ledger });
     var postData = postDataFn(ledger);
     var options = {
@@ -259,7 +262,10 @@ function handleRpc(params, bodyObj) {
     }
     break;
   case 'quote_response':
-    console.log('QUOTE RESPONSE!', bodyObj[0].data.destination_ledger);
+    console.log('QUOTE RESPONSE!', bodyObj[0].data.data.destination_ledger);
+     stats.hosts = hosts;
+     stats.quotes.push(bodyObj[0].data.data);
+     fs.writeFile('peering-stats.json', JSON.stringify(stats, null, 2));
     // 10|ilp-nod | CHUNK! [{"ledger":"peer.a1Mg_.usd.9.","from":"peer.a1Mg_.usd.9.Sk0gGc3mz9_Ci2eLTTBPfuMdgFEW3hRj0QTRvWFZBEQ","to":"peer.a1Mg_.usd.9.8Zq10b79NO7RGHgfrX4lCXPbhVXL3Gt63SVLRH-BvR0","data":{"id":1493113353887,"method":"quote_response","data":{"source_ledger":"peer.a1Mg_.usd.9.","destination_ledger":"us.usd.cornelius.","source_connector_account":"peer.a1Mg_.usd.9.Sk0gGc3mz9_Ci2eLTTBPfuMdgFEW3hRj0QTRvWFZBEQ","source_amount":"10025","destination_amount":"9","source_expiry_duration":"6000","destination_expiry_duration":"5","liquidity_curve":[[10.02004008016032,0],[100000000000000000,99799999999999.98]]}}}]
     break;
   default:
