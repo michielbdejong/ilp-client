@@ -11,7 +11,10 @@ module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
   try {
     const webFingerUri = `https://${hostname}/.well-known/webfinger?resource=https://${hostname}`
     // request
+    const startTime = new Date().getTime()
     const response = await fetch(webFingerUri)
+    const delay = new Date().getTime() - startTime
+
     // parsing
     const data = await response.json()
     console.log('data: ', data)
@@ -29,6 +32,8 @@ module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
     obj.hostname = hostname
     obj.version = data.properties['https://interledger.org/rel/protocolVersion']
     obj.health = rollingAvg(obj.health, 1)
+    obj.latency = rollingAvg(obj.latency, delay)
+
     for (let link of data.links) {
       switch (link.rel) {
       case 'https://interledger.org/rel/ledgerUri':

@@ -1,6 +1,6 @@
 {
   "name": "ilp-node",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "cancelRoutesFor(ledger); Common parts between [micmic](https://github.com/michielbdejong/micmic) and [connectorland](https://github.com/interledger/connector.land).",
   "main": "src/index.js",
   "dependencies": {
