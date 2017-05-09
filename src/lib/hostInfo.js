@@ -4,7 +4,7 @@ function rollingAvg(existing, measured) {
   if (typeof existing === 'undefined') {
     return measured
   }
-  return (existing * 99 + measured) / 100
+  return (existing * 99999 + measured) / 100000
 }
 
 module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
@@ -34,6 +34,9 @@ module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
     obj.health = rollingAvg(obj.health, 1)
     obj.latency = rollingAvg(obj.latency, delay)
 
+    if (typeof obj.lastDownTime === 'undefined') {
+      obj.lastDownTime = new Date().getTime()
+    }
     for (let link of data.links) {
       switch (link.rel) {
       case 'https://interledger.org/rel/ledgerUri':
@@ -49,8 +52,10 @@ module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
     }
   } catch (error) {
     console.log('error: ', error)
-    obj.health = rollingAvg(obj.health, 0)
-    obj.lastDownTime = new Date().getTime()
+    if (obj.hostname) {
+      obj.health = rollingAvg(obj.health, 0)
+      obj.lastDownTime = new Date().getTime()
+    }
   }
   return obj
 }
