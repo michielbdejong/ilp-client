@@ -33,6 +33,7 @@ IlpNode.prototype = {
       await this.writeFile('creds', this.credsFileName)
       console.log('saved')
     }
+    this.tokenStore = new keypair.TokenStore(this.creds.keypair)
   },
   readFile: async function(objName, fileName) {
     await new Promise((resolve, reject) => {
@@ -85,6 +86,10 @@ IlpNode.prototype = {
   },
   testHost: async function(testHostname, writeStats = true) {
     this.stats.hosts[testHostname] = await getHostInfo(testHostname, this.stats.hosts[testHostname] || {})
+    if (this.stats.hosts[testHostname].pubKey) {
+      this.peers[testHostname] = new Peer(testHostname, this.tokenStore, this.stats.hosts[testHostname].pubKey)
+      this.stats.hosts[testHostname].limit = await this.peers[testHostname].getLimit()
+    }
     if (writeStats) {
       await this.writeFile('stats', this.statsFileName)
     }
@@ -92,8 +97,8 @@ IlpNode.prototype = {
   handleWebFinger: async function(resource) {
     return handleWebFinger(resource, this.creds, this.hostname)
   },
-  handleRpc: async function(params) {
-    return handleRpc(params, this.creds)
+  handleRpc: async function(params, body) {
+    return this.peers[params.prefix].handleRpc(params, body)
   },
 }
 

@@ -1,6 +1,4 @@
 
-/// spsp:
-    } else if (parts[0] === '/spsp') {
       res.writeHead(200, {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json'

@@ -36,6 +36,7 @@ module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
     //        href: 'https://red.ilpdemo.org/api/settlement_methods' } ] }
     obj.hostname = hostname
     obj.version = data.properties['https://interledger.org/rel/protocolVersion']
+    obj.pubKey = data.properties['https://interledger.org/rel/publicKey']
     obj.health = rollingAvg(obj.health, 1)
     obj.latency = rollingAvg(obj.latency, delay)
 

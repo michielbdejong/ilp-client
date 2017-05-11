@@ -54,11 +54,8 @@ function generateKeyPair() {
 
 module.exports.generate = generateKeyPair
 
-TokenMaker = function (peeringKeyPair) {
+TokenStore = function (peeringKeyPair) {
   this.peeringKeyPair = peeringKeyPair
-  if (typeof this.peeringKeyPair === 'undefined') {
-    this.peeringKeyPair = generateKeyPair()
-  }
 
   this.tokens = {
     token: {},
@@ -66,11 +63,11 @@ TokenMaker = function (peeringKeyPair) {
   }
 }
 
-TokenMaker.prototype.getToken = function (input, peerPublicKey) {
+TokenStore.prototype.getToken = function (input, peerPublicKey) {
   return this.tokens[input][peerPublicKey] || (tokens[input][peerPublicKey] = base64url(crypto.createHmac('sha256', tweetnacl.scalarMult(
     crypto.createHash('sha256').update(toBuffer(this.peeringKeyPair.priv)).digest(),
     toBuffer(peerPublicKey)
   )).update(input, 'ascii').digest()))
 }
 
-module.exports.TokenMaker = TokenMaker
+module.exports.TokenStore = TokenStore
