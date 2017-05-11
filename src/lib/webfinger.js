@@ -1,8 +1,13 @@
 module.exports = (resource, creds, hostname) => {
+  console.log('handling webfinger request', { resource, creds, hostname })
   if (typeof resource !== 'string') {
     return
   }
-  if (resource === `https://${hostname}`) {
+  let protocol = 'https'
+  if (hostname.split(':')[0] === 'localhost') {
+    protocol = 'http'
+  }
+  if (resource === `${protocol}://${hostname}`) {
     return {
       subject: resource,
       properties: {

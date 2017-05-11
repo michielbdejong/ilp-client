@@ -4,8 +4,11 @@
   "description": "cancelRoutesFor(ledger); Common parts between [micmic](https://github.com/michielbdejong/micmic) and [connectorland](https://github.com/interledger/connector.land).",
   "main": "src/index.js",
   "dependencies": {
+    "mkdirp": "^0.5.1",
     "node-fetch": "^1.6.3",
-    "ping": "^0.2.2"
+    "path": "^0.12.7",
+    "ping": "^0.2.2",
+    "tweetnacl": "^1.0.0-rc.1"
   },
   "devDependencies": {},
   "scripts": {

@@ -9,7 +9,12 @@ function rollingAvg(existing, measured) {
 
 module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
   try {
-    const webFingerUri = `https://${hostname}/.well-known/webfinger?resource=https://${hostname}`
+    let protocol = 'https'
+    if (hostname.split(':')[0] === 'localhost') {
+      protocol = 'http'
+    }
+    const webFingerUri = `${protocol}://${hostname}/.well-known/webfinger?resource=${protocol}://${hostname}`
+
     // request
     const startTime = new Date().getTime()
     const response = await fetch(webFingerUri)

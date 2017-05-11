@@ -4,8 +4,11 @@ Common parts between [micmic](https://github.com/michielbdejong/micmic) and [con
 # Usage
 
 ```sh
-git clone https://github.com/michielbdejong/ilp-client
-cd ilp-client
+git clone https://github.com/michielbdejong/ilp-node
+cd ilp-node
 npm install
-node src/index.js stats.json creds.json updateStats
+cd examples/server-http
+npm install
+npm start
+# Then open http://localhost:8001/stats?test=localhost:8002 in your browser
 ```
