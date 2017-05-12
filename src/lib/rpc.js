@@ -3,9 +3,10 @@ const protocols = {
   https: require('https')
 }
 
-function Peer(host, tokenStore, peerPublicKey) {
-  console.log('Peer', host, tokenStore, peerPublicKey)
+function Peer(host, tokenStore, hopper, peerPublicKey) {
+  console.log('Peer', host, tokenStore, hopper, peerPublicKey)
   this.host = host
+  this.rate = 1.0 // for now, all peers are in USD
   this.protocol = protocols['https']
   if (host.split(':')[0] === 'localhost') {
     this.protocol = protocols['http'];
@@ -17,6 +18,8 @@ function Peer(host, tokenStore, peerPublicKey) {
   this.ledger = 'peer.' + tokenStore.getToken('token', peerPublicKey).substring(0, 5) + '.usd.9.';
   this.authToken = tokenStore.getToken('authorization', peerPublicKey)
   this.myPublicKey = tokenStore.peeringKeyPair.pub
+  this.routes = {}
+  this.hopper = hopper
 }
 
 Peer.prototype.newQuoteId = function () {
@@ -61,7 +64,7 @@ Peer.prototype.postToPeer = async function(method, postData) {
   })
 }
 
-Peer.prototype.getQuote = function(destinationLedger) {
+Peer.prototype.requestQuote = function(destinationLedger) {
   return this.postToPeer('send_message', {
     method: 'quote_request',
     id: this.newQuoteId(),
@@ -72,6 +75,40 @@ Peer.prototype.getQuote = function(destinationLedger) {
       source_expiry_duration: '6000',
       destination_expiry_duration: '5'
     }
+  })
+}
+
+function applyCurve(curve, ret) {
+  let given, wanted, givenAmount
+  if (typeof ret[0] === undefined ) {
+    wanted = 0
+    given = 1
+    givenAmount = ret[1]
+  } else {
+    wanted = 0
+    given = 1
+    givenAmount = ret[0]
+  }
+  // linear search:
+  for (let i=1; i < curve.length; i++) {
+    if (curve[i][given] == givenAmount) {
+      ret[wanted] = curve[i][wanted]
+      return ret 
+    } else if (curve[i][given] > givenAmount) {
+      let fraction = (givenAmount - curve[i-1][given]) / (curve[i][given] - curve[i-1][given])
+      ret[wanted] = curve[i-1][wanted] + fraction * (curve[i][wanted] - curve[i-1][wanted])
+      return ret
+    }
+  }
+}
+
+Peer.prototype.respondQuote = function(curve, quote) {
+  [ quote.sourceAmount, quote.destinationAmount ]  = applyCurve(curve, [ quote.sourceAmount, quote.destinationAmount ])
+  quote.liquidity_curve = curve
+  return this.postToPeer('send_message', {
+    method: 'quote_response',
+    id: quote.id,
+    data: quote
   })
 }
 
@@ -118,22 +155,36 @@ Peer.prototype.handleRpc = async function(params, bodyObj) {
   case 'send_message':
     console.log('GOT MESSAGE!!', params, bodyObj);
     // reverse engineered from https://github.com/interledgerjs/ilp-plugin-virtual/blob/v15.0.1/src/lib/plugin.js#L152:
-    if (Array.isArray(bodyObj) && bodyObj[0].data && bodyObj[0].data.method === 'broadcast_routes') {
-      const newRoutes = bodyObj[0].data.data.new_routes
-      for (var i=0; i<newRoutes.length; i++) {
-        this.getQuote(newRoutes[i].destination_ledger);
+    if (Array.isArray(bodyObj) && bodyObj[0].data) {
+      switch(bodyObj[0].data.method) {
+      case 'broadcast_routes':
+        bodyObj[0].data.data.new_routes.map(route => {
+          this.routes[route.destination_ledger] = route
+        })
+        // always quote directly after receiving a new route, to determine whether this connector charges gratuity:
+        this.requestQuote(newRoutes[i].destination_ledger)
+        break
+      case 'quote_request':
+        const curve = this.hopper.makeCurve(this.host, bodyObj[0].data.data.destination_ledger)
+        if (curve === undefined) {
+          // todo: implement remote quoting
+        } else {
+          this.respondQuote(curve, bodyObj[0].data.data)
+        }
+        break
+      case 'quote_response':
+        // todo: calculate gratuity compared to route
+        break;
+      default:
+        console.error('Unknown message method', bodyObj[0].data.method)
       }
     }
-    break;
-  case 'quote_response':
-     stats.hosts = hosts;
-     stats.quotes.push(bodyObj[0].data.data);
-     fs.writeFile('peering-stats.json', JSON.stringify(stats, null, 2));
-    // 10|ilp-nod | CHUNK! [{"ledger":"peer.a1Mg_.usd.9.","from":"peer.a1Mg_.usd.9.Sk0gGc3mz9_Ci2eLTTBPfuMdgFEW3hRj0QTRvWFZBEQ","to":"peer.a1Mg_.usd.9.8Zq10b79NO7RGHgfrX4lCXPbhVXL3Gt63SVLRH-BvR0","data":{"id":1493113353887,"method":"quote_response","data":{"source_ledger":"peer.a1Mg_.usd.9.","destination_ledger":"us.usd.cornelius.","source_connector_account":"peer.a1Mg_.usd.9.Sk0gGc3mz9_Ci2eLTTBPfuMdgFEW3hRj0QTRvWFZBEQ","source_amount":"10025","destination_amount":"9","source_expiry_duration":"6000","destination_expiry_duration":"5","liquidity_curve":[[10.02004008016032,0],[100000000000000000,99799999999999.98]]}}}]
     break;
   default:
     return 'Unknown method';
   }
 }
 
+Peer.prototype.respondQuote(quote) {
+  
 module.exports.Peer = Peer
