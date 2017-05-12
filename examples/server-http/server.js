@@ -42,9 +42,26 @@ function startServer(port) {
   }, probeInterval)
 }
 
-startServer(8001)
-startServer(8002)
-setTimeout(() => {
-  ilpNode[8001].testHost('localhost:8002')
-  ilpNode[8002].testHost('localhost:8001')
-}, 100)
+other = {
+  8001: 8002,
+  8002: 8001
+};
+
+[8001, 8002].map(async function(port) {
+  await startServer(port)
+  await ilpNode[port].peerWith(`localhost:${other[port]}`)
+  await new Promise(resolve => setTimeout(resolve, 100))
+  console.log(port, 'start tests')
+  await ilpNode[port].testAll()
+  console.log(port, 'announce route')
+  await ilpNode[port].announceRoute(`g.dns.land.connector.${port}`, [
+    [0, 0],
+    [1, 3495575220000],
+    [20, 63495575220000],
+    [400, 463495575220000],
+    [8000, 9463495575220000],
+    [160000, 1009463495575220000],
+    [3200000, 11009463495575220000],
+    [100000000000000000, 11009463495575220000]
+  ], `localhost:${other[port]}`)
+})

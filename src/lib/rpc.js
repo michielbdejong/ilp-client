@@ -8,7 +8,6 @@ function Peer(host, tokenStore, peerPublicKey) {
   this.host = host
   this.protocol = protocols['https']
   if (host.split(':')[0] === 'localhost') {
-    console.log('localhost! using http instead of https')
     this.protocol = protocols['http'];
     [ this.host, this.port ] = host.split(':')
   }
@@ -40,18 +39,14 @@ Peer.prototype.postToPeer = async function(method, postData) {
       Authorization: 'Bearer ' + this.authToken
     }
   }
-  console.log('making request!', options, postData, this.protocol)
   return await new Promise((resolve, reject) => {
     const req = this.protocol.request(options, (res) => {
-      console.log(`STATUS: ${res.statusCode}`)
-      console.log(`HEADERS: ${JSON.stringify(res.headers)}`)
       res.setEncoding('utf8')
       var str = ''
       res.on('data', (chunk) => {
         str += chunk
       })
       res.on('end', () => {
-console.log('resolve 5') 
         resolve(str)
       })
     })
@@ -67,7 +62,6 @@ console.log('resolve 5')
 }
 
 Peer.prototype.getQuote = function(destinationLedger) {
-  console.log('quoting on new route!', this.host, destinationLedger);
   return this.postToPeer('send_message', {
     method: 'quote_request',
     id: this.newQuoteId(),
@@ -82,20 +76,34 @@ Peer.prototype.getQuote = function(destinationLedger) {
 }
 
 Peer.prototype.pay = function(destinationLedger) {
-  console.log('paying bobby', this.host, destinationLedger)
   return this.postToPeer('send_transfer', {
      // ...
   })
 }
 
 Peer.prototype.getLimit = function() {
-  console.log('getting limit', this.host)
   return this.postToPeer('get_limit')
 }
 
 Peer.prototype.getBalance = function() {
-  console.log('getting balance', this.host)
   return this.postToPeer('get_balance')
+}
+
+Peer.prototype.announceRoute = async function(ledger, curve) {
+  await this.postToPeer('send_message', {
+    method: 'broadcast_routes',
+    data: {
+      new_routes: [ {
+        source_ledger: this.ledger,
+        destination_ledger: ledger,
+        points: curve,
+        min_message_window: 1,
+        source_account: this.ledger + this.myPublicKey
+      } ],
+      hold_down_time: 45000,
+      unreachable_through_me: []
+    }
+  })
 }
 
 Peer.prototype.handleRpc = async function(params, bodyObj) {
@@ -111,24 +119,6 @@ Peer.prototype.handleRpc = async function(params, bodyObj) {
     console.log('GOT MESSAGE!!', params, bodyObj);
     // reverse engineered from https://github.com/interledgerjs/ilp-plugin-virtual/blob/v15.0.1/src/lib/plugin.js#L152:
     if (Array.isArray(bodyObj) && bodyObj[0].data && bodyObj[0].data.method === 'broadcast_routes') {
-      console.log('it is routes! sending my own ones:', bodyObj[0].data.data);
-      await this.postToPeer('send_message', {
-        method: 'broadcast_routes',
-        data: {
-          new_routes: [ {
-            source_ledger: this.ledger,
-            destination_ledger: 'g.mylp.longplayer.',
-            points: [
-              [1e-12,0],
-              [100000000000000000, 11009463495575220000]
-            ],
-            min_message_window: 1,
-            source_account: this.ledger + this.myPublicKey
-          } ],
-          hold_down_time: 45000,
-          unreachable_through_me: []
-        }
-      })
       const newRoutes = bodyObj[0].data.data.new_routes
       for (var i=0; i<newRoutes.length; i++) {
         this.getQuote(newRoutes[i].destination_ledger);
@@ -136,7 +126,6 @@ Peer.prototype.handleRpc = async function(params, bodyObj) {
     }
     break;
   case 'quote_response':
-    console.log('QUOTE RESPONSE!', bodyObj[0].data.data.destination_ledger);
      stats.hosts = hosts;
      stats.quotes.push(bodyObj[0].data.data);
      fs.writeFile('peering-stats.json', JSON.stringify(stats, null, 2));
