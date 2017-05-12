@@ -104,6 +104,7 @@ console.log('resolve 4')
   },
   testPeer: async function(testHostname) {
     this.stats.hosts[testHostname].limit = await this.peers[testHostname].getLimit()
+    this.stats.hosts[testHostname].balance = await this.peers[testHostname].getBalance()
   },
   handleWebFinger: async function(resource) {
     return handleWebFinger(resource, this.creds, this.hostname)

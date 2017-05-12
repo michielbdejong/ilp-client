@@ -93,6 +93,11 @@ Peer.prototype.getLimit = function() {
   return this.postToPeer('get_limit')
 }
 
+Peer.prototype.getBalance = function() {
+  console.log('getting balance', this.host)
+  return this.postToPeer('get_balance')
+}
+
 Peer.prototype.handleRpc = async function(params, bodyObj) {
   switch(params.method) {
   case 'get_limit':
