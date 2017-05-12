@@ -1,3 +1,5 @@
+var package = require('../../package.json')
+
 module.exports = (resource, creds, hostname) => {
   console.log('handling webfinger request', { resource, creds, hostname })
   if (typeof resource !== 'string') {
@@ -11,7 +13,7 @@ module.exports = (resource, creds, hostname) => {
     return {
       subject: resource,
       properties: {
-        'https://interledger.org/rel/protocolVersion': 'Compatible: ilp-kit v2.0.0',
+        'https://interledger.org/rel/protocolVersion': `Compatible: ${package.name} v${package.version}`,
         'https://interledger.org/rel/publicKey': creds.keypair.pub
       },
       links:[

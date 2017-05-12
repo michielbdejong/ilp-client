@@ -4,7 +4,7 @@ const path = require('path')
 const keypair = require('./lib/keypair')
 const getHostInfo = require('./lib/hostInfo')
 const handleWebFinger = require('./lib/webfinger')
-const handleRpc = require('./lib/rpc')
+const Peer = require('./lib/rpc').Peer
 
 function IlpNode (statsFileName, credsFileName, hostname) {
   console.log('function IlpNode (', { statsFileName, credsFileName, hostname })
@@ -12,8 +12,10 @@ function IlpNode (statsFileName, credsFileName, hostname) {
   this.credsFileName = credsFileName
   this.hostname = hostname
   this.stats = {
-    hosts: {}
+    hosts: {},
+    ledgers: {}
   }
+  this.peers = {}
   this.creds = {}
   this.ready = false
   this.init().then(() => {
@@ -40,6 +42,7 @@ IlpNode.prototype = {
       fs.readFile(fileName, (err, buf) => {
         if (err) {
           console.log(`${objName} file ${fileName} does not exist, creating.`)
+console.log('resolve 1') 
           this.writeFile(objName, fileName).then(resolve)
         } else {
           try {
@@ -49,6 +52,7 @@ IlpNode.prototype = {
             reject(e)
           }
         }
+console.log('resolve 2') 
         resolve()
       })
     })
@@ -65,12 +69,14 @@ IlpNode.prototype = {
                 if (err3) {
                   reject(err3)
                 } else {
+console.log('resolve 3') 
                   resolve()
                 }
               })
             }
           })
         } else {
+console.log('resolve 4') 
           resolve()
         }
       })
@@ -88,17 +94,24 @@ IlpNode.prototype = {
     this.stats.hosts[testHostname] = await getHostInfo(testHostname, this.stats.hosts[testHostname] || {})
     if (this.stats.hosts[testHostname].pubKey) {
       this.peers[testHostname] = new Peer(testHostname, this.tokenStore, this.stats.hosts[testHostname].pubKey)
-      this.stats.hosts[testHostname].limit = await this.peers[testHostname].getLimit()
+      this.stats.ledgers[this.peers[testHostname].ledger] = { hostname: testHostname }
+      console.log('linked', this.peers[testHostname].ledger, testHostname)
+      await this.testPeer(testHostname)
     }
     if (writeStats) {
       await this.writeFile('stats', this.statsFileName)
     }
   },
+  testPeer: async function(testHostname) {
+    this.stats.hosts[testHostname].limit = await this.peers[testHostname].getLimit()
+  },
   handleWebFinger: async function(resource) {
     return handleWebFinger(resource, this.creds, this.hostname)
   },
   handleRpc: async function(params, body) {
-    return this.peers[params.prefix].handleRpc(params, body)
+    const peerHostname = this.stats.ledgers[params.prefix].hostname
+    console.log('handle', params, body, peerHostname)
+    return this.peers[peerHostname].handleRpc(params, body)
   },
 }
 

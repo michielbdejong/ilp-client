@@ -64,7 +64,7 @@ TokenStore = function (peeringKeyPair) {
 }
 
 TokenStore.prototype.getToken = function (input, peerPublicKey) {
-  return this.tokens[input][peerPublicKey] || (tokens[input][peerPublicKey] = base64url(crypto.createHmac('sha256', tweetnacl.scalarMult(
+  return this.tokens[input][peerPublicKey] || (this.tokens[input][peerPublicKey] = base64url(crypto.createHmac('sha256', tweetnacl.scalarMult(
     crypto.createHash('sha256').update(toBuffer(this.peeringKeyPair.priv)).digest(),
     toBuffer(peerPublicKey)
   )).update(input, 'ascii').digest()))

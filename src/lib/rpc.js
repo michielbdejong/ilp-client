@@ -1,9 +1,20 @@
-const https = require('https')
+const protocols = {
+  http: require('http'),
+  https: require('https')
+}
 
-function Peer(host, tokenStore, peerPublickKey) {
+function Peer(host, tokenStore, peerPublicKey) {
+  console.log('Peer', host, tokenStore, peerPublicKey)
+  this.host = host
+  this.protocol = protocols['https']
+  if (host.split(':')[0] === 'localhost') {
+    console.log('localhost! using http instead of https')
+    this.protocol = protocols['http'];
+    [ this.host, this.port ] = host.split(':')
+  }
+
   this.quoteId = 0
   this.peerPublicKey = peerPublicKey
-  this.host = host
   this.ledger = 'peer.' + tokenStore.getToken('token', peerPublicKey).substring(0, 5) + '.usd.9.';
   this.authToken = tokenStore.getToken('authorization', peerPublicKey)
   this.myPublicKey = tokenStore.peeringKeyPair.pub
@@ -21,6 +32,7 @@ Peer.prototype.newQuoteId = function () {
 Peer.prototype.postToPeer = async function(method, postData) {
   const options = {
     host: this.host,
+    port: this.port,
     path: `/api/peers/rpc?method=${method}&prefix=${this.ledger}`,
     method: 'POST',
     headers: {
@@ -28,9 +40,9 @@ Peer.prototype.postToPeer = async function(method, postData) {
       Authorization: 'Bearer ' + this.authToken
     }
   }
-  console.log('making request!', options, postData)
-  return await new Promise(resolve, reject => {
-    const req = https.request(options, (res) => {
+  console.log('making request!', options, postData, this.protocol)
+  return await new Promise((resolve, reject) => {
+    const req = this.protocol.request(options, (res) => {
       console.log(`STATUS: ${res.statusCode}`)
       console.log(`HEADERS: ${JSON.stringify(res.headers)}`)
       res.setEncoding('utf8')
@@ -39,6 +51,7 @@ Peer.prototype.postToPeer = async function(method, postData) {
         str += chunk
       })
       res.on('end', () => {
+console.log('resolve 5') 
         resolve(str)
       })
     })
