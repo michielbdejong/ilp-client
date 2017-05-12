@@ -1,7 +1,6 @@
 var package = require('../../package.json')
 
 module.exports = (resource, creds, hostname) => {
-  console.log('handling webfinger request', { resource, creds, hostname })
   if (typeof resource !== 'string') {
     return
   }

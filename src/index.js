@@ -91,7 +91,7 @@ IlpNode.prototype = {
     const promises = []
     await this.ensureReady()
     for (let hostname of Object.keys(this.stats.hosts)) {
-      promises.push(this.testHost(this.hostname, false))
+      promises.push(this.testHost(hostname, false))
     }
     for (let prefix of Object.keys(this.stats.ledgers)) {
       promises.push(this.testPeer(this.stats.ledgers[prefix].hostname))
@@ -129,7 +129,7 @@ IlpNode.prototype = {
   handleRpc: async function(params, body) {
     await this.ensureReady()
     const peerHostname = this.stats.ledgers[params.prefix].hostname
-    console.log('handle', params, body, peerHostname)
+    console.log('handle rpc', params, body, peerHostname)
     return this.peers[peerHostname].handleRpc(params, body)
   },
 }

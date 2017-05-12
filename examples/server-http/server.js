@@ -18,7 +18,21 @@ function startServer(port) {
     switch(ctx.path) {
     case '/.well-known/webfinger': ctx.body = await ilpNode[port].handleWebFinger(ctx.query.resource)
       break
-    case '/api/peers/rpc': ctx.body = await ilpNode[port].handleRpc(ctx.query, ctx.body)
+    case '/api/peers/rpc':
+      let postData = null
+      if (ctx.query.method === 'send_message') {
+        postData = await new Promise(resolve => {
+          let str = ''
+          ctx.req.on('data', chunk => {
+             str += chunk
+          })
+          ctx.req.on('end', () => {
+            console.log('where is hte body?', str)
+            resolve(JSON.parse(str))
+          })
+        })
+      }
+      ctx.body = await ilpNode[port].handleRpc(ctx.query, postData)
       break
     case '/spsp': ctx.body = await ilpNode[port].handleSpsp()
       break
@@ -50,7 +64,6 @@ other = {
 [8001, 8002].map(async function(port) {
   await startServer(port)
   await ilpNode[port].peerWith(`localhost:${other[port]}`)
-  await new Promise(resolve => setTimeout(resolve, 100))
   console.log(port, 'start tests')
   await ilpNode[port].testAll()
   console.log(port, 'announce route')
