@@ -1,17 +1,14 @@
 const COMMISSION=1.337
 
-function Hopper(ilpNode) {
-  this.ilpNode = ilpNode
-}
-
 let calcSlope = (start, end) => ((end[1]-start[1]) / (end[0]-start[0]))
 let valueAt = (candidate, pointIn) => {
   let dOut = (pointIn - candidate.startIn) * candidate.slope
   return candidate.startOut + dOut
 }
-let  usefulAt = (candidate, point) => (this.valueAt(candidate, point.startIn) > point.startOut)
+let  usefulAt = (candidate, point) => (valueAt(candidate, point.startIn) > point.startOut)
 
-HopperTable = function(destination, excludePeer) {
+function Table(ilpNode, destination, excludePeer) {
+  this.ilpNode = ilpNode
   this.sections = [] // array of objects: { startIn, startOut, slope, peerHost }
                      // sorted by startIn
                      // implied first (0, 0) point is omitted
@@ -21,6 +18,7 @@ HopperTable = function(destination, excludePeer) {
       for (let i=1; i<this.ilpNode.peers[peerHost].routes[destination].length; i++) {
         let start = this.ilpNode.peers[peerHost].routes[destination][i-1]
         let end = this.ilpNode.peers[peerHost].routes[destination][i]
+        // each item in a route is [ startIn, startOut ]
         let slope = calcSlope(start, end)
         this.addSection({ startIn: start[0], endIn: end[0], startOut: start[1], slope, peerHost })
       }
@@ -28,7 +26,7 @@ HopperTable = function(destination, excludePeer) {
   }
 }
  
-HopperTable.prototype= {
+Table.prototype= {
   crossover(obj, i) {
     let startDiff = valueAt(obj, this.sections[i].startIn) - this.sections[i].startOut
     let relSlope = this.sections[i].slope - obj.slope
@@ -82,16 +80,15 @@ HopperTable.prototype= {
   }
 }
 
-Hopper.prototype.makeCurve = function(forPeer, toDestination) {
-  let sourceRate = this.ilpNode.peers[forPeer].rate * COMMISSION
-  let nextHopRate = this.ilpNode.peers[section[2]].rate
-  let hopperTable = new HopperTable(toDestination, forPeer)
-  return hopperTable.sections.map(section => [section[0] * sourceRate, section[1] * nextHopRate ])
+function Curve(ilpNode, forPeer, toDestination) {
+  this.sourceRate = ilpNode.peers[forPeer].rate * COMMISSION
+  this.hopperTable = new Table(ilpNode, toDestination, forPeer)
+  this.points = this.hopperTable.sections.map(section => [section[0] * sourceRate, section[1] * ilpNode.peers[section[2]].rate ])
 }
 
 module.exports = {
-  Hopper,
-  HopperTable,
+  Curve,
+  Table,
   calcSlope,
   valueAt,
   usefulAt
