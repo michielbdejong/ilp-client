@@ -185,6 +185,6 @@ Peer.prototype.handleRpc = async function(params, bodyObj) {
   }
 }
 
-Peer.prototype.respondQuote(quote) {
+// Peer.prototype.respondQuote(quote) {
   
 module.exports.Peer = Peer
