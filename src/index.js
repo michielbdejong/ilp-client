@@ -5,9 +5,11 @@ const keypair = require('./lib/keypair')
 const getHostInfo = require('./lib/hostInfo')
 const handleWebFinger = require('./lib/webfinger')
 const Peer = require('./lib/rpc').Peer
+const Hopper = require('./lib/hopper').Hopper
 
 function IlpNode (statsFileName, credsFileName, hostname) {
   console.log('function IlpNode (', { statsFileName, credsFileName, hostname })
+  this.hopper = new Hopper()
   this.statsFileName = statsFileName
   this.credsFileName = credsFileName
   this.hostname = hostname
@@ -102,7 +104,11 @@ IlpNode.prototype = {
   peerWith: async function(peerHostname) {
     await this.ensureReady()
     this.stats.hosts[peerHostname] = await getHostInfo(peerHostname, this.stats.hosts[peerHostname] || {})
-    this.peers[peerHostname] = new Peer(peerHostname, this.tokenStore, this.stats.hosts[peerHostname].pubKey)
+    // console.log('this.stats.hosts[peerHostname]', this.stats.hosts[peerHostname])
+    if (this.stats.hosts[peerHostname].pubKey && !this.peers[peerHostname]) {
+      console.log('peering!')
+      this.peers[peerHostname] = new Peer(peerHostname, this.tokenStore, this.hopper, this.stats.hosts[peerHostname].pubKey)
+    }
     this.stats.ledgers[this.peers[peerHostname].ledger] = { hostname: peerHostname }
     console.log('linked', this.peers[peerHostname].ledger, peerHostname)
   },

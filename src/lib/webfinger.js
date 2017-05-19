@@ -16,6 +16,7 @@ module.exports = (resource, creds, hostname) => {
         'https://interledger.org/rel/publicKey': creds.keypair.pub
       },
       links:[
+        { rel: 'https://interledger.org/rel/peersRpcUri', href: `https://${hostname}/rpc`}
       ]
     }
   } else if (resource.startsWith('acct:')) {

@@ -43,12 +43,14 @@ function toBuffer(base64url) {
 // end base64url
 
 function generateKeyPair() {
+  console.log('generating keypair')
   const keypair = {
     priv: crypto.createHmac('sha256', base64url(crypto.randomBytes(33))).update('CONNECTOR_ED25519').digest('base64')
   }
   keypair.pub = base64url(tweetnacl.scalarMult.base(
     crypto.createHash('sha256').update(toBuffer(keypair.priv)).digest()
   ))
+  console.log('generated', keypair)
   return keypair
 }
 

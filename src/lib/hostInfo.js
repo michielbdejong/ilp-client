@@ -37,6 +37,7 @@ module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
     obj.hostname = hostname
     obj.version = data.properties['https://interledger.org/rel/protocolVersion']
     obj.pubKey = data.properties['https://interledger.org/rel/publicKey']
+    console.log('got pubKey!', obj, data.properties)
     obj.health = rollingAvg(obj.health, 1)
     obj.latency = rollingAvg(obj.latency, delay)
 

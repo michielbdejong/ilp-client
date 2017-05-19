@@ -86,10 +86,20 @@ function Curve(ilpNode, forPeer, toDestination) {
   this.points = this.hopperTable.sections.map(section => [section[0] * sourceRate, section[1] * ilpNode.peers[section[2]].rate ])
 }
 
+function Hopper() {
+}
+
+Hopper.prototype = {
+  makeCurve() {
+    return []
+  }
+}
+
 module.exports = {
   Curve,
   Table,
   calcSlope,
   valueAt,
-  usefulAt
+  usefulAt,
+  Hopper
 }

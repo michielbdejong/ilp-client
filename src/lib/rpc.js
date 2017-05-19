@@ -12,9 +12,9 @@ function Peer(host, tokenStore, hopper, peerPublicKey) {
     this.protocol = protocols['http'];
     [ this.host, this.port ] = host.split(':')
   }
-
   this.quoteId = 0
   this.peerPublicKey = peerPublicKey
+  console.log('getting token', peerPublicKey)
   this.ledger = 'peer.' + tokenStore.getToken('token', peerPublicKey).substring(0, 5) + '.usd.9.';
   this.authToken = tokenStore.getToken('authorization', peerPublicKey)
   this.myPublicKey = tokenStore.peeringKeyPair.pub
@@ -50,6 +50,7 @@ Peer.prototype.postToPeer = async function(method, postData) {
         str += chunk
       })
       res.on('end', () => {
+        console.log('rpc response!', postData, str)
         resolve(str)
       })
     })
@@ -158,11 +159,12 @@ Peer.prototype.handleRpc = async function(params, bodyObj) {
     if (Array.isArray(bodyObj) && bodyObj[0].data) {
       switch(bodyObj[0].data.method) {
       case 'broadcast_routes':
+        console.log('It is routes!')
         bodyObj[0].data.data.new_routes.map(route => {
           this.routes[route.destination_ledger] = route
         })
         // always quote directly after receiving a new route, to determine whether this connector charges gratuity:
-        this.requestQuote(newRoutes[i].destination_ledger)
+        // this.requestQuote(newRoutes[i].destination_ledger)
         break
       case 'quote_request':
         const curve = this.hopper.makeCurve(this.host, bodyObj[0].data.data.destination_ledger)
