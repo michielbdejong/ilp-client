@@ -4,7 +4,7 @@ const path = require('path')
 const keypair = require('./lib/keypair')
 const getHostInfo = require('./lib/hostInfo')
 const handleWebFinger = require('./lib/webfinger')
-const Peer = require('./lib/rpc').Peer
+const Peer = require('./lib/peer').Peer
 const Hopper = require('./lib/hopper').Hopper
 
 function IlpNode (statsFileName, credsFileName, hostname) {
