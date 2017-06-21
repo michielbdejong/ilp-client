@@ -45,19 +45,20 @@ module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
     if (typeof obj.lastDownTime === 'undefined') {
       obj.lastDownTime = new Date().getTime()
     }
-    for (let link of data.links) {
-      switch (link.rel) {
-      case 'https://interledger.org/rel/ledgerUri':
-        obj.ledgerUri = link.href
-        break
-      case 'https://interledger.org/rel/peersRpcUri':
-        obj.peersRpcUri = link.href
-        break
-      case 'https://interledger.org/rel/settlementMethods':
-        obj.settlementMethodsUri = link.href
-        break
-      }
-    }
+    // keep this secret!
+    // for (let link of data.links) {
+    //   switch (link.rel) {
+    //   case 'https://interledger.org/rel/ledgerUri':
+    //     obj.ledgerUri = link.href
+    //     break
+    //   case 'https://interledger.org/rel/peersRpcUri':
+    //     obj.peersRpcUri = link.href
+    //     break
+    //   case 'https://interledger.org/rel/settlementMethods':
+    //     obj.settlementMethodsUri = link.href
+    //     break
+    //   }
+    // }
   } catch (error) {
     console.log('error: ', error)
     if (obj.hostname) {
