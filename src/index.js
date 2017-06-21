@@ -22,10 +22,12 @@ function IlpNode (statsFileName, credsFileName, hostname) {
   this.credsFileName = credsFileName
   this.hostname = hostname
   this.stats = {
-    hosts: {},
-    ledgers: {}
+    hosts: {}
   }
-  this.peers = {}
+  this.peers = {
+    ledgers: {} // for remembering RPC endpoints for peer ledgers
+                // for stats on destination ledgers, see this.peers[peerHost].routes
+  }
   this.creds = {}
   this.ready = false
 }
@@ -103,8 +105,8 @@ IlpNode.prototype = {
     for (let hostname of Object.keys(this.stats.hosts)) {
       promises.push(this.testHost(hostname, false))
     }
-    for (let prefix of Object.keys(this.stats.ledgers)) {
-      promises.push(this.testPeer(this.stats.ledgers[prefix].hostname))
+    for (let prefix of Object.keys(this.creds.ledgers)) {
+      promises.push(this.testPeer(this.creds.ledgers[prefix].hostname))
     }
     await Promise.all(promises)
     await this.writeFile('stats', this.statsFileName)
@@ -117,7 +119,7 @@ IlpNode.prototype = {
       console.log('peering!')
       this.peers[peerHostname] = new Peer(peerHostname, this.tokenStore, this.hopper, this.stats.hosts[hash(peerHostname)].pubKey)
     }
-    this.stats.ledgers[this.peers[peerHostname].ledger] = { hostname: peerHostname }
+    this.creds.ledgers[this.peers[peerHostname].ledger] = { hostname: peerHostname }
     console.log('linked', this.peers[peerHostname].ledger, peerHostname)
   },
   testHost: async function(testHostname, writeStats = true) {
@@ -142,7 +144,7 @@ IlpNode.prototype = {
   },
   handleRpc: async function(params, body) {
     await this.ensureReady()
-    const peerHostname = this.stats.ledgers[params.prefix].hostname
+    const peerHostname = this.creds.ledgers[params.prefix].hostname
     console.log('handle rpc', params, body, peerHostname)
     return this.peers[peerHostname].handleRpc(params, body)
   },
