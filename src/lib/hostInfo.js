@@ -26,6 +26,7 @@ module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
     // { subject: 'https://red.ilpdemo.org',
     //   properties:
     //    { 'https://interledger.org/rel/publicKey': '0ZwLzlPLd2UWJPwYSz6RhOh3S-N-cdAhVqG62iqb6xI',
+    //      'https://interledger.org/rel/title': 'Michiel',
     //      'https://interledger.org/rel/protocolVersion': 'Compatible: ilp-kit v2.0.0-alpha' },
     //   links:
     //    [ { rel: 'https://interledger.org/rel/ledgerUri',
@@ -34,9 +35,9 @@ module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
     //        href: 'https://red.ilpdemo.org/api/peers/rpc' },
     //      { rel: 'https://interledger.org/rel/settlementMethods',
     //        href: 'https://red.ilpdemo.org/api/settlement_methods' } ] }
-    obj.hostname = hostname
     obj.version = data.properties['https://interledger.org/rel/protocolVersion']
     obj.pubKey = data.properties['https://interledger.org/rel/publicKey']
+    obj.title = data.properties['https://interledger.org/rel/title']
     console.log('got pubKey!', obj, data.properties)
     obj.health = rollingAvg(obj.health, 1)
     obj.latency = rollingAvg(obj.latency, delay)

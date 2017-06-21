@@ -6,6 +6,14 @@ const getHostInfo = require('./lib/hostInfo')
 const handleWebFinger = require('./lib/webfinger')
 const Peer = require('./lib/peer').Peer
 const Hopper = require('./lib/hopper').Hopper
+const crypto = require('crypto')
+
+function hash(hostname) {
+  return crypto
+      .createHmac('sha256', 'hostname')
+      .update(hostname)
+      .digest('hex')
+}
 
 function IlpNode (statsFileName, credsFileName, hostname) {
   console.log('function IlpNode (', { statsFileName, credsFileName, hostname })
@@ -103,11 +111,11 @@ IlpNode.prototype = {
   },
   peerWith: async function(peerHostname) {
     await this.ensureReady()
-    this.stats.hosts[peerHostname] = await getHostInfo(peerHostname, this.stats.hosts[peerHostname] || {})
+    this.stats.hosts[hash(peerHostname)] = await getHostInfo(peerHostname, this.stats.hosts[peerHostname] || {})
     // console.log('this.stats.hosts[peerHostname]', this.stats.hosts[peerHostname])
-    if (this.stats.hosts[peerHostname].pubKey && !this.peers[peerHostname]) {
+    if (this.stats.hosts[hash(peerHostname)].pubKey && !this.peers[peerHostname]) {
       console.log('peering!')
-      this.peers[peerHostname] = new Peer(peerHostname, this.tokenStore, this.hopper, this.stats.hosts[peerHostname].pubKey)
+      this.peers[peerHostname] = new Peer(peerHostname, this.tokenStore, this.hopper, this.stats.hosts[hash(peerHostname)].pubKey)
     }
     this.stats.ledgers[this.peers[peerHostname].ledger] = { hostname: peerHostname }
     console.log('linked', this.peers[peerHostname].ledger, peerHostname)
@@ -121,8 +129,8 @@ IlpNode.prototype = {
   },
   testPeer: async function(testHostname) {
     await this.ensureReady()
-    this.stats.hosts[testHostname].limit = await this.peers[testHostname].getLimit()
-    this.stats.hosts[testHostname].balance = await this.peers[testHostname].getBalance()
+    this.stats.hosts[hash(testHostname)].limit = await this.peers[testHostname].getLimit()
+    this.stats.hosts[hash(testHostname)].balance = await this.peers[testHostname].getBalance()
   },
   announceRoute: async function(ledger, curve, peerHostname) {
     await this.ensureReady()
