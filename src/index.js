@@ -24,11 +24,12 @@ function IlpNode (statsFileName, credsFileName, hostname) {
   this.stats = {
     hosts: {}
   }
-  this.peers = {
+  this.peers = {}
+  this.creds = {
+    hosts: {},  // map hostname hashes back to hostname preimages
     ledgers: {} // for remembering RPC endpoints for peer ledgers
                 // for stats on destination ledgers, see this.peers[peerHost].routes
   }
-  this.creds = {}
   this.ready = false
 }
 
@@ -102,8 +103,8 @@ IlpNode.prototype = {
   testAll: async function() {
     const promises = []
     await this.ensureReady()
-    for (let hostname of Object.keys(this.stats.hosts)) {
-      promises.push(this.testHost(hostname, false))
+    for (let hostnameHash of Object.keys(this.stats.hosts)) {
+      promises.push(this.testHost(this.creds.hosts[hostnameHash].hostname, false))
     }
     for (let prefix of Object.keys(this.creds.ledgers)) {
       promises.push(this.testPeer(this.creds.ledgers[prefix].hostname))
@@ -113,6 +114,7 @@ IlpNode.prototype = {
   },
   peerWith: async function(peerHostname) {
     await this.ensureReady()
+    this.creds.hosts[hash(peerHostname)] = { hostname: peerHostname }
     this.stats.hosts[hash(peerHostname)] = await getHostInfo(peerHostname, this.stats.hosts[peerHostname] || {})
     // console.log('this.stats.hosts[peerHostname]', this.stats.hosts[peerHostname])
     if (this.stats.hosts[hash(peerHostname)].pubKey && !this.peers[peerHostname]) {
