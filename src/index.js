@@ -23,7 +23,9 @@ function IlpNode (redisUrl, hostname) {
   this.hopper = new Hopper()
   this.hostname = hostname
   this.stats = {
-    hosts: {}
+    hosts: {},
+    ledgers: {},
+    connectors: {}
   }
   this.peers = {}
   this.creds = {
