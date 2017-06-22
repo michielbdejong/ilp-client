@@ -38,6 +38,14 @@ module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
     obj.version = data.properties['https://interledger.org/rel/protocolVersion']
     obj.pubKey = data.properties['https://interledger.org/rel/publicKey']
     obj.title = data.properties['https://interledger.org/rel/title']
+    // support ilp-kit version 2:
+    if (typeof obj.title !== 'string') {
+      console.log('no title!', data, 'trying', `${protocol}://${hostname}/api/config`)
+      const configResponse = await fetch(`${protocol}://${hostname}/api/config`)
+      const configData = await configResponse.json()
+      console.log(configData)
+      obj.title = configData.title
+    }
     console.log('got pubKey!', obj, data.properties)
     obj.health = rollingAvg(obj.health, 1)
     obj.latency = rollingAvg(obj.latency, delay)
