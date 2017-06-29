@@ -96,7 +96,9 @@ IlpNode.prototype = {
       promises.push(this.testHost(this.creds.hosts[hostnameHash].hostname, false))
     }
     for (let prefix of Object.keys(this.creds.ledgers)) {
-      promises.push(this.testPeer(this.creds.ledgers[prefix].hostname))
+      promises.push(this.testPeer(this.creds.ledgers[prefix].hostname).catch(e => {
+        console.error('Error testing peer', this.testPeer(this.creds.ledgers[prefix].hostname))
+      }))
     }
     await Promise.all(promises)
     await this.save('stats')
