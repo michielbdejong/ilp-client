@@ -100,6 +100,7 @@ IlpNode.prototype = {
     }
     await Promise.all(promises)
     await this.save('stats')
+    await this.save('creds')
   },
   peerWith: async function(peerHostname) {
     await this.ensureReady()
@@ -113,6 +114,7 @@ IlpNode.prototype = {
     }
     this.creds.ledgers[this.peers[peerHostname].ledger] = { hostname: peerHostname }
     console.log('linked', this.peers[peerHostname].ledger, peerHostname)
+    await this.save('creds')
   },
   testHost: async function(testHostname, writeStats = true) {
     await this.ensureReady()
@@ -136,6 +138,9 @@ IlpNode.prototype = {
   },
   handleRpc: async function(params, body) {
     await this.ensureReady()
+    if (!this.creds.ledgers[params.prefix]) {
+      console.log('peer not found!', params, this.creds)
+    }
     const peerHostname = this.creds.ledgers[params.prefix].hostname
     console.log('handle rpc', params, body, peerHostname)
     return this.peers[peerHostname].handleRpc(params, body)
