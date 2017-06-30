@@ -164,7 +164,7 @@ Peer.prototype.handleRpc = async function(params, bodyObj) {
       switch(bodyObj[0].data.method) {
       case 'broadcast_routes':
         console.log('It is routes!', bodyObj[0].custom.data)
-        bodyObj[0].data.data.new_routes.map(route => {
+        bodyObj[0].custom.data.new_routes.map(route => {
           this.routes[route.destination_ledger] = route
         })
         console.log('new routes map', Object.keys(this.routes))
@@ -172,18 +172,18 @@ Peer.prototype.handleRpc = async function(params, bodyObj) {
         // this.requestQuote(newRoutes[i].destination_ledger)
         break
       case 'quote_request':
-        const curve = this.hopper.makeCurve(this.host, bodyObj[0].data.data.destination_ledger)
+        const curve = this.hopper.makeCurve(this.host, bodyObj[0].custom.data.destination_ledger)
         if (curve === undefined) {
           // todo: implement remote quoting
         } else {
-          this.respondQuote(curve, bodyObj[0].data.data)
+          this.respondQuote(curve, bodyObj[0].custom.data)
         }
         break
       case 'quote_response':
         // todo: calculate gratuity compared to route
         break;
       default:
-        console.error('Unknown message method', bodyObj[0].data.method)
+        console.error('Unknown message method', bodyObj[0].custom.method)
       }
     }
     break;
