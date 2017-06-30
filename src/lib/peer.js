@@ -153,6 +153,7 @@ Peer.prototype.handleRpc = async function(params, bodyObj) {
   case 'send_transfer':
     // TODO: try to fulfill SPSP payment, otherwise, try to forward
     break;
+  case 'send_request':
   case 'send_message':
     console.log('GOT MESSAGE!!', params, bodyObj);
     // reverse engineered from https://github.com/interledgerjs/ilp-plugin-virtual/blob/v15.0.1/src/lib/plugin.js#L152:
