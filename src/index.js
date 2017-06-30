@@ -90,6 +90,7 @@ IlpNode.prototype = {
     this.tokenStore = new keypair.TokenStore(this.creds.keypair)
   },
   testAll: async function() {
+    console.log('testAll!!!!testAll!!!!testAll!!!!testAll!!!!')
     const promises = []
     await this.ensureReady()
     for (let hostnameHash of Object.keys(this.stats.hosts)) {
@@ -111,7 +112,7 @@ IlpNode.prototype = {
     this.stats.hosts[hash(peerHostname)] = await getHostInfo(peerHostname, this.stats.hosts[peerHostname] || {})
     // console.log('this.stats.hosts[peerHostname]', this.stats.hosts[peerHostname])
     if (this.stats.hosts[hash(peerHostname)].pubKey && !this.peers[peerHostname]) {
-      console.log('peering!')
+      console.log('peering!', peerHostname)
       this.peers[peerHostname] = new Peer(peerHostname, this.tokenStore, this.hopper, this.stats.hosts[hash(peerHostname)].pubKey)
     }
     this.creds.ledgers[this.peers[peerHostname].ledger] = { hostname: peerHostname }
