@@ -158,9 +158,12 @@ Peer.prototype.handleRpc = async function(params, bodyObj) {
     console.log('GOT MESSAGE!!', params, bodyObj);
     // reverse engineered from https://github.com/interledgerjs/ilp-plugin-virtual/blob/v15.0.1/src/lib/plugin.js#L152:
     if (Array.isArray(bodyObj) && bodyObj[0].data) {
+      bodyObj[0].custom = bodyObj[0].data
+    }
+    if (Array.isArray(bodyObj) && bodyObj[0].custom) {
       switch(bodyObj[0].data.method) {
       case 'broadcast_routes':
-        console.log('It is routes!', bodyObj[0].data.data)
+        console.log('It is routes!', bodyObj[0].custom.data)
         bodyObj[0].data.data.new_routes.map(route => {
           this.routes[route.destination_ledger] = route
         })
