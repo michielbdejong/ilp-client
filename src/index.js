@@ -142,7 +142,7 @@ IlpNode.prototype = {
   handleRpc: async function(params, body) {
     await this.ensureReady()
     if (!this.creds.ledgers[params.prefix]) {
-      console.log('peer not found!', params, this.creds)
+      console.log('peer not found!', params, JSON.stringify(this.creds.ledgers))
     }
     const peerHostname = this.creds.ledgers[params.prefix].hostname
     console.log('handle rpc', params, body, peerHostname, Object.keys(this.peers))
