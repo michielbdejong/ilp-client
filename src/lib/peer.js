@@ -161,7 +161,7 @@ Peer.prototype.handleRpc = async function(params, bodyObj) {
       bodyObj[0].custom = bodyObj[0].data
     }
     if (Array.isArray(bodyObj) && bodyObj[0].custom) {
-      switch(bodyObj[0].data.method) {
+      switch(bodyObj[0].custom.method) {
       case 'broadcast_routes':
         console.log('It is routes!', bodyObj[0].custom.data)
         bodyObj[0].custom.data.new_routes.map(route => {
