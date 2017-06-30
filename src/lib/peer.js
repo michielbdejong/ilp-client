@@ -164,6 +164,7 @@ Peer.prototype.handleRpc = async function(params, bodyObj) {
         bodyObj[0].data.data.new_routes.map(route => {
           this.routes[route.destination_ledger] = route
         })
+        console.log('new routes map', Object.keys(this.routes))
         // always quote directly after receiving a new route, to determine whether this connector charges gratuity:
         // this.requestQuote(newRoutes[i].destination_ledger)
         break
