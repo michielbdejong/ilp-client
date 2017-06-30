@@ -140,12 +140,15 @@ IlpNode.prototype = {
     return handleWebFinger(resource, this.creds, this.hostname)
   },
   handleRpc: async function(params, body) {
+    console.log('handleRpc 1')
     await this.ensureReady()
+    console.log('handleRpc 2')
     if (!this.creds.ledgers[params.prefix]) {
       console.log('peer not found!', params, JSON.stringify(this.creds.ledgers))
     }
+    console.log('handleRpc 3')
     const peerHostname = this.creds.ledgers[params.prefix].hostname
-    console.log('handle rpc', params, body, peerHostname, JSON.stringify(Object.keys(this.peers)), 'are the peer keys')
+    console.log('handle rpc 4', params, body, peerHostname, JSON.stringify(Object.keys(this.peers)), 'are the peer keys')
     return this.peers[peerHostname].handleRpc(params, body)
   },
 }
