@@ -34,6 +34,7 @@ function IlpNode (redisUrl, hostname) {
                 // for stats on destination ledgers, see this.stats.ledgers (for stats export), copied from this.peers[peerHost].routes (for use by hopper)
   }
   this.ready = false
+  this.lastLedgerStatsCollectionTime = 0
 }
 
 IlpNode.prototype = {
@@ -50,7 +51,11 @@ IlpNode.prototype = {
       console.log('init completed by other')
     }
   },
-  collectLedgerStats: function() {
+  collectLedgerStats: function(minDelay) {
+    if (this.lastLedgerStatsCollectionTime > new Date().getTime() - minDelay) {
+      return
+    }
+    this.lastLedgerStatsCollectionTime = new Date().getTime()
     for (let peerHost in this.peers) {
       for (let dest in this.peers[peerHost].routes) {
         if (typeof this.stats.ledgers[dest] === 'undefined') {
