@@ -59,9 +59,12 @@ IlpNode.prototype = {
     for (let peerHost in this.peers) {
       for (let dest in this.peers[peerHost].routes) {
         if (typeof this.stats.ledgers[dest] === 'undefined') {
-          this.stats.ledgers[dest] = {}
+          this.stats.ledgers[dest] = {
+             ledgerName: dest,
+             routes: {}
+          }
         }
-        this.stats.ledgers[dest][peerHost] = this.peers[peerHost].routes[dest]
+        this.stats.ledgers[dest].routes[peerHost] = this.peers[peerHost].routes[dest]
       }
     }
   },
