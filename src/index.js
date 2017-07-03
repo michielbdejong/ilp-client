@@ -31,7 +31,7 @@ function IlpNode (redisUrl, hostname) {
   this.creds = {
     hosts: {},  // map hostname hashes back to hostname preimages
     ledgers: {} // for remembering RPC endpoints for peer ledgers
-                // for stats on destination ledgers, see this.peers[peerHost].routes
+                // for stats on destination ledgers, see this.stats.ledgers (for stats export), copied from this.peers[peerHost].routes (for use by hopper)
   }
   this.ready = false
 }
@@ -48,6 +48,16 @@ IlpNode.prototype = {
       console.log('init already triggered')
       await this.ready
       console.log('init completed by other')
+    }
+  },
+  collectLedgerStats: function() {
+    for (let peerHost in this.peers) {
+      for (let dest in this.peers[peerHost].routes) {
+        if (typeof this.stats.ledgers[dest] === 'undefined') {
+          this.stats.ledgers[dest] = {}
+        }
+        this.stats.ledgers[dest][peerHost] = this.peers[peerHost].routes[dest]
+      }
     }
   },
   load: function(key) {
