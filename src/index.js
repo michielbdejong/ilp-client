@@ -51,7 +51,7 @@ IlpNode.prototype = {
       console.log('init completed by other')
     }
   },
-  collectLedgerStats: function(minDelay) {
+  async collectLedgerStats: function(minDelay) {
     if (this.lastLedgerStatsCollectionTime > new Date().getTime() - minDelay) {
       return
     }
@@ -67,6 +67,7 @@ IlpNode.prototype = {
         this.stats.ledgers[dest].routes[peerHost] = this.peers[peerHost].routes[dest]
       }
     }
+    await this.save('stats')
   },
   load: function(key) {
     return new Promise((resolve, reject) => {
