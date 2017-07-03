@@ -51,7 +51,7 @@ IlpNode.prototype = {
       console.log('init completed by other')
     }
   },
-  async collectLedgerStats: function(minDelay) {
+  collectLedgerStats: async function(minDelay) {
     if (this.lastLedgerStatsCollectionTime > new Date().getTime() - minDelay) {
       return
     }
