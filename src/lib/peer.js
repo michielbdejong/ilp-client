@@ -1,3 +1,10 @@
+// https://cryptii.com/hexadecimal/base64
+// 00 00 00 00
+// 00 00 00 00
+// ff ff ff ff
+// ff ff ff ff
+const IDENTITY_CURVE = 'AAAAAAAAAADDv8O/w7/Dv8O/w7/Dv8O/'
+
 const protocols = {
   http: require('http'),
   https: require('https')
@@ -128,7 +135,7 @@ Peer.prototype.getBalance = function() {
 }
 
 Peer.prototype.announceRoute = async function(ledger, curve) {
-  await this.postToPeer('send_message', {
+  await this.postToPeer('send_request', {
     method: 'broadcast_routes',
     data: {
       new_routes: [ {
@@ -168,8 +175,7 @@ Peer.prototype.handleRpc = async function(params, bodyObj) {
           this.routes[route.destination_ledger] = route
         })
         console.log('new routes map', Object.keys(this.routes))
-        // always quote directly after receiving a new route, to determine whether this connector charges gratuity:
-        // this.requestQuote(newRoutes[i].destination_ledger)
+        this.announceRoute(`connectorland.${this.peerPublicKey}`, IDENTITY_CURVE)
         break
       case 'quote_request':
         const curve = this.hopper.makeCurve(this.host, bodyObj[0].custom.data.destination_ledger)
@@ -192,6 +198,4 @@ Peer.prototype.handleRpc = async function(params, bodyObj) {
   }
 }
 
-// Peer.prototype.respondQuote(quote) {
-  
 module.exports.Peer = Peer
