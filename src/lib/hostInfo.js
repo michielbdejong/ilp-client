@@ -1,5 +1,3 @@
-const fetch = require('node-fetch')
-
 function rollingAvg(existing, measured) {
   if (typeof existing === 'undefined') {
     return measured
@@ -7,7 +5,9 @@ function rollingAvg(existing, measured) {
   return (existing * 99999 + measured) / 100000
 }
 
-module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
+module.exports = async function getHostInfo(hostname, previousObj, fetch) {
+  console.log('getting host info', hostname, previousObj)
+  const obj = {}
   try {
     let protocol = 'https'
     if (hostname.split(':')[0] === 'localhost') {
@@ -21,6 +21,7 @@ module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
     const delay = new Date().getTime() - startTime
 
     // parsing
+    console.log({ response })
     const data = await response.json()
     console.log('data: ', data)
     // { subject: 'https://red.ilpdemo.org',
@@ -38,6 +39,14 @@ module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
     obj.version = data.properties['https://interledger.org/rel/protocolVersion']
     obj.pubKey = data.properties['https://interledger.org/rel/publicKey']
     obj.title = data.properties['https://interledger.org/rel/title']
+    if (Array.isArray(data.links)) {
+      data.links.map(link => {
+        console.log('SEEING LINK!', data.lin)
+        if (link.rel === 'https://interledger.org/rel/peersRpcUri') {
+          obj.peersRpcUri = link.href
+        }
+      })
+    }
     // support ilp-kit version 2:
     if (typeof obj.title !== 'string') {
       console.log('no title!', data, 'trying', `${protocol}://${hostname}/api/config`)
@@ -47,8 +56,8 @@ module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
       obj.title = configData.title
     }
     console.log('got pubKey!', obj, data.properties)
-    obj.health = rollingAvg(obj.health, 1)
-    obj.latency = rollingAvg(obj.latency, delay)
+    obj.health = rollingAvg(previousObj.health, 1)
+    obj.latency = rollingAvg(previousObj.latency, delay)
 
     if (typeof obj.lastDownTime === 'undefined') {
       obj.lastDownTime = new Date().getTime()
@@ -70,7 +79,7 @@ module.exports = async function getHostInfo(hostname, /* by ref */ obj) {
   } catch (error) {
     console.log('error: ', error)
     if (obj.hostname) {
-      obj.health = rollingAvg(obj.health, 0)
+      obj.health = rollingAvg(previousObj.health, 0)
       obj.lastDownTime = new Date().getTime()
     }
   }

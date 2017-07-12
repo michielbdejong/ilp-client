@@ -1,192 +1,148 @@
-const protocols = {
-  http: require('http'),
-  https: require('https')
-}
+const IDENTITY_CURVE = 'AAAAAAAAAAAAAAAAAAAAAP////////////////////8=' //  Buffer.from( Array(32+1).join('0') + Array(32+1).join('F'), 'hex').toString('base64')
+                                                                      // [ [ '0', '0' ], [ '18446744073709551615', '18446744073709551615' ] ]
+const MIN_MESSAGE_WINDOW = 10000
 
-function Peer(host, tokenStore, hopper, peerPublicKey) {
-  console.log('Peer', host, tokenStore, hopper, peerPublicKey)
-  this.host = host
-  this.rate = 1.0 // for now, all peers are in USD
-  this.protocol = protocols['https']
-  if (host.split(':')[0] === 'localhost') {
-    this.protocol = protocols['http'];
-    [ this.host, this.port ] = host.split(':')
-  }
-  this.quoteId = 0
+const Oer = require('oer-utils')
+const uuid = require('uuid/v4')
+const crypto = require('crypto')
+const sha256 = (secret) => { return crypto.createHmac('sha256', secret).digest('base64') }
+
+function Peer(uri, tokenStore, hopper, peerPublicKey, fetch, actAsConnector, testLedgerBase) {
+  this.uri = uri
+  this.peerHost = uri.split('://')[1].split('/')[0].split(':').reverse().join('.') // e.g. 8000.localhost or asdf1.com
+  this.actAsConnector = actAsConnector
+  this.fetch = fetch
   this.peerPublicKey = peerPublicKey
-  console.log('getting token', peerPublicKey)
   this.ledger = 'peer.' + tokenStore.getToken('token', peerPublicKey).substring(0, 5) + '.usd.9.';
   this.authToken = tokenStore.getToken('authorization', peerPublicKey)
   this.myPublicKey = tokenStore.peeringKeyPair.pub
-  this.routes = {}
   this.hopper = hopper
+  this.testLedger = testLedgerBase + 'test-to-peer.' + this.peerPublicKey + '.'
+  this.testRouteAnnounced = false
 }
 
-Peer.prototype.newQuoteId = function () {
-  var newQuoteId = new Date().getTime();
-  while (newQuoteId < this.quoteId) {
-    newQuoteId++;
-  }
-  this.quoteId = newQuoteId;
-  return this.quoteId;
-}
-
-Peer.prototype.postToPeer = async function(method, postData) {
-  const options = {
-    host: this.host,
-    port: this.port,
-    path: `/api/peers/rpc?method=${method}&prefix=${this.ledger}`,
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + this.authToken
-    }
-  }
-  return await new Promise((resolve, reject) => {
-    const req = this.protocol.request(options, (res) => {
-      res.setEncoding('utf8')
-      var str = ''
-      res.on('data', (chunk) => {
-        str += chunk
-      })
-      res.on('end', () => {
-        console.log('rpc response!', postData, str)
-        resolve(str)
-      })
-    })
-    req.on('error', reject)
-    req.write(JSON.stringify([ {
-      ledger: this.ledger,
-      from: this.ledger + this.myPublicKey,
-      to: this.ledger + this.peerPublicKey,
-      data: postData
-    } ], null, 2))
-    req.end()
-  })
-}
-
-Peer.prototype.requestQuote = function(destinationLedger) {
-  return this.postToPeer('send_message', {
-    method: 'quote_request',
-    id: this.newQuoteId(),
-    data: {
-      source_amount: '10025',
-      source_address: this.ledger + 'alice',
-      destination_address: destinationLedger + 'bobby.tables',
-      source_expiry_duration: '6000',
-      destination_expiry_duration: '5'
-    }
-  })
-}
-
-function applyCurve(curve, ret) {
-  let given, wanted, givenAmount
-  if (typeof ret[0] === undefined ) {
-    wanted = 0
-    given = 1
-    givenAmount = ret[1]
-  } else {
-    wanted = 0
-    given = 1
-    givenAmount = ret[0]
-  }
-  // linear search:
-  for (let i=1; i < curve.length; i++) {
-    if (curve[i][given] == givenAmount) {
-      ret[wanted] = curve[i][wanted]
-      return ret 
-    } else if (curve[i][given] > givenAmount) {
-      let fraction = (givenAmount - curve[i-1][given]) / (curve[i][given] - curve[i-1][given])
-      ret[wanted] = curve[i-1][wanted] + fraction * (curve[i][wanted] - curve[i-1][wanted])
+Peer.prototype = {
+  postToPeer(method, postData) {
+    return this.fetch(this.uri+ `?method=${method}&prefix=${this.ledger}`, {
+      method: 'POST', headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + this.authToken
+      }, body: JSON.stringify(postData, null, 2)
+    }).then(res => {
+      return res.json()
+    }).then(ret => {
+      console.log('post response!', method, ret)
       return ret
-    }
-  }
-}
-
-Peer.prototype.respondQuote = function(curve, quote) {
-  [ quote.sourceAmount, quote.destinationAmount ]  = applyCurve(curve, [ quote.sourceAmount, quote.destinationAmount ])
-  quote.liquidity_curve = curve
-  return this.postToPeer('send_message', {
-    method: 'quote_response',
-    id: quote.id,
-    data: quote
-  })
-}
-
-Peer.prototype.pay = function(destinationLedger) {
-  return this.postToPeer('send_transfer', {
-     // ...
-  })
-}
-
-Peer.prototype.getLimit = function() {
-  return this.postToPeer('get_limit')
-}
-
-Peer.prototype.getBalance = function() {
-  return this.postToPeer('get_balance')
-}
-
-Peer.prototype.announceRoute = async function(ledger, curve) {
-  await this.postToPeer('send_message', {
-    method: 'broadcast_routes',
-    data: {
-      new_routes: [ {
-        source_ledger: this.ledger,
-        destination_ledger: ledger,
-        points: curve,
-        min_message_window: 1,
-        source_account: this.ledger + this.myPublicKey
-      } ],
-      hold_down_time: 45000,
-      unreachable_through_me: []
-    }
-  })
-}
-
-Peer.prototype.handleRpc = async function(params, bodyObj) {
-  switch(params.method) {
-  case 'get_limit':
-  case 'get_balance':
-    return '0';
-    break;
-  case 'send_transfer':
-    // TODO: try to fulfill SPSP payment, otherwise, try to forward
-    break;
-  case 'send_message':
-    console.log('GOT MESSAGE!!', params, bodyObj);
-    // reverse engineered from https://github.com/interledgerjs/ilp-plugin-virtual/blob/v15.0.1/src/lib/plugin.js#L152:
-    if (Array.isArray(bodyObj) && bodyObj[0].data) {
-      switch(bodyObj[0].data.method) {
-      case 'broadcast_routes':
-        console.log('It is routes!')
-        bodyObj[0].data.data.new_routes.map(route => {
-          this.routes[route.destination_ledger] = route
-        })
-        // always quote directly after receiving a new route, to determine whether this connector charges gratuity:
-        // this.requestQuote(newRoutes[i].destination_ledger)
-        break
-      case 'quote_request':
-        const curve = this.hopper.makeCurve(this.host, bodyObj[0].data.data.destination_ledger)
-        if (curve === undefined) {
-          // todo: implement remote quoting
-        } else {
-          this.respondQuote(curve, bodyObj[0].data.data)
-        }
-        break
-      case 'quote_response':
-        // todo: calculate gratuity compared to route
-        break;
-      default:
-        console.error('Unknown message method', bodyObj[0].data.method)
+    })
+  },
+    /////////////////////
+   // OUTGOING ROUTES //
+  /////////////////////
+  announceRoute(ledger, curve) {
+      if (typeof this !== 'object') {
+        console.error('ledger panic 2')
       }
+    return this.postToPeer('send_request', [ {
+      ledger: this.ledger, from: this.ledger + this.myPublicKey, to: this.ledger + this.peerPublicKey, custom: {
+        method: 'broadcast_routes', data: { new_routes: [ {
+            source_ledger: this.ledger,
+            destination_ledger: ledger,
+            points: curve,
+            min_message_window: 1,
+            paths: [ [] ],
+            source_account: this.ledger + this.myPublicKey
+          } ], hold_down_time: 45000, unreachable_through_me: []
+        }
+      }
+    } ])
+  },
+  announceTestRoute() {
+    if (this.testRouteAnnounced) { return }
+    this.testRouteAnnounced = true
+    return this.announceRoute(this.testLedger, IDENTITY_CURVE)
+  },
+    /////////////////////////
+   // OUTGOING TRANSFERS //
+  ////////////////////////
+  sendTransfer(amountStr, condition, expiresAtMs, packet, outgoingUuid) {
+    return this.postToPeer('send_transfer', [ {
+      id: outgoingUuid,
+      amount: amountStr,
+      ilp: packet,
+      executionCondition: condition,
+      expiresAt: new Date(expiresAtMs),
+    } ], true)
+  },
+  prepareTestPayment() {
+    const writer1 = new Oer.Writer()
+    writer1.writeUInt32(0)
+    writer1.writeUInt32(1)
+    writer1.writeVarOctetString(Buffer.from(this.testLedger + 'test', 'ascii'))
+    writer1.writeVarOctetString(Buffer.from('', 'base64'))
+    writer1.writeUInt8(0)
+    const writer2 = new Oer.Writer()
+    writer2.writeUInt8(1) // TYPE_ILP_PAYMENT
+    writer2.writeVarOctetString(writer1.getBuffer())
+    const ilpPacket = writer2.getBuffer().toString('base64')
+    const testPaymentId = uuid()
+    const testPaymentPreimage = crypto.randomBytes(32).toString('base64')
+    const testPaymentCondition = sha256(testPaymentPreimage)
+    this.hopper.paymentsInitiatedById[testPaymentId] = testPaymentPreimage
+    this.hopper.paymentsInitiatedByCondition[testPaymentCondition] = testPaymentPreimage
+    return this.sendTransfer('2', testPaymentCondition, new Date().getTime() + 10000,  ilpPacket, testPaymentId)
+  },  
+  getLimit() { return this.postToPeer('get_limit') },
+  getBalance() { return this.postToPeer('get_balance') },
+    //////////////
+   // INCOMING //
+  //////////////
+  handleRpc(params, bodyObj) {
+    switch(params.method) {
+    case 'send_request':
+      if (Array.isArray(bodyObj) && bodyObj[0].data) {
+        bodyObj[0].custom = bodyObj[0].data
+      }
+      if (Array.isArray(bodyObj) && bodyObj[0].custom) {
+        switch(bodyObj[0].custom.method) {
+        case 'broadcast_routes':
+          console.log('received routes!', this.peerHost, bodyObj[0].custom.data.new_routes)
+          bodyObj[0].custom.data.new_routes.map(route => {
+            this.hopper.table.addRoute(this.peerHost, route, this.actAsConnector)
+            if (route.destination_ledger = this.testLedger && !this.actAsConnector) {
+              this.prepareTestPayment()
+            } 
+          })
+          break
+        default:
+          console.error('Unknown ledger-level request method', bodyObj[0].custom.method)
+        }
+      }
+      if (typeof this !== 'object') {
+        console.error('ledger panic 3')
+      }
+      return Promise.resolve(JSON.stringify({
+        ledger: this.ledger,
+        from: this.ledger + this.myPublicKey,
+        to: this.ledger + this.peerPublicKey,
+        custom: {}
+      }, null, 2))
+      break;
+    case 'send_transfer':
+      this.hopper.handleTransfer(bodyObj[0], this.peerHost).then(result => { this.postToPeer(result.method, result.body, true) })
+      return true
+      break;
+    case 'fulfill_condition':
+    case 'reject_incoming_transfer':
+      return this.hopper.handleTransferResult(params.method, bodyObj)
+      break;
+    case 'get_limit':
+    case 'get_balance':
+      return '0';
+      break;
+    default:
+      return Promise.reject(new Error('Unknown rpc-level request method'))
     }
-    break;
-  default:
-    return 'Unknown method';
   }
 }
 
-// Peer.prototype.respondQuote(quote) {
-  
 module.exports.Peer = Peer
