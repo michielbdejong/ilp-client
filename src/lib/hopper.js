@@ -39,6 +39,7 @@ Hopper.prototype = {
     if (transfer.amount <= bestHop.nextAmount) { return Promise.resolve(makeRejection(transfer.id, 'not enough money')) }
   
     // 3) condition = nextCondition, so that if the next payment gets fulfilled, this connector can also fulfill the source payment
+    console.log('looking for next peer', bestHop.nextHost, Object.keys(this.ilpNodeObj.peers))
     if (typeof this.ilpNodeObj.peers[bestHop.nextHost] === 'undefined') { return Promise.resolve(makeRejection(transfer.id, 'no route found')) }
   
     // in current protocol (bit annoyingly I guess?), this call returns immediately, and the connector will be called back:
@@ -165,6 +166,7 @@ Table.prototype = {
     }
   },
   addRoute(peerHost, routeObj, andBroadcast = false) {
+    console.log('peerHost for addRoute', peerHost)
     const subTable = this.findSubTable(routeObj.destination_ledger.split('.'), false)
     function isBetter(a, b) {
       if (!b) {
@@ -198,7 +200,7 @@ Table.prototype = {
     const destAmountLowBits = reader2.readUInt32()
     const destAccount = reader2.readVarOctetString().toString('ascii')
     if (destAccount.startsWith(this.ilpNodeObj.testLedger)) {
-      // console.log('best hop is local!', destAccount)
+      console.log('best hop is local!', destAccount)
       return {
         isLocal: true,
         destAmountHighBits,
@@ -210,16 +212,21 @@ Table.prototype = {
     let bestHost
     let bestDistance
     let bestPrice
-    // console.log('comparing various hops', Object.keys(subTable.routes))
+    console.log('comparing various hops', destAccount, subTable.prefix, Object.keys(subTable.routes))
     for (let peerHost in subTable.routes) {
       let thisDistance = calcDistance(subTable.routes[peerHost])
+      console.log({ thisDistance })
       if (bestHost && bestDistance < thisDistance) {
+        console.log('too long', bestDistance, thisDistance)
         continue // too long, discard
       }
       let thisPrice = calcPrice(subTable.routes[peerHost], undefined, destAmountLowBits)
+      console.log({ thisPrice })
       if (bestHost && bestPrice <= thisPrice) {
+        console.log('too expensive', bestPrice, thisPrice)
         continue // too expensive, discard
       }
+      console.log('using hop!', { peerHost, thisDistance, thisPrice })
       bestHost = peerHost
       bestDistance = thisDistance
       bestPrice = thisPrice

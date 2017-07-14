@@ -27,7 +27,7 @@ function IlpNode (kv, hostname, simulator, actAsConnector = false) {
     this.fetch = realFetch
   }
   this.hostname = hostname
-  this.testLedgerBase = 'g.dns.' + this.hostname.split('.').reverse().join('.') + '.'
+  this.testLedgerBase = 'g.dns.' + this.hostname.split(/[:\.]/).reverse().join('.') + '.'
   this.previousStats = {
     hosts: {},
     ledgers: {},

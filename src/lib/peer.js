@@ -9,7 +9,8 @@ const sha256 = (secret) => { return crypto.createHmac('sha256', secret).digest('
 
 function Peer(uri, tokenStore, hopper, peerPublicKey, fetch, actAsConnector, testLedgerBase) {
   this.uri = uri
-  this.peerHost = uri.split('://')[1].split('/')[0].split(':').reverse().join('.') // e.g. 8000.localhost or asdf1.com
+  // this.peerHost = uri.split('://')[1].split('/')[0].split(':').reverse().join('.') // e.g. 8000.localhost or asdf1.com
+  this.peerHost = uri.split('://')[1].split('/')[0] // e.g. localhost:8000 or asdf1.com
   this.actAsConnector = actAsConnector
   this.fetch = fetch
   this.peerPublicKey = peerPublicKey
