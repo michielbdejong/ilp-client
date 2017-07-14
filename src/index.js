@@ -269,7 +269,7 @@ IlpNode.prototype = {
     console.log('calced params!', params, req.url) 
     if (pathParts[0] === '/.well-known/webfinger') {
       promise = this.handleWebFinger(params.resource)
-    } else {
+    } else if (pathParts[0] === '/rpc') {
       let str = ''
       req.on('data', (chunk) => { str += chunk })
       promise = new Promise(resolve => { req.on('end', resolve) }).then(() => {
@@ -280,6 +280,8 @@ IlpNode.prototype = {
         console.log('calling rpc', params, body)
         return this.handleRpc(params, body)
       })
+    } else {
+      promise = Promise.resolve('wrong url ' + req.url)
     }
     promise.then(ret => {
       res.write(JSON.stringify(ret))
