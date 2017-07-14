@@ -218,7 +218,7 @@ IlpNode.prototype = {
     await this.ensureReady()
     // console.log('handleRpc 2')
     if (!this.creds.ledgers[params.prefix]) {
-      // console.log('peer not found!', this.creds.ledgers, params, JSON.stringify(this.creds.ledgers))
+      console.log('peer not found!', this.creds.ledgers, params, JSON.stringify(this.creds.ledgers))
       return 'error please retry'
     }
     // console.log('handleRpc 3')
