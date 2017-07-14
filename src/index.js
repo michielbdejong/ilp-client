@@ -138,6 +138,7 @@ IlpNode.prototype = {
     await this.save('creds')
   },
   peerWithAndTest: async function(peerHostname) {
+    console.log('peerWithAndTest', peerHostname)
     const creds = this.creds.hosts[hash(peerHostname)]
     console.log(this.hostname, 'peers with', peerHostname, creds)
     await this.ensureReady()
@@ -158,7 +159,9 @@ IlpNode.prototype = {
       }, this.hopper, 'peer', this.fetch, this.actAsConnector, this.testLedgerBase)
       console.log('created peer from peer caps!', peerHostname)
     } else {
+      console.log('getting host info!')
       this.stats.hosts[hash(peerHostname)] = await getHostInfo(peerHostname, this.previousStats.hosts[peerHostname] || {}, this.fetch)
+      console.log(this.stats.hosts)
       if (this.stats.hosts[hash(peerHostname)].pubKey && !this.peers[peerHostname]) {
         console.log('INSTANTIATING PEER!', peerHostname, 'should I act as a connector?', this.hostname, this.actAsConnector)
         this.peers[peerHostname] = new Peer(this.stats.hosts[hash(peerHostname)].peersRpcUri, this.tokenStore, this.hopper, this.stats.hosts[hash(peerHostname)].pubKey, this.fetch, this.actAsConnector, this.testLedgerBase)

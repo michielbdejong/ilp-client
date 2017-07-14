@@ -8,5 +8,5 @@ const keyValueStore = {
 }
 
 const ilpNode = new IlpNode(keyValueStore, process.env.API_HOSTNAME, false, true)
-ilpNode.peerWithAndTest('localhost:6001')
+ilpNode.peerWithAndTest(process.env.PEER)
 http.createServer(ilpNode.server.bind(ilpNode)).listen(process.env.CLIENT_PORT)

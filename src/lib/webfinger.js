@@ -20,6 +20,7 @@ module.exports = (resource, creds, hostname) => {
         { rel: 'https://interledger.org/rel/peersRpcUri', href: `https://${hostname}/rpc`}
       ]
     }
+    console.log('served host info!')
   } else if (resource.startsWith('acct:')) {
     const parts = resource.substring('acct:'.length).split('@')
     if (parts[1] === hostname) {
@@ -32,5 +33,5 @@ module.exports = (resource, creds, hostname) => {
       }
     }
   }
-  console.log('Uh oh! reached the end!', { resource, creds, hostname })
+  console.log('Uh oh! reached the end!', { resource, creds, protocol, hostname })
 }
