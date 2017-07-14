@@ -36,7 +36,11 @@ Hopper.prototype = {
     }
  
     // 2) amount > exchangeRate(nextAmount), so that this connector makes a bit of money
-    if (transfer.amount <= bestHop.nextAmount) { return Promise.resolve(makeRejection(transfer.id, 'not enough money')) }
+    if (parseFloat(transfer.amount) < bestHop.nextAmount) {
+      console.log('not enough!', parseFloat(transfer.amount), '<', bestHop.nextAmount)
+      return Promise.resolve(makeRejection(transfer.id, 'not enough money'))
+    }
+
   
     // 3) condition = nextCondition, so that if the next payment gets fulfilled, this connector can also fulfill the source payment
     console.log('looking for next peer', bestHop.nextHost, Object.keys(this.ilpNodeObj.peers))
