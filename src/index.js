@@ -220,6 +220,7 @@ IlpNode.prototype = {
     if (!this.creds.ledgers[params.prefix]) {
       console.log('peer not found!', this.creds.ledgers, params, JSON.stringify(this.creds.ledgers))
       return 'error please retry'
+      // peer not found! { 'peer.UswSQ.usd.9.': { hostname: 'connector.land' } } {} {"peer.UswSQ.usd.9.":{"hostname":"connector.land"}}
     }
     // console.log('handleRpc 3')
     if (typeof this.creds.ledgers[params.prefix] === 'undefined') {
@@ -265,7 +266,7 @@ IlpNode.prototype = {
         params[pairParts[0]] = pairParts[1]
       })
     }
-    
+    console.log('calced params!', params, req.url) 
     if (pathParts[0] === '/.well-known/webfinger') {
       promise = this.handleWebFinger(params.resource)
     } else {
@@ -276,6 +277,7 @@ IlpNode.prototype = {
         try {
           body = JSON.parse(str)
         } catch(e) {}
+        console.log('calling rpc', params, body)
         return this.handleRpc(params, body)
       })
     }
