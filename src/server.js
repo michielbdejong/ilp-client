@@ -7,6 +7,6 @@ const keyValueStore = {
   get(k, cb) { cb(null, this.storage[k] || null) }
 }
 
-const ilpNode = new IlpNode(keyValueStore, process.env.HOSTNAME, false, true)
+const ilpNode = new IlpNode(keyValueStore, process.env.API_HOSTNAME, false, true)
 
-http.createServer(ilpNode.server.bind(ilpNode)).listen(process.env.PORT)
+http.createServer(ilpNode.server.bind(ilpNode)).listen(process.env.CLIENT_PORT)
