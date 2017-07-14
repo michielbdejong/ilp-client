@@ -255,6 +255,34 @@ IlpNode.prototype = {
     }
     await this.save('stats')
     await this.save('creds')
+  },
+  server(req, res) {
+    const pathParts = req.url.split('?')
+    let params = {}
+    if (pathParts.length > 1) {
+      pathParts[1].split('&').map(pair => {
+        const pairParts = pair.split('=')
+        params[pairParts[0]] = pairParts[1]
+      })
+    }
+    
+    if (pathParts[0] === '/.well-known/webfinger') {
+      promise = this.handleWebFinger(params.resource)
+    } else {
+      let str = ''
+      req.on('data', (chunk) => { str += chunk })
+      promise = new Promise(resolve => { req.on('end', resolve) }).then(() => {
+        let body = ''
+        try {
+          body = JSON.parse(str)
+        } catch(e) {}
+        return this.handleRpc(params, body)
+      })
+    }
+    promise.then(ret => {
+      res.write(JSON.stringify(ret))
+      res.end()
+    })
   }
 }
 
