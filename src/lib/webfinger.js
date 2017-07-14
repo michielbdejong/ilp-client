@@ -8,6 +8,8 @@ module.exports = (resource, creds, hostname) => {
   if (hostname.split(':')[0] === 'localhost') {
     protocol = 'http'
   }
+  const rpcUri = protocol + '://' + hostname + '/rpc'
+
   if (resource === `${protocol}://${hostname}`) {
     console.log('host resource!')
     return {
@@ -17,7 +19,7 @@ module.exports = (resource, creds, hostname) => {
         'https://interledger.org/rel/publicKey': creds.keypair.pub
       },
       links:[
-        { rel: 'https://interledger.org/rel/peersRpcUri', href: `https://${hostname}/rpc`}
+        { rel: 'https://interledger.org/rel/peersRpcUri', href: rpcUri }
       ]
     }
     console.log('served host info!')
