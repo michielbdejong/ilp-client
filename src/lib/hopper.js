@@ -166,13 +166,22 @@ Table.prototype = {
   },
   addRoute(peerHost, routeObj, andBroadcast = false) {
     const subTable = this.findSubTable(routeObj.destination_ledger.split('.'), false)
-    subTable.routes[peerHost] = routeObj
-    if (andBroadcast) {
-      Object.keys(this.ilpNodeObj.peers).map(otherPeer => {
-        if (otherPeer !== peerHost) {
-          this.ilpNodeObj.peers[otherPeer].announceRoute(routeObj.destination_ledger, routeObj.points) // TODO: apply own rate
-        }
-      })
+    function isBetter(a, b) {
+      if (!b) {
+        return true
+      }
+      // compare price for 10^9 destination ledger units
+      return calcPrice(a, undefined, 1000000000) > calcPrice(b, undefined, 1000000000)
+    }
+    if (isBetter(routeObj, subTable.routes[peerHost])) {
+      subTable.routes[peerHost] = routeObj
+      if (andBroadcast) {
+        Object.keys(this.ilpNodeObj.peers).map(otherPeer => {
+          if (otherPeer !== peerHost) {
+            this.ilpNodeObj.peers[otherPeer].announceRoute(routeObj.destination_ledger, routeObj.points) // TODO: apply own rate
+          }
+        })
+      }
     }
   },
   removeRoute(targetPrefix, peerHost) {

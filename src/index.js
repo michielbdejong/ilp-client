@@ -216,6 +216,15 @@ IlpNode.prototype = {
     await this.ensureReady()
     return this.peers[peerHostname].announceRoute(ledger, curve)
   },
+  announceTestRoute: async function(peerHostname) {
+    await this.ensureReady()
+    return this.peers[peerHostname].announceTestRoute()
+  },
+  prepareTestPayment: async function(outThrough, backInThrough) {
+    await this.ensureReady()
+    return this.peers[peerHostname].prepareTestPayment(this.testLedgerBase + 'test-to-peer.' + this.peers[backInThrough].peerPublicKey + '.')
+  },
+  
   handleWebFinger: async function(resource) {
     await this.ensureReady()
     return handleWebFinger(resource, this.creds, this.hostname)

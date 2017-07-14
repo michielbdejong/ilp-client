@@ -80,11 +80,11 @@ Peer.prototype = {
       expiresAt: new Date(expiresAtMs),
     } ], true)
   },
-  prepareTestPayment() {
+  prepareTestPayment(toLedger) {
     const writer1 = new Oer.Writer()
     writer1.writeUInt32(0)
     writer1.writeUInt32(1)
-    writer1.writeVarOctetString(Buffer.from(this.testLedger + 'test', 'ascii'))
+    writer1.writeVarOctetString(Buffer.from((toLedger || this.testLedger) + 'test', 'ascii'))
     writer1.writeVarOctetString(Buffer.from('', 'base64'))
     writer1.writeUInt8(0)
     const writer2 = new Oer.Writer()
