@@ -4,7 +4,7 @@ const MIN_MESSAGE_WINDOW = 10000
 const Oer = require('oer-utils')
 const uuid = require('uuid/v4')
 const crypto = require('crypto')
-const sha256 = (secret) => { return crypto.createHmac('sha256', secret).digest('base64') }
+const sha256 = (secret) => { return crypto.createHmac('sha256', secret).digest('base64').replace(/\//g, '_').replace(/\+/g, '-').replace(/=/g, '') }
 
 function Hopper(ilpNodeObj) {
   this.ilpNodeObj = ilpNodeObj
@@ -124,6 +124,7 @@ function Table(ilpNodeObj, prefix = '') {
 
 Table.prototype = {
   collectLedgerStats(getTitle) {
+    console.log('COLLECTING LEDGER STATS!', this.prefix)
     let ledgerStats = {}
     if (Object.keys(this.routes).length) {
       console.log('new stats for prefix!', this.prefix)
@@ -136,6 +137,7 @@ Table.prototype = {
         ledgerStats[this.prefix].routes[peerTitle] = this.routes[peerHost]
       }
     }
+    console.log('infixes to crawl', Object.keys(this.subTables))
     for (let infix in this.subTables) {
       ledgerStats = Object.assign(ledgerStats, this.subTables[infix].collectLedgerStats(getTitle))
     }
