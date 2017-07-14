@@ -147,7 +147,11 @@ IlpNode.prototype = {
     }
     if (creds && creds.rpcPath && creds.ledgerPrefix && creds.token) {
       // when peering using ilp_secret, the 'to' account doesn't really matter, so setting it to 'server':
-      this.peers[peerHostname] = new Peer('https://' + peerHostname + '/' + creds.rpcPath, {
+      let protocol = 'https'
+      if (peerHostname.split(':')[0] === 'localhost') {
+        protocol = 'http'
+      }
+      this.peers[peerHostname] = new Peer(protocol + '://' + peerHostname + '/' + creds.rpcPath, {
         peeringKeyPair: { pub: 'me' },
         getToken: () => creds.token,
         getLedgerPrefix: () => creds.ledgerPrefix
