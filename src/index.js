@@ -12,7 +12,7 @@ function hash(hostname) {
     throw new Error('cannot hash!', JSON.stringify(hostname))
   }
   return crypto
-      .createHmac('sha256', 'hostname')
+      .createHash('sha256')
       .update(hostname)
       .digest('hex')
 }
