@@ -33,7 +33,8 @@ function getNextHop(transfer) {
           amount: packet.amount,
           executionCondition: transfer.executionCondition,
           expiresAt: new Date(new Date(transfer.expiresAt).getTime() - 10000).toISOString(),
-          ilp: transfer.ilp
+          ilp: transfer.ilp,
+          noteToSelf: {}
         }
       }
     }
