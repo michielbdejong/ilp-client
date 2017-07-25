@@ -3,31 +3,28 @@ const Packet = require('ilp-packet')
 const uuid = require('uuid/v4')
 const Plugin = require('ilp-plugin-bells')
 
-const sender = new Plugin({ account: 'https://red.ilpdemo.org/ledger/accounts/alice', password: 'alice' })
-const receiver = new Plugin({ account: 'https://blue.ilpdemo.org/ledger/accounts/bob', password: 'bobbob' })
+// const sender = new Plugin({ account: 'https://red.ilpdemo.org/ledger/accounts/alice', password: 'alice' })
+// const receiver = new Plugin({ account: 'https://blue.ilpdemo.org/ledger/accounts/bob', password: 'bobbob' })
+const sender = new Plugin({ account: 'https://michiel-is-not-available.herokuapp.com/ledger/accounts/admin', password: 'admin' })
+const receiver = new Plugin({ account: 'https://michiel-eur.herokuapp.com/ledger/accounts/admin', password: 'admin' })
 
 Promise.all([sender.connect(), receiver.connect()]).then(() => {
+  console.log('connected')
   const secret = crypto.randomBytes(32)
   const executionCondition = crypto.createHash('sha256').update(secret).digest('base64').replace(/\//g, '_').replace(/\+/g, '-').replace(/=/g, '')
 
   receiver.on('incoming_prepare', (transfer) => {
     console.log('transfer arrived', transfer)
-    receiver.fulfillCondition(transfer.id, secret.toString('base64'))
+    receiver.fulfillCondition(transfer.id, secret.toString('base64').replace(/\//g, '_').replace(/\+/g, '-').replace(/=/g, ''))
   })
 
-  sender.on('outgoing_fulfill', (id, fulfillment) => {
-    console.log('test success!', id, fulfillment)
+  const promise = new Promise((resolve, reject) => {
+    sender.on('outgoing_fulfill', (id, fulfillment) => { console.log('test success!', id, fulfillment); resolve() })
+    sender.on('outgoing_reject', (id, fulfillment) => { console.log('test fail 1!', id, fulfillment); reject() })
+    sender.on('outgoing_cancel', (id, fulfillment) => { console.log('test fail 2!', id, fulfillment); reject() })
   })
 
-   sender.on('outgoing_reject', (id, fulfillment) => {
-     console.log('test fail 1!', id, fulfillment)
-   })
- 
-   sender.on('outgoing_cancel', (id, fulfillment) => {
-     console.log('test fail 2!', id, fulfillment)
-   })
-
-  sender.sendTransfer({
+  return sender.sendTransfer({
     id: uuid(),
     ledger: sender.getInfo().prefix,
     from: sender.getAccount(),
@@ -40,7 +37,15 @@ Promise.all([sender.connect(), receiver.connect()]).then(() => {
       account: receiver.getAccount(),
     }).toString('base64'),
     noteToSelf: {}
-  }).catch((err) => {
-    console.log('send fail', err)
+  }).then(() => {
+    console.log('sent')
+    return promise
   })
+}).then(() => {
+  console.log('disconnecting')
+  return Promise.all([sender.disconnect(), receiver.disconnect()])
+}).then(() => {
+  console.log('done')
+}, (err) => {
+  console.error('fail', err)
 })
