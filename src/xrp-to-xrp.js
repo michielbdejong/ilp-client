@@ -38,7 +38,11 @@ function getNextHop(transfer) {
           noteToSelf: {}
         }
       }
+    } else {
+      console.log('more money needed', transfer, packet)
     }
+  } else {
+    console.log('wrong network', packet.account)
   }
 }
 
