@@ -2,6 +2,10 @@ const crypto = require('crypto')
 const Packet = require('ilp-packet')
 const uuid = require('uuid/v4')
 
+// sender - an object that exposes https://interledger.org/rfcs/0004-ledger-plugin-interface
+// receiver - an object that exposes https://interledger.org/rfcs/0004-ledger-plugin-interface
+// connector - undefined or <String> an ILP address
+
 module.exports = function(sender, receiver, connector) {
   return Promise.all([sender.connect(), receiver.connect()]).then(() => {
     console.log('connected', sender.getAccount(), receiver.getAccount())
@@ -13,11 +17,9 @@ module.exports = function(sender, receiver, connector) {
       receiver.fulfillCondition(transfer.id, secret.toString('base64').replace(/\//g, '_').replace(/\+/g, '-').replace(/=/g, ''))
     })
   
-    const promise = new Promise((resolve, reject) => {
-      sender.on('outgoing_fulfill', (id, fulfillment) => { console.log('test success!', id, fulfillment); resolve() })
-      sender.on('outgoing_reject', (id, fulfillment) => { console.log('test fail 1!', id, fulfillment); reject() })
-      sender.on('outgoing_cancel', (id, fulfillment) => { console.log('test fail 2!', id, fulfillment); reject() })
-    })
+    sender.on('outgoing_fulfill', (transfer, fulfillment) => { console.log('test success!', transfer, fulfillment) })
+    sender.on('outgoing_reject', (transfer, fulfillment) => { console.log('test fail 1!', transfer, fulfillment) })
+    sender.on('outgoing_cancel', (transfer, fulfillment) => { console.log('test fail 2!', transfer, fulfillment) })
   
     return sender.sendTransfer({
       id: uuid(),
@@ -27,23 +29,8 @@ module.exports = function(sender, receiver, connector) {
       amount: '10',
       expiresAt: new Date(new Date().getTime() + 100000).toISOString(),
       executionCondition,
-      ilp: Packet.serializeIlpPayment({
-        amount: '1',
-        account: receiver.getAccount(),
-      }).toString('base64'),
+      ilp: Packet.serializeIlpPayment({ amount: '1', account: receiver.getAccount() }).toString('base64'),
       noteToSelf: {}
-    }).then(() => {
-      console.log('sent')
-      return promise
     })
-  }).then(() => {
-    console.log('disconnecting')
-    return Promise.all([sender.disconnect(), receiver.disconnect()])
-  }).then(() => {
-     delete sender
-     delete receiver
-    console.log('done')
-  }, (err) => {
-    console.error('fail', err)
   })
 }
