@@ -2,7 +2,7 @@ const crypto = require('crypto')
 const Packet = require('ilp-packet')
 const uuid = require('uuid/v4')
 
-module.exports = function(sender, receiver, connector, receiverAddress) {
+module.exports = function(sender, receiver, connector) {
   return Promise.all([sender.connect(), receiver.connect()]).then(() => {
     console.log('connected', sender.getAccount(), receiver.getAccount())
     const secret = crypto.randomBytes(32)
@@ -29,7 +29,7 @@ module.exports = function(sender, receiver, connector, receiverAddress) {
       executionCondition,
       ilp: Packet.serializeIlpPayment({
         amount: '1',
-        account: receiverAddress || receiver.getAccount(),
+        account: receiver.getAccount(),
       }).toString('base64'),
       noteToSelf: {}
     }).then(() => {
