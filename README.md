@@ -17,5 +17,5 @@ You can also use the xrp-tester script, to send money to yourself over the XRP t
 which acts as both an entry and an exit node. The address, secret, and server variables are from https://ripple.com/build/ripple-test-net/ (please get your own ones)
 
 ```sh
-XRP_ADDRESS=rP2rY7QeTSKx4kmubbwuAXDACUVLMf7vWW CONNECTOR=test.crypto.xrp.rPpjQCZL3tzXPo4Qx8Fm7Pe5s1Xsa98cHg XRP_SECRET=sptEeUXpuz3PCm8y4NS73eUwmtSU6 XRP_SERVER=wss://s.altnet.rippletest.net:51233 PLUGIN=ilp-plugin-xrp-escrow node src/xrp-tester.js
+DEBUG=* CONNECTOR=test.crypto.xrp.rPpjQCZL3tzXPo4Qx8Fm7Pe5s1Xsa98cHg XRP_SECRET=sptEeUXpuz3PCm8y4NS73eUwmtSU6 XRP_SERVER=wss://s.altnet.rippletest.net:51233 PLUGIN=ilp-plugin-xrp-escrow node src/xrp-tester.js
 ```
