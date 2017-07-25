@@ -6,6 +6,7 @@ console.log('Instantiating xrp-to-xrp testnet connector',
 )
 const Packet = require('ilp-packet')
 const uuid = require('uuid/v4')
+
 const Plugin = require(process.env.PLUGIN)
 const plugins = {
   xrp: new Plugin({
@@ -63,3 +64,6 @@ for (let peer in plugins) {
     plugins[data.peer].fulfillCondition(data.id, fulfillment)
   })
 }
+
+// needed for heroku web process deploy:
+require('http').createServer((req, res) => { res.end('nothing to see here') }).listen(process.env.PORT)
