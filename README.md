@@ -13,11 +13,9 @@ npm start
 # Then open http://localhost:8001/stats?test=localhost:8002 in your browser
 ```
 
-```sh
-XRP_ADDRESS=rptJXBtDGaRhtBbLJiRXuvxcNZmQitBz9P XRP_SECRET=ssy2Z7Fd9HA5ER3NqeyVYPMcHPJeC XRP_SERVER=wss://s.altnet.rippletest.net:51233 PLUGIN=ilp-plugin-xrp-escrow node src/xrp-to-xrp.js
-```
+You can also use the xrp-tester script, to send money to yourself over the XRP testnet. For that, use the connector from https://testnet.connector.land/#/connectors
+which acts as both an entry and an exit node. The address, secret, and server variables are from https://ripple.com/build/ripple-test-net/ (please get your own ones)
 
-In other window:
 ```sh
-XRP_ADDRESS=rP2rY7QeTSKx4kmubbwuAXDACUVLMf7vWW CONNECTOR=rptJXBtDGaRhtBbLJiRXuvxcNZmQitBz9P XRP_SECRET=sptEeUXpuz3PCm8y4NS73eUwmtSU6 XRP_SERVER=wss://s.altnet.rippletest.net:51233 PLUGIN=ilp-plugin-xrp-escrow node src/xrp-tester.js
+XRP_ADDRESS=rP2rY7QeTSKx4kmubbwuAXDACUVLMf7vWW CONNECTOR=rPpjQCZL3tzXPo4Qx8Fm7Pe5s1Xsa98cHg XRP_SECRET=sptEeUXpuz3PCm8y4NS73eUwmtSU6 XRP_SERVER=wss://s.altnet.rippletest.net:51233 PLUGIN=ilp-plugin-xrp-escrow node src/xrp-tester.js
 ```

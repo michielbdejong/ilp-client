@@ -5,8 +5,8 @@ const Plugin = require('ilp-plugin-bells')
 
 // const sender = new Plugin({ account: 'https://red.ilpdemo.org/ledger/accounts/alice', password: 'alice' })
 // const receiver = new Plugin({ account: 'https://blue.ilpdemo.org/ledger/accounts/bob', password: 'bobbob' })
-const sender = new Plugin({ account: 'https://michiel-is-not-available.herokuapp.com/ledger/accounts/admin', password: 'admin' })
-const receiver = new Plugin({ account: 'https://michiel-eur.herokuapp.com/ledger/accounts/admin', password: 'admin' })
+let sender = new Plugin({ account: 'https://michiel-is-not-available.herokuapp.com/ledger/accounts/admin', password: 'admin' })
+let receiver = new Plugin({ account: 'https://michiel-eur.herokuapp.com/ledger/accounts/admin', password: 'admin' })
 
 Promise.all([sender.connect(), receiver.connect()]).then(() => {
   console.log('connected')
@@ -29,7 +29,7 @@ Promise.all([sender.connect(), receiver.connect()]).then(() => {
     ledger: sender.getInfo().prefix,
     from: sender.getAccount(),
     to: sender.getInfo().connectors[0],
-    amount: '2',
+    amount: '10',
     expiresAt: new Date(new Date().getTime() + 100000).toISOString(),
     executionCondition,
     ilp: Packet.serializeIlpPayment({
@@ -45,6 +45,8 @@ Promise.all([sender.connect(), receiver.connect()]).then(() => {
   console.log('disconnecting')
   return Promise.all([sender.disconnect(), receiver.disconnect()])
 }).then(() => {
+   delete sender
+   delete receiver
   console.log('done')
 }, (err) => {
   console.error('fail', err)

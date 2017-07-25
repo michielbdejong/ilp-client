@@ -4,7 +4,8 @@
   "description": "cancelRoutesFor(ledger); Common parts between [micmic](https://github.com/michielbdejong/micmic) and [connectorland](https://github.com/interledger/connector.land).",
   "main": "src/index.js",
   "dependencies": {
-    "ilp-plugin-xrp-escrow": "git+https://github.com/ripple/ilp-plugin-xrp-escrow.git",
+    "ilp-packet": "^1.3.0",
+    "ilp-plugin-xrp-escrow": "git+https://github.com/michielbdejong/ilp-plugin-xrp-escrow.git",
     "node-fetch": "^1.6.3",
     "oer-utils": "^1.3.2",
     "tweetnacl": "^1.0.0-rc.1",
