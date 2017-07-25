@@ -20,12 +20,10 @@ const secret = secretBuff.toString('base64')
 
 plugin.connect().then(() => {
   plugin.on('incoming_prepare', (transfer) => {
-    console.log('transfer arrived')
     console.log('transfer arrived', transfer)
     plugin.fulfillCondition(transfer.id, secret.toString('base64'))
   })
   plugin.on('outgoing_fulfill', (id, fulfillment) => {
-    console.log('test success!')
     console.log('test success!', id, fulfillment)
   })
   console.log('sending')
@@ -48,6 +46,5 @@ plugin.connect().then(() => {
   }, (err) => {
     console.log('send fail', err)
   })
-  console.log('sent')
   console.log('sent', transfer)
 })
