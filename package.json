@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "dependencies": {
     "ilp-packet": "^1.3.0",
-    "ilp-plugin-xrp-escrow": "git+https://github.com/michielbdejong/ilp-plugin-xrp-escrow.git",
+    "ilp-plugin-xrp-escrow": "git+https://github.com/michielbdejong/ilp-plugin-xrp-escrow.git#a165ba86e30324b5a0dd82bba34ecccfb3a74a1a",
     "node-fetch": "^1.6.3",
     "oer-utils": "^1.3.2",
     "tweetnacl": "^1.0.0-rc.1",
