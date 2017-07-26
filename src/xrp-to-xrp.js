@@ -7,11 +7,13 @@ console.log('Instantiating xrp-to-xrp testnet connector',
 const Packet = require('ilp-packet')
 const uuid = require('uuid/v4')
 
+const prefix = 'test.crypto.xrp.'
 const Plugin = require(process.env.PLUGIN)
 const plugins = {
   xrp: new Plugin({
     secret: process.env.XRP_SECRET,
-    server: process.env.XRP_SERVER
+    server: process.env.XRP_SERVER,
+    prefix
   })
 }
 const kv = {
@@ -22,14 +24,14 @@ const kv = {
 
 function getNextHop(transfer) {
   const packet = Packet.deserializeIlpPayment(Buffer.from(transfer.ilp, 'base64'))
-  if (packet.account.startsWith('test.crypto.xrp.')) {
+  if (packet.account.startsWith(prefix)) {
     if (transfer.amount > packet.amount) {
       return {
         peer: 'xrp',
         transfer: {
           id: uuid(),
-          ledger: 'test.crypto.xrp.',
-          from: 'test.crypto.xrp.' + process.env.XRP_ADDRESS,
+          ledger: prefix,
+          from: prefix + process.env.XRP_ADDRESS,
           to: packet.account,
           amount: packet.amount,
           executionCondition: transfer.executionCondition,

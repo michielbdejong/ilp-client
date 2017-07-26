@@ -7,9 +7,11 @@ console.log('Instantiating xrp tester',
 const pay = require('./test-payment')
 const Plugin = require(process.env.PLUGIN)
 
+const prefix = 'test.crypto.xrp.'
 const plugin = new Plugin({
   secret: process.env.XRP_SECRET,
-  server: process.env.XRP_SERVER
+  server: process.env.XRP_SERVER,
+  prefix
 })
 
 // pay to self:
