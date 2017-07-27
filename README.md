@@ -14,15 +14,17 @@ Once you have your two wallet addresses and secrets, you can use the eth-tester 
 to send money to yourself over the ETH testnet. Use the connector for ETH from https://testnet.connector.land/#/connectors
 which acts as both an entry and an exit node: [TODO: set up a connector and publish it there]
 
+Make sure to use upper case hex alphabet for addresses (0123456789ABCDEF).
+
 ```sh
 export DEBUG=*
 export PROVIDER=http://geth:8545 # server where you run your https://github.com/michielbdejong/geth-rinkeby-docker instance
-export ADDRESS1=0x596144741ac842bf4c5f976d01e5ca0e8b552963 # from geth-rinkeby-docker instructions
+export ADDRESS1=0x596144741AC842BF4C5F976D01E5CA0E8B552963 # from geth-rinkeby-docker instructions
 export SECRET1=xidaequeequuu4xah8Ohnoo1Aesumiech6tiay1 # from geth-rinkeby-docker instructions
-export ADDRESS2=0xc3cbbf339554f26e591764af8807f16242fe06a4 # from geth-rinkeby-docker instructions
+export ADDRESS2=0xC3CBBF339554F26E591764AF8807F16242FE06A4 # from geth-rinkeby-docker instructions
 export SECRET2=eekohj0Coosh7weet2iaX8odooh3Wahdeob8Awie # from geth-rinkeby-docker instructions
-# export CONNECTOR=test.crypto.eth.rinkeby.0xc3cbbf339554f26e591764af8807f16242fe06a4 # from https://testnet.connector.land/#connectors
-export CONNECTOR=test.crypto.eth.rinkeby.0xc3cbbf339554f26e591764af8807f16242fe06a4 # until connector has been set up, test same-ledger payment
+# export CONNECTOR=test.crypto.eth.rinkeby.0xC3CBBF339554F26E591764AF8807F16242FE06A4 # from https://testnet.connector.land/#connectors
+export CONNECTOR=test.crypto.eth.rinkeby.0xC3CBBF339554F26E591764AF8807F16242FE06A4 # until connector has been set up, test same-ledger payment
 node src/eth-tester.js
 ```
 
