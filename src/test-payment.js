@@ -20,7 +20,8 @@ module.exports = function(sender, receiver, connector) {
     sender.on('outgoing_fulfill', (transfer, fulfillment) => { console.log('test success!', transfer, fulfillment) })
     sender.on('outgoing_reject', (transfer, reason) => { console.log('test failed by connector!', transfer, reason) })
     sender.on('outgoing_cancel', (transfer, reason) => { console.log('test failed by ledger!', transfer, reason) })
-  
+    console.log('Listeners set, sending transfer')
+ 
     return sender.sendTransfer({
       id: uuid(),
       ledger: sender.getInfo().prefix,
