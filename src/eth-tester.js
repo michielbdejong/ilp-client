@@ -26,4 +26,4 @@ const plugin2 = new Plugin({
 })
 
 // pay from wallet 1 to wallet 2:
-pay(plugin1, plugin1, process.env.CONNECTOR)
+pay(plugin1, plugin2, process.env.CONNECTOR)

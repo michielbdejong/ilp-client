@@ -25,3 +25,8 @@ export SECRET2=eekohj0Coosh7weet2iaX8odooh3Wahdeob8Awie # from geth-rinkeby-dock
 export CONNECTOR=test.crypto.eth.rinkeby.0xc3cbbf339554f26e591764af8807f16242fe06a4 # until connector has been set up, test same-ledger payment
 node src/eth-tester.js
 ```
+
+problem:
+I can send a transaction to the contract address, but the contract doesn't seem to trigger any events.
+idea:
+Deploy a simpler contract and get it to emit an event.
