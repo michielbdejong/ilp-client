@@ -12,6 +12,7 @@ const plugin = new Plugin({
   provider: process.env.PROVIDER,
   address: process.env.ADDRESS,
   secret: process.env.SECRET,
+  contract: 0x8b3fbd781096b51e68448c6e5b53b240f663199f,
   prefix
 })
 
