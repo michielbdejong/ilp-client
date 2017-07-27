@@ -15,9 +15,9 @@ which acts as both an entry and an exit node: [TODO: set up a connector and publ
 
 ```sh
 export DEBUG=*
-export PROVIDER=http://localhost:8545 # server where you run your https://github.com/michielbdejong/geth-rinkeby-docker instance
-export ADDRESS=0x2b080240e93a58504cda75339a5129c532cfff19 # from geth-rinkeby-docker instructions
-export SECRET=eeDavou5diereed5ail3eeph0paighejae3ohwo8 # from geth-rinkeby-docker instructions
-export CONNECTOR=test.crypto.eth.rinkeby.0x2b080240e93a58504cda75339a5129c532cfff19 # from https://testnet.connector.land/#connectors
+export PROVIDER=http://geth:8545 # server where you run your https://github.com/michielbdejong/geth-rinkeby-docker instance
+export ADDRESS=0x596144741ac842bf4c5f976d01e5ca0e8b552963 # from geth-rinkeby-docker instructions
+export SECRET=xidaequeequuu4xah8Ohnoo1Aesumiech6tiay1 # from geth-rinkeby-docker instructions
+export CONNECTOR=test.crypto.eth.rinkeby.0x596144741ac842bf4c5f976d01e5ca0e8b552963 # from https://testnet.connector.land/#connectors
 node src/eth-tester.js
 ```
