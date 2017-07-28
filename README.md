@@ -32,7 +32,9 @@ TODO:
 * ssh into geth and set up a XRP+ETH connector there
 * exchange rate 500 XRP = 1 ETH
 * store kv in redis
-* optional: split into 4 threads
 * store deposits in redis and check them
 * remove deposit if transaction times out
-* custom RPC call: just arguments used inside forwarder function
+* document how to connect from xrp / from eth
+* open RPC port for pay-from-balance
+* sender-paychan
+* receiver-paychan
