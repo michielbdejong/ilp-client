@@ -16,14 +16,19 @@ which acts as both an entry and an exit node: [TODO: set up a connector and publ
 
 Make sure to use upper case hex alphabet for addresses (0123456789ABCDEF).
 
+```
+personal.unlockAccount('0x534B76F8528E5458EA58589426745D9FBCD794ED', 'jai1uNgee2shaikeepai7ca0chahQu7eilah5boo');personal.unlockAccount('0xB8EB3E2A6C5E41C27FE92ED28306590EA99CF13C', 'AhbeiQuie0ohshohshaa6kaew9mohMie1me9job3')
+```
+
 ```sh
 export DEBUG=*
-export PROVIDER=http://geth:8545 # server where you run your https://github.com/michielbdejong/geth-rinkeby-docker instance
-export ADDRESS1=0x596144741AC842BF4C5F976D01E5CA0E8B552963 # from geth-rinkeby-docker instructions
-export SECRET1=xidaequeequuu4xah8Ohnoo1Aesumiech6tiay1 # from geth-rinkeby-docker instructions
-export ADDRESS2=0xC3CBBF339554F26E591764AF8807F16242FE06A4 # from geth-rinkeby-docker instructions
-export SECRET2=eekohj0Coosh7weet2iaX8odooh3Wahdeob8Awie # from geth-rinkeby-docker instructions
-export CONNECTOR=test.crypto.eth.rinkeby.0x45A0C640B129E50C3DA474CAD9936DFD7D77868F # from https://testnet.connector.land/#connectors
+export PROVIDER=http://localhost:8545 # server where you run your https://github.com/michielbdejong/geth-rinkeby-docker instance
+export ADDRESS1=0x534B76F8528E5458EA58589426745D9FBCD794ED # from geth-rinkeby-docker instructions
+export SECRET1=jai1uNgee2shaikeepai7ca0chahQu7eilah5boo # from geth-rinkeby-docker instructions
+export ADDRESS2=0xB8EB3E2A6C5E41C27FE92ED28306590EA99CF13C # from geth-rinkeby-docker instructions
+export SECRET2=AhbeiQuie0ohshohshaa6kaew9mohMie1me9job3 # from geth-rinkeby-docker instructions
+# export CONNECTOR=test.crypto.eth.rinkeby.0x45A0C640B129E50C3DA474CAD9936DFD7D77868F # from https://testnet.connector.land/#connectors
+export CONNECTOR=test.crypto.eth.rinkeby.0xB8EB3E2A6C5E41C27FE92ED28306590EA99CF13C
 node src/eth-tester.js
 ```
 
