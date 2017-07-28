@@ -28,7 +28,11 @@ export CONNECTOR=test.crypto.eth.rinkeby.0xC3CBBF339554F26E591764AF8807F16242FE0
 node src/eth-tester.js
 ```
 
-problem:
-I can send a transaction to the contract address, but the contract doesn't seem to trigger any events.
-idea:
-Deploy a simpler contract and get it to emit an event.
+TODO:
+* ssh into geth and set up a XRP+ETH connector there
+* exchange rate 500 XRP = 1 ETH
+* store kv in redis
+* optional: split into 4 threads
+* store deposits in redis and check them
+* remove deposit if transaction times out
+* custom RPC call: just arguments used inside forwarder function
