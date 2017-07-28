@@ -23,8 +23,7 @@ export ADDRESS1=0x596144741AC842BF4C5F976D01E5CA0E8B552963 # from geth-rinkeby-d
 export SECRET1=xidaequeequuu4xah8Ohnoo1Aesumiech6tiay1 # from geth-rinkeby-docker instructions
 export ADDRESS2=0xC3CBBF339554F26E591764AF8807F16242FE06A4 # from geth-rinkeby-docker instructions
 export SECRET2=eekohj0Coosh7weet2iaX8odooh3Wahdeob8Awie # from geth-rinkeby-docker instructions
-# export CONNECTOR=test.crypto.eth.rinkeby.0xC3CBBF339554F26E591764AF8807F16242FE06A4 # from https://testnet.connector.land/#connectors
-export CONNECTOR=test.crypto.eth.rinkeby.0xC3CBBF339554F26E591764AF8807F16242FE06A4 # until connector has been set up, test same-ledger payment
+export CONNECTOR=test.crypto.eth.rinkeby.0x45A0C640B129E50C3DA474CAD9936DFD7D77868F # from https://testnet.connector.land/#connectors
 node src/eth-tester.js
 ```
 

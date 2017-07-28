@@ -25,7 +25,5 @@ const plugin2 = new Plugin({
   prefix
 })
 
-// pay from wallet 1 to wallet 2:
+// pay from wallet 1 to wallet 2 via the connector:
 pay(plugin1, plugin2, process.env.CONNECTOR)
-//pay to self
-//pay(plugin1, plugin1, 'test.crypto.xrp.rinkeby.' + process.env.ADDRESS1)
