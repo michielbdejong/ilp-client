@@ -16,7 +16,7 @@
   },
   "scripts": {
     "test": "mocha",
-    "start": "node src/server"
+    "start": "node test2.js"
   },
   "engines": {
     "node": ">=8"
