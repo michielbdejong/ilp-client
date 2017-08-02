@@ -18,6 +18,9 @@
     "test": "mocha",
     "start": "node src/server"
   },
+  "engines": {
+    "node": ">=8"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/michielbdejong/ilp-node.git"
