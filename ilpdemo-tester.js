@@ -9,7 +9,7 @@ let running = {
 }
 
 function updateRunning(newValue) {
-  logs.unshift(new Date().toString() + ' this:' + newValue + ' minute:~' + running[9] + ' hour:~' + running[520] + ' day:~' + running[12466] + ' week:~' + running[87255])
+  logs.push(new Date().toString() + ' this:' + newValue + ' minute:~' + running[9] + ' hour:~' + running[520] + ' day:~' + running[12466] + ' week:~' + running[87255])
   if (logs.length > 5000) {
     logs = logs.slice(-4000)
   }
@@ -17,9 +17,6 @@ function updateRunning(newValue) {
     running[halfTime] = (running[halfTime] * (halfTime-1) + newValue) / halfTime
   }
 }
-
-let running8640=8640
-let running60580=60480
 
 setInterval(function() {
   test().then(() => {
