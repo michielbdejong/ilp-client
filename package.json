@@ -2,7 +2,7 @@
   "name": "ilp-node",
   "version": "2.2.4",
   "description": "cancelRoutesFor(ledger); Common parts between [micmic](https://github.com/michielbdejong/micmic) and [connectorland](https://github.com/interledger/connector.land).",
-  "main": "test2.js",
+  "main": "ilpdemo-tester.js",
   "dependencies": {
     "ilp": "^11.2.1",
     "ilp-plugin-bells": "^15.0.1",
@@ -16,7 +16,7 @@
   },
   "scripts": {
     "test": "mocha",
-    "start": "node test2.js"
+    "start": "node ilpdemo-tester.js"
   },
   "engines": {
     "node": ">=8"
