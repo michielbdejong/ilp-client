@@ -2,8 +2,10 @@
   "name": "ilp-node",
   "version": "2.2.4",
   "description": "cancelRoutesFor(ledger); Common parts between [micmic](https://github.com/michielbdejong/micmic) and [connectorland](https://github.com/interledger/connector.land).",
-  "main": "src/index.js",
+  "main": "test2.js",
   "dependencies": {
+    "ilp": "^11.2.1",
+    "ilp-plugin-bells": "^15.0.1",
     "node-fetch": "^1.6.3",
     "oer-utils": "^1.3.2",
     "tweetnacl": "^1.0.0-rc.1",
