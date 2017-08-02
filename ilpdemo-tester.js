@@ -1,14 +1,34 @@
 'use strict'
-let logs = 'https://raw.githubusercontent.com/michielbdejong/ilp-node/mj-ilpdemo-quote-tester/ilpdemo-tester.js\n'
-    + 'Script that quotes and pays from red.ilpdemo.org to blue.ilpdemo.org every 10 seconds, and logs how that went; 1 means success, 0 means not so much...\n'
+let logs = []
+
+let running = {
+  9: .5,     // half-time of roughly one minute
+  520: .5,   // half-time of roughly one hour
+  12466: .5, // half-time of one day
+  87255: .5, // half-time of one week
+}
+
+function updateRunning(newValue) {
+  logs.unshift(new Date().toString() + ' this:' + newValue + ' minute:~' + running[9] + ' hour:~' + running[520] + ' day:~' + running[12466] + ' week:~' + running[87255])
+  if (logs.length > 5000) {
+    logs = logs.slice(-4000)
+  }
+  for (let halfTime in running) {
+    running[halfTime] = (running[halfTime] * (halfTime-1) + newValue) / halfTime
+  }
+}
+
+let running8640=8640
+let running60580=60480
+
 setInterval(function() {
   test().then(() => {
     console.log(new Date(), 1)
-    logs += new Date().toString() + ' 1\n'
+    updateRunning(1)
   }, (err) => {
     console.log(err)
     console.log(new Date(), 0)
-    logs += new Date().toString() + ' 0\n'
+    updateRunning(0)
   })
 }, 10000)
 
@@ -52,4 +72,9 @@ function test() {
 }
 
 // needed for heroku web process deploy:
-require('http').createServer((req, res) => { res.end(logs) }).listen(process.env.PORT || 8000)
+require('http').createServer((req, res) => {
+  res.end([
+    'https://raw.githubusercontent.com/michielbdejong/ilp-node/mj-ilpdemo-quote-tester/ilpdemo-tester.js',
+    'Script that quotes and pays from red.ilpdemo.org to blue.ilpdemo.org every 10 seconds, and logs how that went; 1 means success, 0 means not so much...'
+  ].concat(logs).join('\n'))
+}).listen(process.env.PORT || 8000)
