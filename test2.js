@@ -1,11 +1,13 @@
 'use strict'
-
+let logs = ''
 setInterval(function() {
   test().then(() => {
     console.log(new Date(), 1)
+    logs += new Date().toString() + ' 1\n'
   }, (err) => {
     console.log(err)
     console.log(new Date(), 0)
+    logs += new Date().toString() + ' 0\n'
   })
 }, 10000)
 
@@ -47,3 +49,6 @@ function test() {
     clearTimeout(failTimer)
   })
 }
+
+// needed for heroku web process deploy:
+require('http').createServer((req, res) => { res.end(logs) }).listen(process.env.PORT || 8000)
