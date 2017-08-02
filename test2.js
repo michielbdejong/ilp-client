@@ -1,5 +1,6 @@
 'use strict'
-let logs = ''
+let logs = 'https://raw.githubusercontent.com/michielbdejong/ilp-node/mj-ilpdemo-quote-tester/test2.js\n'
+    + 'Script that quotes and pays from red.ilpdemo.org to blue.ilpdemo.org every 10 seconds, and logs how that went; 1 means success, 0 means the other thing...\n'
 setInterval(function() {
   test().then(() => {
     console.log(new Date(), 1)
