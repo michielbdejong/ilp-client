@@ -58,3 +58,76 @@ atomic operation:
 * when incoming fulfill, forward the fulfillment to the owner
 * at startup, check the hotset for old conditions that need to be marked as timedout
 
+
+CLP:
+transfer: {} or { amount } or { amount, expiresAt } or {
+  amount,
+  executionCondition,
+  expiresAt
+}
+protocolData: buffer containing OER for:
+[] or (will probably be rejected if transfer is conditional and packet contains packet ILQP module, or not conditional and packet contains InterledgerProtocolPayment) [ [ 1, InterledgerPacket ] ]
+sendRequest(protocolDataBuffer, transfer) -> result
+result is what came back with same requestId, or in fulfill or in reject
+contains: ack / response / fulfillment / error + ProtocolData
+setRequestHandler(function(protocolDataBuffer, transfer) -> result
+
+supported protocols:
+0: setup
+0.1: authenticate (token, your account, account you want to talk to)
+0.2: protocols { 1: 'InterledgerProtocol', 2: 'InterledgerProtocolPayment', 3: 'InterledgerQuotingProtocol', 4: 'reconcile', 5: 'getAvailableLiquidity' }
+0.3: vouchFor (coin, network, wallet)
+
+1: InterledgerPacket
+1.1: InterledgerProtocolPayment
+1.2: QuoteLiquidityRequest -> QuoteLiquidityResponse
+1.4: QuoteBySourceAmountRequest -> QuoteBySourceAmountResponse
+1.6: QuoteByDestinationAmountRequest -> QuoteByDestinationAmountResponse
+
+2: InterledgerProtocolPayment
+2.1: InterledgerProtocolPayment
+
+3: ilqp
+3.2: QuoteLiquidityRequest -> QuoteLiquidityResponse
+3.4: QuoteBySourceAmountRequest -> QuoteBySourceAmountResponse
+3.6: QuoteByDestinationAmountRequest -> QuoteByDestinationAmountResponse
+
+4: reconcile
+4.1: getAvailableLiquidity
+4.2: reconcileSet
+4.3: pleaseReconcile
+
+5: getAvailableLiquidity
+5.1: getAvailableLiquidity
+
+1) for sending requests:
+* choose whether to use Message or Prepare
+* pick a requestId and remember it
+* pick a transferId and remember it
+* set timeout if specified
+* wait for Ack/Response/Error with matching requestId or Fulfill/Reject or matching transferId
+* if sending failed or nothing heard back before timeout, or response was malformed, or fulfillment was wrong, construct an error
+* otherwise extract protocolData to return as octetStream
+* return:
+   * whether the result was a Error-occurred, Error-came-back, just Ack/Fulfill, or a real Response
+   * the fulfillment in case it was a fulfill
+   * the protocolData
+* log the transfer and update the (hot-)balance
+
+2) for the listener:
+* if it's auto-reconcile, handle at 3)
+* otherwise, call the handler with the transfer and the protocolData and wait for promise to resolve
+* if it was conditional, send an Ack
+* when promise resolves, if it was conditional, fulfill
+* when promise resolves, if it unconditional, send Ack/Response with protocolData
+* when promise rejects, if it was conditional, reject
+* when promise rejects, if it unconditional, send Error with protocolData -> need a JavaScript error that carries an IlpError
+* log the transfer and update the (hot-)balance
+
+3) auto-reconcile:
+* periodically send resolved ranges
+* mark as resolved in transfer log
+* reply with disputed sets
+* act on pleaseReconcile request
+
+Peering: connect over TLS
