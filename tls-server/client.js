@@ -1,6 +1,6 @@
 const tls = require('tls')
 const fs = require('fs')
-const talkClp = require('./talkClp')
+const ClpNode = require('./clp-node')
 
 const options = {
   // Necessary only if using the client certificate authentication
@@ -16,4 +16,11 @@ const socket = tls.connect(8000, options, () => {
               socket.authorized ? 'authorized' : 'unauthorized')
 })
 
-talkClp(socket)
+clpNode = new ClpNode(socket)
+clpNode.talk()
+clpNode.unpaid([
+  {
+    protocolName: 'echo',
+    data: 'asdf'
+  }
+])

@@ -1,6 +1,6 @@
 const tls = require('tls');
 const fs = require('fs');
-const talkClp = require('./talkClp')
+const ClpNode = require('./clp-node')
 
 const options = {
   key: fs.readFileSync('key.pem'),
@@ -16,7 +16,8 @@ const options = {
 const server = tls.createServer(options, (socket) => {
   console.log('server connected',
               socket.authorized ? 'authorized' : 'unauthorized')
-  talkClp(socket)
+  clpNode = new ClpNode(socket)
+  clpNode.talk()
 })
 
 server.listen(8000, () => {
