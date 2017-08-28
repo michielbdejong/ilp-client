@@ -34,8 +34,11 @@ function destToSource(y, curve) {
 }
 
 Quoter.prototype = {
-  setCurve(prefix, buf) {
-    this.curves[prefix] = buf
+  setCurve(prefix, curveBuf, peer) {
+    this.curves[prefix] = {
+      buf: curveBuf,
+      peer
+    }
   },
 
   findCurve(address) {
@@ -44,28 +47,29 @@ Quoter.prototype = {
     while (parts.length) {
       const prefix = parts.join('.') + '.'
       if (this.curves[prefix]) {
-        return {
-          liquidityCurve: this.curves[prefix],
-          appliesToPrefix: prefix
-        }
+        return Object.assign(this.curves[prefix], {
+          prefix
+        })
        }
       parts.pop()
     }
     throw new Error('no curve found')
   },
-  
+
   answerLiquidity(req) {
     const curve = this.findCurve(req.destinationAddress)
-    return Object.assign(curve, {
+    return {
+      liquidityCurve: curve.buf,
+      appliesToPrefix: curve.prefix,
       sourceHoldDuration: 15000,
       expiresAt: new Date(Date.now() + 3600*1000)
-    })
+    }
   },
   
   answerBySource(req) {
     const curve = this.findCurve(req.destinationAddress)
     return {
-      destinationAmount: sourceToDest(parseInt(req.sourceAmount), curve.liquidityCurve),
+      destinationAmount: sourceToDest(parseInt(req.sourceAmount), curve.buf),
       sourceHoldDuration: 3000
     }
   },
@@ -73,8 +77,16 @@ Quoter.prototype = {
   answerByDest(req) {
     const curve = this.findCurve(req.destinationAddress)
     return {
-      sourceAmount: destToSource(parseInt(req.destinationAmount), curve.liquidityCurve),
+      sourceAmount: destToSource(parseInt(req.destinationAmount), curve.buf),
       sourceHoldDuration: 3000
+    }
+  },
+
+  findHop(address, amount) {
+    const curve = this.findCurve(address)
+    return {
+      onwardAmount: destToSource(amount, curve.buf),
+      onwardPeer: curve.peer
     }
   }
 }
