@@ -1,35 +1,8 @@
 const WebSocket = require('ws');
 const ClpPacket = require('clp-packet')
 const IlpPacket = require('ilp-packet')
+const Quoter = require('./quoter')
 const wss = new WebSocket.Server({ port: 8000 });
-
-function answerQuoteLiquidity(req) {
-  // console.log('quote liduiqity', req)
-  return {
-    liquidityCurve: Buffer.alloc(16), // Must be a buffer of size (n * 16) bytes
-                                      // where n is the number of points in the
-                                      // curve.
-    appliesToPrefix: 'example.nexus.',
-    sourceHoldDuration: 15000,
-    expiresAt: new Date() 
-  }
-}
-
-function answerQuoteBySource(req) {
-  // console.log('quote by source', req)
-  return {
-    destinationAmount: '9000000000',
-    sourceHoldDuration: 3000
-  }
-}
-
-function answerQuoteByDest(req) {
-  // console.log('quote by dest', req)
-  return {
-    sourceAmount: '9000000000',
-    sourceHoldDuration: 3000
-  }
-}
 
 wss.on('connection', function connection(ws) {
   ws.on('message', function incoming(buf) {
