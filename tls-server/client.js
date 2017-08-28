@@ -1,6 +1,8 @@
 const tls = require('tls')
 const fs = require('fs')
-const ClpNode = require('./clp-node')
+
+const NUM = 10000000
+let startTime
 
 const options = {
   // Necessary only if using the client certificate authentication
@@ -14,13 +16,17 @@ const options = {
 const socket = tls.connect(8000, options, () => {
   console.log('client connected',
               socket.authorized ? 'authorized' : 'unauthorized')
-})
-
-clpNode = new ClpNode(socket)
-clpNode.talk()
-clpNode.unpaid([
-  {
-    protocolName: 'echo',
-    data: 'asdf'
+  
+  startTime = new Date().getTime()
+  for (let i=0; i<NUM; i++) {
+   socket.write('0');
   }
-])
+});
+
+let received = 0;
+socket.on('data', function incoming(data) {
+  if (++received === NUM) {
+    let duration = (new Date().getTime() - startTime) / 1000.0
+    console.log(NUM, duration, NUM/duration)
+  }
+});
