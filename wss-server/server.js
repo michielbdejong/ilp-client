@@ -2,10 +2,22 @@ const WebSocket = require('ws');
 const ClpPacket = require('clp-packet')
 const IlpPacket = require('ilp-packet')
 const Quoter = require('./quoter')
-const wss = new WebSocket.Server({ port: 8000 });
+const Forwarder = require('./forwarder')
+const Peer = require('./peer')
 
-wss.on('connection', function connection(ws) {
-  ws.on('message', function incoming(buf) {
+function Connector() {
+  this.quoter = new Quoter()
+  this.peers = {}
+  this.forwarder = new Forwarder(this.quoter, this.peers)
+  this.wss = new WebSocket.Server({ port: 8000 });
+  this.wss.on('connection', (ws, httpReq) => {
+    const peerId = httpReq.url
+    this.peers[peerId] = new Peer(peerId, ws, this.quoter, this.forwarder)
+  })
+}
+    ws.on('message', this.incoming.bind(this)
+Connector.prototype = {
+  incoming(buf) {
     const obj = ClpPacket.deserialize(buf)
     let responseObj = {
       type: ClpPacket.TYPE_ACK,
@@ -48,6 +60,6 @@ wss.on('connection', function connection(ws) {
       }
     }
     ws.send(ClpPacket.serialize(responseObj));
-  });
-
-});
+  })
+}
+  
