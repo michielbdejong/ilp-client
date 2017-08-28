@@ -4,7 +4,7 @@ const IlpPacket = require('ilp-packet')
 const wss = new WebSocket.Server({ port: 8000 });
 
 function answerQuoteLiquidity(req) {
-  console.log('quote liduiqity', req)
+  // console.log('quote liduiqity', req)
   return {
     liquidityCurve: Buffer.alloc(16), // Must be a buffer of size (n * 16) bytes
                                       // where n is the number of points in the
@@ -16,7 +16,7 @@ function answerQuoteLiquidity(req) {
 }
 
 function answerQuoteBySource(req) {
-  console.log('quote by source', req)
+  // console.log('quote by source', req)
   return {
     destinationAmount: '9000000000',
     sourceHoldDuration: 3000
@@ -24,7 +24,7 @@ function answerQuoteBySource(req) {
 }
 
 function answerQuoteByDest(req) {
-  console.log('quote by dest', req)
+  // console.log('quote by dest', req)
   return {
     sourceAmount: '9000000000',
     sourceHoldDuration: 3000
@@ -41,9 +41,9 @@ wss.on('connection', function connection(ws) {
         protocolData: []
       }
     }
-    console.log('responding to:', JSON.stringify(obj), typeof obj.data.protocolData[0].protocolName, obj.data.protocolData[0].protocolName.length)
+    // console.log('responding to:', JSON.stringify(obj), typeof obj.data.protocolData[0].protocolName, obj.data.protocolData[0].protocolName.length)
     if (obj.type === ClpPacket.TYPE_MESSAGE && obj.data.protocolData[0].protocolName === 'ilp') {
-      console.log('ilp message!')
+      // console.log('ilp message!')
       const request = IlpPacket.deserializeIlpPacket(obj.data.protocolData[0].data)
       switch(request.type) {
       case IlpPacket.Type.TYPE_LIQUIDITY_REQUEST:

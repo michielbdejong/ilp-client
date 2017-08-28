@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 const ClpPacket = require('clp-packet')
 const IlpPacket = require('ilp-packet')
 
-const NUM = 10
+const NUM = 1000000
 let startTime
 const ws = new WebSocket('ws://localhost:8000/path', {
   perMessageDeflate: false
@@ -37,12 +37,12 @@ let fail = 0
 
 ws.on('message', function incoming(buf) {
   let obj = ClpPacket.deserialize(buf)
-  console.log('got reply!', obj)
+  // console.log('got reply!', obj)
   if (obj.type === ClpPacket.TYPE_ERROR) {
     fail++
   } else {
     const json = IlpPacket.deserializeIlqpByDestinationResponse(obj.data.protocolData[0].data)
-    console.log(json)
+    // console.log(json)
   }
   if (++received === NUM) {
     let duration = (new Date().getTime() - startTime) / 1000.0
