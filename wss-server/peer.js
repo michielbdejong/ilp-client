@@ -45,15 +45,15 @@ Peer.prototype = {
   },
 
   handleIlqpRequest(ilpPacketBuf) {
-    // console.log('ilp message!')
     const request = IlpPacket.deserializeIlpPacket(ilpPacketBuf)
+    console.log('ilp message!', request)
     switch(request.type) {
-    case IlpPacket.Type.TYPE_LIQUIDITY_REQUEST:
-      return IlpPacket.serializeIlqpLiquidityResponse(this.quoter.answerLiquidity(request.packet))
+    case IlpPacket.Type.TYPE_ILQP_LIQUIDITY_REQUEST:
+      return IlpPacket.serializeIlqpLiquidityResponse(this.quoter.answerLiquidity(request.data))
     case IlpPacket.Type.TYPE_ILQP_BY_SOURCE_REQUEST:
-      return IlpPacket.serializeIlqpBySourceResponse(this.quoter.answerBySource(request.packet))
+      return IlpPacket.serializeIlqpBySourceResponse(this.quoter.answerBySource(request.data))
     case IlpPacket.Type.TYPE_ILQP_BY_DESTINATION_REQUEST:
-      return IlpPacket.serializeIlqpByDestinationResponse(this.answerByDest(request.packet))
+      return IlpPacket.serializeIlqpByDestinationResponse(this.answerByDest(request.data))
     default:
       throw new Error('unrecognized ilp packet type')
     }
@@ -114,18 +114,20 @@ Peer.prototype = {
 
   incoming(buf) {
     const obj = ClpPacket.deserialize(buf)
-    console.log('responding to:', JSON.stringify(obj), typeof obj.data.protocolData[0].protocolName, obj.data.protocolData[0].protocolName.length)
     switch(obj.type) {
     case ClpPacket.TYPE_MESSAGE:
+      console.log('responding to:', JSON.stringify(obj))
       if (!Array.isArray(obj.data) || !obj.data.length) {
         this.sendLedgerError(requestId, 'empty message')
         return
       }
+      console.log('first entry', obj.data[0])
 
       if(obj.data[0].protocolName !== 'ilp') {
         this.sendLedgerError(requestId, 'first protocol unsupported')
         return
       }
+      console.log('ilp data', obj.data[0].data)
 
       this.handleIlqpRequest(obj.data[0].data).then(result => {
         this.sendResult(requestId, obj.data[0].protocolName, result)

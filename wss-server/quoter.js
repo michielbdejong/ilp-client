@@ -57,7 +57,7 @@ Quoter.prototype = {
   },
 
   answerLiquidity(req) {
-    const curve = this.findCurve(req.destinationAddress)
+    const curve = this.findCurve(req.destinationAccount)
     return {
       liquidityCurve: curve.buf,
       appliesToPrefix: curve.prefix,
@@ -67,7 +67,7 @@ Quoter.prototype = {
   },
   
   answerBySource(req) {
-    const curve = this.findCurve(req.destinationAddress)
+    const curve = this.findCurve(req.destinationAccount)
     return {
       destinationAmount: sourceToDest(parseInt(req.sourceAmount), curve.buf),
       sourceHoldDuration: 3000
@@ -75,7 +75,7 @@ Quoter.prototype = {
   },
   
   answerByDest(req) {
-    const curve = this.findCurve(req.destinationAddress)
+    const curve = this.findCurve(req.destinationAccount)
     return {
       sourceAmount: destToSource(parseInt(req.destinationAmount), curve.buf),
       sourceHoldDuration: 3000
