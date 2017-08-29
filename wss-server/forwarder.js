@@ -28,4 +28,6 @@ Forwarder.prototype = {
       executionCondition: transfer.executionCondition
     }, payment)
   }
-}         
+}
+
+module.exports = Forwarder

@@ -239,3 +239,5 @@ Peer.prototype = {
     ])
   }
 }
+
+module.exports = Peer

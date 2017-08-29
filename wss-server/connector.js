@@ -11,7 +11,19 @@ function Connector(port) {
   this.forwarder = new Forwarder(this.quoter, this.peers)
   this.wss = new WebSocket.Server({ port });
   this.wss.on('connection', (ws, httpReq) => {
+    // TODO: test this with 1 connnector + 2 clients in test
     const peerId = httpReq.url
-    this.peers[peerId] = new Peer(peerId, ws, this.quoter, this.forwarder)
+    this.peers[peerId] = new Peer(peerId, 0, ws, this.quoter, this.forwarder)
   })
 }
+
+Connector.prototype = {
+  open() {
+    return Promise.resolve()
+  },
+  close() {
+    return Promise.resolve()
+  }
+}
+
+module.exports = Connector
