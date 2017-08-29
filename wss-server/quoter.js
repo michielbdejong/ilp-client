@@ -4,22 +4,23 @@ function Quoter() {
   this.curves = {}
 }
 
-function findPoint(val, from, to, curve) {
-  const array = new Uint32Array(curve, 0, curve.byteLength / 4)
+function findPoint(val, from, to, curveBuf) {
   let cursor = 0
   let prev = [0, 0]
   let next = [0, 0]
   while (next[from] < val) {
-    if (cursor + 3 >= array.length) {
+    if (cursor + 15 >= curveBuf.length) {
       throw new Error('amount lies past last curve point')
     }
-    const xHi = array[cursor]
-    const xLo = array[cursor + 1]
-    const yHi = array[cursor + 2]
-    const yLo = array[cursor + 3]
+    // 16 bytes define 2 UInt64's for one curve point:
+    // x:  0  1  2  3      4  5  6  7
+    // y:  8  9 10 11     12 13 14 15
+    const readX = curveBuf[cursor + 7] + 256 * (curveBuf[cursor + 6] + (256 * curveBuf[cursor + 5] + (256 * curveBuf[cursor + 4])))
+    const readY = curveBuf[cursor + 15] + 256 * (curveBuf[cursor + 14] + (256 * curveBuf[cursor + 13] + (256 * curveBuf[cursor + 12])))
     prev = next
-    next = [xLo, yLo]
-    cursor += 4
+    next = [ readX, readY ]
+    console.log('searching!', prev, next, from, to, val, cursor)
+    cursor += 8
   }
   let perc = (val - prev[from]) / (next[from] - prev[from])
   return (prev[to] + perc * (next[to] - prev[to])).toString()
@@ -39,6 +40,7 @@ Quoter.prototype = {
       buf: curveBuf,
       peer
     }
+    console.log('curve set!', prefix, curveBuf.toString('hex'), peer)
   },
 
   findCurve(address) {

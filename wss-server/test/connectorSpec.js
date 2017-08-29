@@ -11,6 +11,7 @@ const crypto = require('crypto')
 function Client() {
   this.name = crypto.randomBytes(16).toString('hex')
   this.token = crypto.randomBytes(16).toString('hex')
+  this.fulfillments = {}
 }
 
 Client.prototype = {
@@ -25,7 +26,10 @@ Client.prototype = {
         this.peers = {}
         this.forwarder = new Forwarder(this.quoter, this.peers)
         console.log('creating client peer')
-        this.peer = new Peer(this.name, 0, this.ws, this.quoter, this.forwarder)
+        this.peer = new Peer(this.name, 10000, this.ws, this.quoter, this.forwarder, (condition) => {
+          console.log('fulfilling!', condition.toString('hex'), this.fulfillments)
+          return this.fulfillments[condition.toString('hex')]
+        })
         resolve()
       })
     })
@@ -64,6 +68,7 @@ describe('Connector', () => {
       // return this.client1.close()
       return Promise.all([ this.client1.close(), this.client2.close() ])
     })
+
     it('should respond to quote', function () {
       console.log('in the test!')
       const packet = IlpPacket.serializeIlqpLiquidityRequest({
@@ -71,6 +76,25 @@ describe('Connector', () => {
         destinationHoldDuration: 3000
       })
       return this.client1.peer.unpaid('ilp', packet)
+    })
+
+    it('should make a payment', function () {
+      console.log('in the test!')
+      const fulfillment = crypto.randomBytes(32)
+      const condition = crypto.createHash('sha256').update(fulfillment).digest()
+      this.client2.fulfillments[condition.toString('hex')] = fulfillment
+      console.log(this.client2.fulfillments)
+      const packet = IlpPacket.serializeIlpPayment({
+        amount: '1234',
+        account: 'peer.testing.' + this.client2.name + '.hi'
+      })
+      const transfer = {
+        // transferId will be added  by Peer#conditional(transfer, protocolData)
+        amount: '1234',
+        executionCondition: condition,
+        expiresAt: new Date(new Date().getTime() + 100000)
+      }
+      return this.client1.peer.interledgerPayment(transfer, packet)
     })
   })
 })

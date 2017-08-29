@@ -1,11 +1,14 @@
 const ClpPacket = require('clp-packet')
 const IlpPacket = require('ilp-packet')
+const uuid = require('uuid/v4')
+const crypto = require('crypto')
 
-function Peer(ledgerPrefix, initialBalance, ws, quoter, forwarder) {
+function Peer(ledgerPrefix, initialBalance, ws, quoter, forwarder, fulfiller) {
   this.requestIdUsed = 0
   this.ledgerPrefix = ledgerPrefix
   this.quoter = quoter
   this.forwarder = forwarder
+  this.fulfiller = fulfiller
   this.balance = initialBalance // ledger units this node owes to that peer
   this.requestsSent = {}
   this.transfersSent = {}
@@ -139,32 +142,68 @@ Peer.prototype = {
       case ClpPacket.TYPE_PREPARE:
         console.log('TYPE_PREPARE!')
         if (obj.data.amount > this.balance) {
-          this.sendLedgerError(requestId, 'account balance lower than transfer amount')
+          console.log('too poor!', obj, this.balance)
+          this.sendLedgerError(obj.requestId, 'account balance lower than transfer amount')
           return
         }
         // adjust balance
         this.balance -= obj.data.amount
-        this.sendResult(requestId) // ACK
-        this.forwarder.forward({ // transfer
-          amount: obj.data.amount,
-          executionCondition: obj.data.executionCondition,
-          expiresAt: obj.data.expiresAt
-        }, obj.data.protocolData[0].data).then((fulfillment) => {
-          this.sendFulfillment(transferId, fulfillment) 
+        this.sendResult(obj.requestId) // ACK
+        let paymentPromise
+        if (this.fulfiller) {
+          console.log('trying the fulfiller!')
+          const fulfillment = this.fulfiller(obj.data.executionCondition)
+          if (fulfillment) {
+            paymentPromise = Promise.resolve(fulfillment)
+          }
+          console.log(fulfillment)
+        }
+        if (!paymentPromise) {
+          console.log('forwarding payment', obj)
+          paymentPromise = this.forwarder.forward({ // transfer
+            amount: obj.data.amount,
+            executionCondition: obj.data.executionCondition,
+            expiresAt: obj.data.expiresAt
+          }, obj.data.protocolData[0].data)
+        }
+        const replyRequestId = ++this.requestIdUsed
+        this.requestsSent[replyRequestId] = {
+          resolve() {},
+          reject() {}
+        }
+        paymentPromise.then((fulfillment) => {
+          console.log('sending fulfill call')
+          this.sendCall(ClpPacket.TYPE_FULFILL, replyRequestId, {
+            transferId: obj.data.transferId,
+            fulfillment,
+            protocolData: []
+          }) 
         }, (err) => {
-          this.sendReject(transferId, err)
+          this.sendCall(ClpPacket.TYPE_REJECT, replyRequestId, {
+            transferId: obj.data.transferId,
+            rejectionReason: err,
+            protocolData: []
+          })
           // refund balance
           this.balance += obj.data.amount
         })
         break
 
       case ClpPacket.TYPE_FULFILL:
+        function sha256(fulfillmentHex) {
+          console.log({ fulfillmentHex })
+          const fulfillment = Buffer.from(fulfillmentHex, 'hex')
+          const condition = crypto.createHash('sha256').update(fulfillment).digest()
+          console.log(fulfillment, condition)
+          return condition
+        }
         console.log('TYPE_FULFILL!')
         if (typeof this.transfersSent[obj.data.transferId] === undefined) {
           this.sendLedgerError(obj.requestId, 'unknown transfer id')
         } else if (new Date().getTime() > this.transfersSent[obj.data.transferId].expiresAt) { // FIXME: this is not leap second safe (but not a problem if MIN_MESSAGE_WINDOW is at least 1 second)
           this.sendLedgerError(obj.requestId, 'fulfilled too late')
-        } else if (sha256(obj.data.fulfillment) !== this.transfersSent[obj.data.transferId].condition) {
+        } else if (sha256(obj.data.fulfillment).toString('hex') !== this.transfersSent[obj.data.transferId].conditionHex) {
+          console.log('compared!', sha256(obj.data.fulfillment).toString('hex'), this.transfersSent[obj.data.transferId].conditionHex)
           this.sendLedgerError(obj.requestId, 'fulfillment incorrect')
         } else {
           this.transfersSent[obj.data.transferId].resolve(obj.data.fulfillment)
@@ -232,10 +271,11 @@ Peer.prototype = {
     this.requestsSent[requestId] = {
       resolve() {
         setTimeout(() => { // not sure if this works for deleting the entry
-          delete this.requestsSent[requestId]
+          // delete this.requestsSent[requestId]
         }, 0)
       },
       reject(err) {
+        console.log('prepare was rejected!', err)
         // if the PREPARE failed, the whole transfer fails:
         this.transfersSent[transferId].reject(err)
         setTimeout(() => { // not sure if this works for deleting the entry
@@ -243,7 +283,7 @@ Peer.prototype = {
         }, 0)
       }
     }
-   this.sendPrepare(requestId, {
+   this.sendCall(ClpPacket.TYPE_PREPARE, requestId, {
       transferId,
       amount: transfer.amount,
       expiresAt: transfer.expiresAt,
@@ -251,14 +291,16 @@ Peer.prototype = {
       protocolData
     })
     return new Promise((resolve, reject) => {
-      this.transfersSent[transferId] = { resolve, reject }
+      this.transfersSent[transferId] = { resolve, reject, conditionHex: transfer.executionCondition.toString('hex') }
     })
   },
 
   interledgerPayment(transfer, payment) {
     return this.conditional(transfer, [
       {
-        ilp: payment
+        protocolName: 'ilp',
+        contentType: ClpPacket.MIME_APPLICATION_OCTET_STREAM,
+        data: payment
       }
     ])
   }

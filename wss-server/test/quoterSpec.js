@@ -10,7 +10,7 @@ describe('Quoter', () => {
   describe('answerBySource', () => {
     it('should find amount at point', function () {
       const result = this.quoter.answerBySource({
-        destinationAddress: 'g.example.asdf',
+        destinationAccount: 'g.example.asdf',
         sourceAmount: '12345'
       })
       assert.deepEqual(result, {
@@ -23,7 +23,7 @@ describe('Quoter', () => {
   describe('answerByDest', () => {
     it('should find amount at point', function () {
       const result = this.quoter.answerByDest({
-        destinationAddress: 'g.example.asdf',
+        destinationAccount: 'g.example.asdf',
         destinationAmount: '67890'
       })
       assert.deepEqual(result, {
