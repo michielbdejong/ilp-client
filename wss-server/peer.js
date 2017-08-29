@@ -1,20 +1,23 @@
-
 const ClpPacket = require('clp-packet')
 const IlpPacket = require('ilp-packet')
 
 function Peer(ledgerPrefix, initialBalance, ws, quoter, forwarder) {
+  this.requestIdUsed = 0
   this.ledgerPrefix = ledgerPrefix
   this.quoter = quoter
   this.forwarder = forwarder
   this.balance = initialBalance // ledger units this node owes to that peer
   this.requestsSent = {}
   this.transfersSent = {}
-  ws.on('message', this.incoming.bind(this))
+  this.ws = ws
+  // listen for incoming CLP messages:
+  this.ws.on('message', this.incoming.bind(this))
 }
 
 Peer.prototype = {
   sendCall(type, requestId, data) {
-    ws.send(ClpPacket.serialize({ type, requestId, data }))
+    console.log('sendCall', {type, requestId, data })
+    this.ws.send(ClpPacket.serialize({ type, requestId, data }))
   },
 
   sendError(requestId, err) {
@@ -74,7 +77,7 @@ Peer.prototype = {
 
   sendFulfillment(transferId, fulfillment) {
     // fulfill is a new request
-    const requestId = uuid()
+    const requestId = ++this.requestIdUsed
     this.requestsSent[requestId] = {
       resolve() {},
       reject() {}
@@ -88,7 +91,7 @@ Peer.prototype = {
 
   sendReject(transferId, err) { 
     // reject is a new request
-    const requestId = uuid()
+    const requestId = ++this.requestIdUsed
     this.requestsSent[requestId] = {
       resolve() {},
       reject() {}
@@ -188,8 +191,9 @@ Peer.prototype = {
     }
   },
   unpaid(protocolName, data) {
-    const requestId = uuid()
-    this.sendMessage(requestId, [
+    console.log('unpaid', protocolName, data)
+    const requestId = ++this.requestIdUsed
+    this.sendCall(ClpPacket.TYPE_MESSAGE, requestId, [
       {
         protocolName,
         contentType: ClpPacket.MIME_APPLICATION_OCTET_STREAM,
@@ -203,7 +207,7 @@ Peer.prototype = {
   },
 
   conditional(transfer, protocolData) {
-    const requestId = uuid()
+    const requestId = ++this.requestIdUsed
     const transferId = uuid()
     this.requestsSent[requestId] = {
       resolve() {
