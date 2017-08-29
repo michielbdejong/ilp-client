@@ -3,6 +3,25 @@ const IlpPacket = require('ilp-packet')
 const uuid = require('uuid/v4')
 const crypto = require('crypto')
 
+const BalancePacket = {
+   serializeResponse(num) {
+     let prefix = '0208' + '0000' + '0000' + '0000' + '0000'
+     let suffix = num.toString(16)
+     return Buffer.from(prefix.substring(0, prefix.length - suffix.length) + suffix, 'hex')
+   }
+}
+const InfoPacket = {
+   serializeResponse(info) {
+     if (info.length > 127) {
+       const lenLo = info.length % 256
+       const lenHi = (info.length - lenLo) / 256 + 128
+       return Buffer.concat([ Buffer.from([ 2, lenHi, lenLo ]), Buffer.from(info, 'ascii') ])
+     } else {
+       return Buffer.concat([ Buffer.from([ 2, info.length ]), Buffer.from(info, 'ascii') ])
+     }
+  }
+}
+
 function Peer(ledgerPrefix, initialBalance, ws, quoter, forwarder, fulfiller) {
   this.requestIdUsed = 0
   this.ledgerPrefix = ledgerPrefix
@@ -47,18 +66,34 @@ Peer.prototype = {
     }))
   },
 
-  handleIlqpRequest(ilpPacketBuf) {
-    const request = IlpPacket.deserializeIlpPacket(ilpPacketBuf)
-    console.log('ilp message!', request)
-    switch(request.type) {
-    case IlpPacket.Type.TYPE_ILQP_LIQUIDITY_REQUEST:
-      return this.quoter.answerLiquidity(request.data).then(IlpPacket.serializeIlqpLiquidityResponse)
-    case IlpPacket.Type.TYPE_ILQP_BY_SOURCE_REQUEST:
-      return this.quoter.answerBySource(request.data).then(IlpPacket.serializeIlqpBySourceResponse)
-    case IlpPacket.Type.TYPE_ILQP_BY_DESTINATION_REQUEST:
-      return this.answerByDest(request.data).then(IlpPacket.serializeIlqpByDestinationResponse)
-    default:
-      throw new Error('unrecognized ilp packet type')
+  handleProtocolRequest(protocolName, dataBuf) {
+    switch (protocolName) {
+      case 'ilp':
+        const request = IlpPacket.deserializeIlpPacket(dataBuf)
+        console.log('ilp message!', request)
+        switch (request.type) {
+        case IlpPacket.Type.TYPE_ILQP_LIQUIDITY_REQUEST:
+          return this.quoter.answerLiquidity(request.data).then(IlpPacket.serializeIlqpLiquidityResponse)
+        case IlpPacket.Type.TYPE_ILQP_BY_SOURCE_REQUEST:
+          return this.quoter.answerBySource(request.data).then(IlpPacket.serializeIlqpBySourceResponse)
+        case IlpPacket.Type.TYPE_ILQP_BY_DESTINATION_REQUEST:
+          return this.answerByDest(request.data).then(IlpPacket.serializeIlqpByDestinationResponse)
+        default:
+          throw new Error('unrecognized ilp packet type')
+        }
+        break
+      case 'info':
+        if (dataBuf[0] === 0) {
+          console.log('info!', dataBuf)
+          return Promise.resolve(InfoPacket.serializeResponse(this.baseLedger + '.' + this.peerName))
+        }
+        break
+      case 'balance':
+        if (dataBuf[0] === 0) {
+          console.log('balance!', dataBuf)
+          return Promise.resolve(BalancePacket.serializeResponse(this.balance))
+        }
+        break
     }
   },
 
@@ -230,13 +265,13 @@ Peer.prototype = {
         }
         console.log('first entry', obj.data[0])
 
-        if(obj.data[0].protocolName !== 'ilp') {
+        if(['ilp', 'info', 'balance'].indexOf(obj.data[0].protocolName) === -1) {
           this.sendLedgerError(requestId, 'first protocol unsupported')
           return
         }
-        console.log('ilp data', obj.data[0].data)
+        console.log(obj.data[0].protocolName + ' data', obj.data[0].data)
 
-        this.handleIlqpRequest(obj.data[0].data).then(result => {
+        this.handleProtocolRequest(obj.data[0].protocolName, obj.data[0].data).then(result => {
           console.log('sendind back result!', result)
           this.sendResult(obj.requestId, obj.data[0].protocolName, result)
         }, err => {

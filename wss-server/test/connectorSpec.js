@@ -78,6 +78,21 @@ describe('Connector', () => {
       return this.client1.peer.unpaid('ilp', packet)
     })
 
+
+    it('should respond to info', function () {
+      const packet = Buffer.from([0])
+      return this.client1.peer.unpaid('info', packet).then(response => {
+        console.log(response)
+      })
+    })
+
+    it('should respond to balance', function () {
+      const packet = Buffer.from([0])
+      return this.client1.peer.unpaid('balance', packet).then(response => {
+        console.log(response)
+      })
+    })
+
     it('should make a payment', function () {
       console.log('in the test!')
       const fulfillment = crypto.randomBytes(32)
