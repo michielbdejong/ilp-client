@@ -1,4 +1,4 @@
-const MIN_MESSAGE_WINDOW = 10000 // make sure you always have 10 seconds to fulfill after your peer fulfilled
+const MIN_MESSAGE_WINDOW = 10000 // make sure you always have 10 seconds to fulfill after your peer fulfilled. Never set this to less than 1 second, especially not during a leap second
 const FORWARD_TIMEOUT = MIN_MESSAGE_WINDOW + 1000 // don't bother the next node with requests that have less than one second left on the clock
 
 const ERROR_LACK_TIME = 1
@@ -25,8 +25,7 @@ Forwarder.prototype = {
     return this.peers[onwardPeer].interledgerPayment({
       amount: onwardAmount,
       expiresAt: new Date(transfer.expiresAt.getTime() - MIN_MESSAGE_WINDOW),
-      executionCondition: transfer.executionCondition,
-      payment
-    })
+      executionCondition: transfer.executionCondition
+    }, payment)
   }
 }         
