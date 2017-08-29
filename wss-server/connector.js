@@ -5,9 +5,10 @@ const Quoter = require('./quoter')
 const Forwarder = require('./forwarder')
 const Peer = require('./peer')
 
-function Connector() {
+function Connector(baseLedger) {
   this.quoter = new Quoter()
   this.peers = {}
+  this.baseLedger = baseLedger
   this.forwarder = new Forwarder(this.quoter, this.peers)
 }
 
@@ -17,9 +18,15 @@ Connector.prototype = {
       this.wss = new WebSocket.Server({ port }, resolve)
     }).then(() => {
       this.wss.on('connection', (ws, httpReq) => {
-        // TODO: test this with 1 connnector + 2 clients in test
-        const peerId = httpReq.url
+        const parts = httpReq.url.split('/')
+        const peerId = parts[1]
+        const peerToken = parts[2] // TODO: use this to authorize reconnections
+        console.log('assigned peerId!', peerId)
         this.peers[peerId] = new Peer(peerId, 0, ws, this.quoter, this.forwarder)
+        this.quoter.setCurve(this.baseLedger + peerId + '.', Buffer.from([
+          0, 0, 0, 0,		0, 0, 0, 0,
+          0, 0, 255, 255,	0, 0, 255, 255
+        ]), peerId)
       })
     })
   },

@@ -58,28 +58,29 @@ Quoter.prototype = {
 
   answerLiquidity(req) {
     const curve = this.findCurve(req.destinationAccount)
-    return {
+    console.log('got quote response!', curve)
+    return Promise.resolve({
       liquidityCurve: curve.buf,
       appliesToPrefix: curve.prefix,
       sourceHoldDuration: 15000,
       expiresAt: new Date(Date.now() + 3600*1000)
-    }
+    })
   },
   
   answerBySource(req) {
     const curve = this.findCurve(req.destinationAccount)
-    return {
+    return Promise.resolve({
       destinationAmount: sourceToDest(parseInt(req.sourceAmount), curve.buf),
       sourceHoldDuration: 3000
-    }
+    })
   },
   
   answerByDest(req) {
     const curve = this.findCurve(req.destinationAccount)
-    return {
+    return Promise.resolve({
       sourceAmount: destToSource(parseInt(req.destinationAmount), curve.buf),
       sourceHoldDuration: 3000
-    }
+    })
   },
 
   findHop(address, amount) {

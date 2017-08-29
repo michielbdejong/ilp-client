@@ -49,11 +49,11 @@ Peer.prototype = {
     console.log('ilp message!', request)
     switch(request.type) {
     case IlpPacket.Type.TYPE_ILQP_LIQUIDITY_REQUEST:
-      return IlpPacket.serializeIlqpLiquidityResponse(this.quoter.answerLiquidity(request.data))
+      return this.quoter.answerLiquidity(request.data).then(IlpPacket.serializeIlqpLiquidityResponse)
     case IlpPacket.Type.TYPE_ILQP_BY_SOURCE_REQUEST:
-      return IlpPacket.serializeIlqpBySourceResponse(this.quoter.answerBySource(request.data))
+      return this.quoter.answerBySource(request.data).then(IlpPacket.serializeIlqpBySourceResponse)
     case IlpPacket.Type.TYPE_ILQP_BY_DESTINATION_REQUEST:
-      return IlpPacket.serializeIlqpByDestinationResponse(this.answerByDest(request.data))
+      return this.answerByDest(request.data).then(IlpPacket.serializeIlqpByDestinationResponse)
     default:
       throw new Error('unrecognized ilp packet type')
     }
@@ -114,82 +114,100 @@ Peer.prototype = {
 
   incoming(buf) {
     const obj = ClpPacket.deserialize(buf)
+ 
+    console.log('incoming:', JSON.stringify(obj))
     switch(obj.type) {
-    case ClpPacket.TYPE_MESSAGE:
-      console.log('responding to:', JSON.stringify(obj))
-      if (!Array.isArray(obj.data) || !obj.data.length) {
-        this.sendLedgerError(requestId, 'empty message')
-        return
-      }
-      console.log('first entry', obj.data[0])
-
-      if(obj.data[0].protocolName !== 'ilp') {
-        this.sendLedgerError(requestId, 'first protocol unsupported')
-        return
-      }
-      console.log('ilp data', obj.data[0].data)
-
-      this.handleIlqpRequest(obj.data[0].data).then(result => {
-        this.sendResult(requestId, obj.data[0].protocolName, result)
-      }, err => {
-        this.sendError(requestId, err)
-      })
-    break
-    case ClpPacket.TYPE_PREPARE:
-      if (obj.data.amount > this.balance) {
-        this.sendLedgerError(requestId, 'account balance lower than transfer amount')
-        return
-      }
-      // adjust balance
-      this.balance -= obj.data.amount
-      this.sendResult(requestId) // ACK
-      this.forwarder.forward({ // transfer
-        amount: obj.data.amount,
-        executionCondition: obj.data.executionCondition,
-        expiresAt: obj.data.expiresAt
-      }, obj.data.protocolData[0].data).then((fulfillment) => {
-        this.sendFulfillment(transferId, fulfillment) 
-      }, (err) => {
-        this.sendReject(transferId, err)
-        // refund balance
-        this.balance += obj.data.amount
-      })
-    break
-    case ClpPacket.ACK:
-      this.requestsSent[obj.requestId].resolve()
-    break
-    case ClpPacket.RESPONSE:
-      if (Array.isArray(obj.data) && obj.data.length) {
-      this.requestsSent[obj.requestId].resolve(obj.data[0])
-      } else { // treat it as an ACK, see https://github.com/interledger/rfcs/issues/283
+      case ClpPacket.TYPE_ACK:
+        console.log('TYPE_ACK!')
         this.requestsSent[obj.requestId].resolve()
-      }
-    break
-    case ClpPacket.TYPE_ERROR:
-      this.requestsSent[obj.requestId].reject(obj.data.rejectionReason)
-    break
-    case ClpPacket.TYPE_FULFILL:
-      if (typeof this.transfersSent[obj.data.transferId] === undefined) {
-        this.sendLedgerError(obj.requestId, 'unknown transfer id')
-      } else if (new Date().getTime() > this.transfersSent[obj.data.transferId].expiresAt) { // FIXME: this is not leap second safe (but not a problem if MIN_MESSAGE_WINDOW is at least 1 second)
-        this.sendLedgerError(obj.requestId, 'fulfilled too late')
-      } else if (sha256(obj.data.fulfillment) !== this.transfersSent[obj.data.transferId].condition) {
-        this.sendLedgerError(obj.requestId, 'fulfillment incorrect')
-      } else {
-        this.transfersSent[obj.data.transferId].resolve(obj.data.fulfillment)
-        this.balance += this.transfersSent[obj.data.transferId].amount
-        this.sendResult(obj.requestId) // ACK
-      }
-    break
-    case ClpPacket.TYPE_REJECT:
-      if (typeof this.transfersSent[obj.data.transferId] === undefined) {
-        this.sendLedgerError(obj.requestId, 'unknown transfer id')
-      } else {
-        this.transfersSent[obj.data.transferId].reject(obj.data.rejectionReason)
-        this.sendResult(obj.requestId) // ACK
-      }
-    default:
-      throw new Error('clp packet type not recognized')
+        break
+
+      case ClpPacket.TYPE_RESPONSE:
+        console.log('TYPE_RESPONSE!')
+        if (Array.isArray(obj.data) && obj.data.length) {
+        this.requestsSent[obj.requestId].resolve(obj.data[0])
+        } else { // treat it as an ACK, see https://github.com/interledger/rfcs/issues/283
+          this.requestsSent[obj.requestId].resolve()
+        }
+        break
+
+      case ClpPacket.TYPE_ERROR:
+        console.log('TYPE_ERROR!')
+        this.requestsSent[obj.requestId].reject(obj.data.rejectionReason)
+        break
+
+      case ClpPacket.TYPE_PREPARE:
+        console.log('TYPE_PREPARE!')
+        if (obj.data.amount > this.balance) {
+          this.sendLedgerError(requestId, 'account balance lower than transfer amount')
+          return
+        }
+        // adjust balance
+        this.balance -= obj.data.amount
+        this.sendResult(requestId) // ACK
+        this.forwarder.forward({ // transfer
+          amount: obj.data.amount,
+          executionCondition: obj.data.executionCondition,
+          expiresAt: obj.data.expiresAt
+        }, obj.data.protocolData[0].data).then((fulfillment) => {
+          this.sendFulfillment(transferId, fulfillment) 
+        }, (err) => {
+          this.sendReject(transferId, err)
+          // refund balance
+          this.balance += obj.data.amount
+        })
+        break
+
+      case ClpPacket.TYPE_FULFILL:
+        console.log('TYPE_FULFILL!')
+        if (typeof this.transfersSent[obj.data.transferId] === undefined) {
+          this.sendLedgerError(obj.requestId, 'unknown transfer id')
+        } else if (new Date().getTime() > this.transfersSent[obj.data.transferId].expiresAt) { // FIXME: this is not leap second safe (but not a problem if MIN_MESSAGE_WINDOW is at least 1 second)
+          this.sendLedgerError(obj.requestId, 'fulfilled too late')
+        } else if (sha256(obj.data.fulfillment) !== this.transfersSent[obj.data.transferId].condition) {
+          this.sendLedgerError(obj.requestId, 'fulfillment incorrect')
+        } else {
+          this.transfersSent[obj.data.transferId].resolve(obj.data.fulfillment)
+          this.balance += this.transfersSent[obj.data.transferId].amount
+          this.sendResult(obj.requestId) // ACK
+        }
+        break
+
+      case ClpPacket.TYPE_REJECT:
+        console.log('TYPE_REJECT!')
+        if (typeof this.transfersSent[obj.data.transferId] === undefined) {
+          this.sendLedgerError(obj.requestId, 'unknown transfer id')
+        } else {
+          this.transfersSent[obj.data.transferId].reject(obj.data.rejectionReason)
+          this.sendResult(obj.requestId) // ACK
+        }
+        break
+
+      case ClpPacket.TYPE_MESSAGE:
+        console.log('TYPE_MESSAGE!')
+        if (!Array.isArray(obj.data) || !obj.data.length) {
+          this.sendLedgerError(requestId, 'empty message')
+          return
+        }
+        console.log('first entry', obj.data[0])
+
+        if(obj.data[0].protocolName !== 'ilp') {
+          this.sendLedgerError(requestId, 'first protocol unsupported')
+          return
+        }
+        console.log('ilp data', obj.data[0].data)
+
+        this.handleIlqpRequest(obj.data[0].data).then(result => {
+          console.log('sendind back result!', result)
+          this.sendResult(obj.requestId, obj.data[0].protocolName, result)
+        }, err => {
+          console.log('sendind back err!', err)
+          this.sendError(requestId, err)
+        })
+        break
+
+      default:
+        throw new Error('clp packet type not recognized')
     }
   },
   unpaid(protocolName, data) {
