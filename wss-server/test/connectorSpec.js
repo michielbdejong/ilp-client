@@ -3,6 +3,7 @@ const IlpPacket = require('ilp-packet')
 const Client = require('../client')
 const assert = require('chai').assert
 const crypto = require('crypto')
+const sha256 = require('../sha256')
 
 describe('Connector', () => {
   beforeEach(function () {
@@ -16,7 +17,7 @@ describe('Connector', () => {
         prefix: 'test.crypto.eth.rinkeby.'
       }
     })
-
+    this.connector.peers.ledger_dummy.fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
     return this.connector.open(8000)
   })
   afterEach(function () {
@@ -74,8 +75,9 @@ describe('Connector', () => {
 
     it('should make a payment', function () {
       const fulfillment = crypto.randomBytes(32)
-      const condition = crypto.createHash('sha256').update(fulfillment).digest()
-      this.client2.fulfillments[condition.toString('hex')] = fulfillment
+      const condition = sha256(fulfillment)
+     
+      this.client2.fulfillments[condition] = fulfillment
       const packet = IlpPacket.serializeIlpPayment({
         amount: '1234',
         account: 'peer.testing.' + this.client2.name + '.hi'

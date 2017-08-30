@@ -24,8 +24,8 @@ Client.prototype = {
         this.forwarder = new Forwarder(this.quoter, this.peers)
         // console.log('creating client peer')
         this.peer = new Peer('client-peer.', this.name, 10000, this.ws, this.quoter, this.forwarder, (condition) => {
-          // console.log('fulfilling!', condition.toString('hex'), this.fulfillments)
-          return this.fulfillments[condition.toString('hex')]
+          console.log('client is fulfilling!', condition, this.fulfillments)
+          return this.fulfillments[condition]
         })
         resolve()
       })

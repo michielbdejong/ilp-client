@@ -56,14 +56,16 @@ VirtualPeer.prototype = {
     const promise = new Promise((resolve, reject) => {
       this.transfersSent[transferId] = { resolve, reject }
     })
-    plugin.sendTransfer({
+    this.plugin.sendTransfer({
       id: transferId,
-      from: plugin.getAccount(),
+      from: this.plugin.getAccount(),
       to: paymentObj.account,
-      ledger: plugin.getInfo().prefix,
+      ledger: this.plugin.getInfo().prefix,
       amount: paymentObj.amount,
       ilp: payment,
       noteToSelf: {},
+      executionCondition: transfer.executionCondition.toString('base64'),
+      expiresAt: transfer.expiresAt,
       custom: {}
     }).catch(err => {
       this.transfersSent[transferId].reject(err)
@@ -71,12 +73,12 @@ VirtualPeer.prototype = {
     return promise
   },
 
-  handleFulfill(transfer, fulfillment) {
-    this.transfersSent[transfer.id].resolve(Buffer.from(fulfillment, 'base64'))
+  handleFulfill(transfer, fulfillmentBase64) {
+    this.transfersSent[transfer.id].resolve(Buffer.from(fulfillmentBase64, 'base64'))
   },
 
-  handleReject(transfer, rejectionMessage) {
-    this.transfersSent[transfer.id].reject(rejectionReason)
+  handleReject(transfer, rejectionReasonBase64) {
+    this.transfersSent[transfer.id].reject(Buffer.from(rejectionReasonBase64, 'base64'))
   }
 }
 

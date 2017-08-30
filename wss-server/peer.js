@@ -1,7 +1,7 @@
 const ClpPacket = require('clp-packet')
 const IlpPacket = require('ilp-packet')
 const uuid = require('uuid/v4')
-const crypto = require('crypto')
+const sha256 = require('./sha256')
 
 const BalancePacket = {
    serializeResponse(num) {
@@ -89,7 +89,7 @@ function Peer(baseLedger, peerName, initialBalance, ws, quoter, forwarder, fulfi
 
 Peer.prototype = {
   sendCall(type, requestId, data) {
-    // console.log('sendCall', {type, requestId, data })
+     console.log('sendCall', {type, requestId, data })
     this.ws.send(ClpPacket.serialize({ type, requestId, data }))
   },
 
@@ -272,7 +272,7 @@ Peer.prototype = {
           reject() {}
         }
         paymentPromise.then((fulfillment) => {
-          // console.log('sending fulfill call')
+          console.log('sending fulfill call, paymentPromise gave:', fulfillment)
           this.sendCall(ClpPacket.TYPE_FULFILL, replyRequestId, {
             transferId: obj.data.transferId,
             fulfillment,
@@ -290,20 +290,16 @@ Peer.prototype = {
         break
 
       case ClpPacket.TYPE_FULFILL:
-        function sha256(fulfillmentHex) {
-          // console.log({ fulfillmentHex })
-          const fulfillment = Buffer.from(fulfillmentHex, 'hex')
-          const condition = crypto.createHash('sha256').update(fulfillment).digest()
-          // console.log(fulfillment, condition)
-          return condition
-        }
-        // console.log('TYPE_FULFILL!')
+        console.log('WHAT')
+        const conditionCheck = sha256(obj.data.fulfillment)
+        console.log('WHAT')
+        console.log('TYPE_FULFILL!', obj.data, conditionCheck , this.transfersSent[obj.data.transferId].condition)
         if (typeof this.transfersSent[obj.data.transferId] === undefined) {
           this.sendError(obj.requestId, this.makeLedgerError('unknown transfer id'))
         } else if (new Date().getTime() > this.transfersSent[obj.data.transferId].expiresAt) { // FIXME: this is not leap second safe (but not a problem if MIN_MESSAGE_WINDOW is at least 1 second)
           this.sendError(obj.requestId, this.makeLedgerError('fulfilled too late'))
-        } else if (sha256(obj.data.fulfillment).toString('hex') !== this.transfersSent[obj.data.transferId].conditionHex) {
-          // console.log('compared!', sha256(obj.data.fulfillment).toString('hex'), this.transfersSent[obj.data.transferId].conditionHex)
+        } else if (conditionCheck.compare(this.transfersSent[obj.data.transferId].condition) !== 0) {
+          console.log('compared!', conditionCheck, this.transfersSent[obj.data.transferId].condition)
           this.sendError(obj.requestId, this.makeLedgerError('fulfillment incorrect'))
         } else {
           this.transfersSent[obj.data.transferId].resolve(obj.data.fulfillment)
@@ -360,6 +356,7 @@ Peer.prototype = {
   },
 
   conditional(transfer, protocolData) {
+    console.log('conditional(', {transfer, protocolData})
     const requestId = ++this.requestIdUsed
     const transferId = uuid()
     this.requestsSent[requestId] = {
@@ -385,7 +382,7 @@ Peer.prototype = {
       protocolData
     })
     return new Promise((resolve, reject) => {
-      this.transfersSent[transferId] = { resolve, reject, conditionHex: transfer.executionCondition.toString('hex') }
+      this.transfersSent[transferId] = { resolve, reject, condition: transfer.executionCondition }
     })
   },
 

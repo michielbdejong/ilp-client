@@ -20,7 +20,11 @@ function Connector(baseLedger, pluginConfigs) {
   for (name in pluginConfigs) {
     const plugin = new Plugin[name](pluginConfigs[name])
     plugin.connect()    
-    this.peers[name] = new VirtualPeer(plugin, this.forwarder)
+    this.peers['ledger_' + name] = new VirtualPeer(plugin, this.forwarder)
+    this.quoter.setCurve(plugin.getInfo().prefix, Buffer.from([
+      0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 255, 255,	0, 0, 0, 0, 0, 0, 255, 255
+    ]), 'ledger_' + name)
   }
 }
 
@@ -34,7 +38,7 @@ Connector.prototype = {
         const peerId = parts[1]
         const peerToken = parts[2] // TODO: use this to authorize reconnections
         // console.log('assigned peerId!', peerId)
-        this.peers[peerId] = new Peer(this.baseLedger, peerId, 10000, ws, this.quoter, this.forwarder, undefined, (address) => {
+        this.peers['peer_' + peerId] = new Peer(this.baseLedger, peerId, 10000, ws, this.quoter, this.forwarder, undefined, (address) => {
           this.vouchingMap[address] = peerId
           console.log('vouched!', this.vouchingMap)
           return Promise.resolve()
@@ -42,7 +46,7 @@ Connector.prototype = {
         this.quoter.setCurve(this.baseLedger + peerId + '.', Buffer.from([
           0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0, 255, 255,	0, 0, 0, 0, 0, 0, 255, 255
-        ]), peerId)
+        ]), 'peer_' + peerId)
       })
     })
   },
