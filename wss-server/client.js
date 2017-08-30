@@ -1,51 +1,48 @@
 const WebSocket = require('ws');
-const ClpPacket = require('clp-packet')
-const IlpPacket = require('ilp-packet')
+const crypto = require('crypto')
 
-const NUM = 1000000
-let startTime
-const ws = new WebSocket('ws://localhost:8000/path', {
-  perMessageDeflate: false
-});
+const Forwarder = require('./forwarder')
+const Peer = require('./peer')
+const Quoter = require('./quoter')
 
-ws.on('open', function open() {
-  startTime = new Date().getTime()
-  for (let i=0; i<NUM; i++) {
-    const buf = ClpPacket.serialize({
-      type: ClpPacket.TYPE_MESSAGE,
-      requestId: i,
-      data: {
-        protocolData: [
-          {
-             protocolName: 'ilp',
-             contentType: ClpPacket.MIME_APPLICATION_OCTET_STREAM,
-             data: IlpPacket.serializeIlqpByDestinationRequest({
-               destinationAccount: 'example.nexus.bob',
-               destinationAmount: '9000000000',
-               destinationHoldDuration: 3000
-             })
-           }
-        ]
-      }
+function Client() {
+  this.name = crypto.randomBytes(16).toString('hex')
+  this.token = crypto.randomBytes(16).toString('hex')
+  this.fulfillments = {}
+}
+
+Client.prototype = {
+  open(url) {
+    return new Promise(resolve => {
+      this.ws = new WebSocket(url + this.name + '/' + this.token, {
+        perMessageDeflate: false
+      })
+      this.ws.on('open', () => {
+        // console.log('ws open')
+        this.quoter = new Quoter()
+        this.peers = {}
+        this.forwarder = new Forwarder(this.quoter, this.peers)
+        // console.log('creating client peer')
+        this.peer = new Peer('client-peer.', this.name, 10000, this.ws, this.quoter, this.forwarder, (condition) => {
+          // console.log('fulfilling!', condition.toString('hex'), this.fulfillments)
+          return this.fulfillments[condition.toString('hex')]
+        })
+        resolve()
+      })
     })
-    ws.send(buf);
-  }
-});
+  },
 
-let received = 0
-let fail = 0
+  close() {
+    return new Promise(resolve => {
+      this.ws.on('close', () => {
+        // console.log('close emitted!')
+        resolve()
+      })
+      // console.log('closing client!')
+      this.ws.close()
+      // console.log('started closing client!')
+    })
+  }
+}
 
-ws.on('message', function incoming(buf) {
-  let obj = ClpPacket.deserialize(buf)
-  // console.log('got reply!', obj)
-  if (obj.type === ClpPacket.TYPE_ERROR) {
-    fail++
-  } else {
-    const json = IlpPacket.deserializeIlqpByDestinationResponse(obj.data.protocolData[0].data)
-    // console.log(json)
-  }
-  if (++received === NUM) {
-    let duration = (new Date().getTime() - startTime) / 1000.0
-    console.log(NUM, duration, NUM/duration)
-  }
-});
+module.exports = Client

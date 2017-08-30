@@ -162,7 +162,7 @@ Peer.prototype = {
   },
 
   sendResult(requestId, protocolName, result) {
-    console.log('sendResult(', {requestId, protocolName, result})
+    // console.log('sendResult(', {requestId, protocolName, result})
     if (result) { // RESPONSE
       this.sendCall(ClpPacket.TYPE_RESPONSE, requestId, [
         {

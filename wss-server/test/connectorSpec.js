@@ -1,52 +1,8 @@
 const Connector = require('../connector')
-const Peer = require('../peer')
-const Quoter = require('../quoter')
-const Forwarder = require('../forwarder')
 const IlpPacket = require('ilp-packet')
-
+const Client = require('../client')
 const assert = require('chai').assert
-const WebSocket = require('ws');
 const crypto = require('crypto')
-
-function Client() {
-  this.name = crypto.randomBytes(16).toString('hex')
-  this.token = crypto.randomBytes(16).toString('hex')
-  this.fulfillments = {}
-}
-
-Client.prototype = {
-  open(url) {
-    return new Promise(resolve => {
-      this.ws = new WebSocket(url + this.name + '/' + this.token, {
-        perMessageDeflate: false
-      })
-      this.ws.on('open', () => {
-        // console.log('ws open')
-        this.quoter = new Quoter()
-        this.peers = {}
-        this.forwarder = new Forwarder(this.quoter, this.peers)
-        // console.log('creating client peer')
-        this.peer = new Peer('client-peer.', this.name, 10000, this.ws, this.quoter, this.forwarder, (condition) => {
-          // console.log('fulfilling!', condition.toString('hex'), this.fulfillments)
-          return this.fulfillments[condition.toString('hex')]
-        })
-        resolve()
-      })
-    })
-  },
-
-  close() {
-    return new Promise(resolve => {
-      this.ws.on('close', () => {
-        // console.log('close emitted!')
-        resolve()
-      })
-      // console.log('closing client!')
-      this.ws.close()
-      // console.log('started closing client!')
-    })
-  }
-}
 
 describe('Connector', () => {
   beforeEach(function () {
@@ -125,7 +81,7 @@ describe('Connector', () => {
         account: 'peer.testing.' + this.client2.name + '.hi'
       })
       const transfer = {
-        // transferId will be added  by Peer#conditional(transfer, protocolData)
+        // transferId will be added  by Pqer#conditional(transfer, protocolData)
         amount: '1234',
         executionCondition: condition,
         expiresAt: new Date(new Date().getTime() + 100000)
