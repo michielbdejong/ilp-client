@@ -90,7 +90,6 @@ describe('Connector', () => {
     it('should respond to info', function () {
       const packet = Buffer.from([0])
       return this.client1.peer.unpaid('info', packet).then(response => {
-        console.log(response)
         const infoStr = response.data.slice(2).toString('ascii') // assume length <= 127
         assert.deepEqual(response.data[0], 2)
         assert.deepEqual(response.data[1], infoStr.length)
@@ -108,11 +107,9 @@ describe('Connector', () => {
     })
 
     it('should make a payment', function () {
-      console.log('in the test!')
       const fulfillment = crypto.randomBytes(32)
       const condition = crypto.createHash('sha256').update(fulfillment).digest()
       this.client2.fulfillments[condition.toString('hex')] = fulfillment
-      console.log(this.client2.fulfillments)
       const packet = IlpPacket.serializeIlpPayment({
         amount: '1234',
         account: 'peer.testing.' + this.client2.name + '.hi'
@@ -124,7 +121,7 @@ describe('Connector', () => {
         expiresAt: new Date(new Date().getTime() + 100000)
       }
       return this.client1.peer.interledgerPayment(transfer, packet).then(result => {
-        assert.equal(result, fulfillment.toString('hex'))
+        assert.deepEqual(result, fulfillment)
         return this.client1.peer.unpaid('balance', Buffer.from([0]))
       }).then(response => {
         // (10000 - 1234) = 34 * 256 + 62

@@ -192,7 +192,7 @@ Peer.prototype = {
           if (fulfillment) {
             paymentPromise = Promise.resolve(fulfillment)
           }
-          console.log(fulfillment)
+          // console.log(fulfillment)
         }
         if (!paymentPromise) {
           // console.log('forwarding payment', obj)
@@ -230,7 +230,7 @@ Peer.prototype = {
           // console.log({ fulfillmentHex })
           const fulfillment = Buffer.from(fulfillmentHex, 'hex')
           const condition = crypto.createHash('sha256').update(fulfillment).digest()
-          console.log(fulfillment, condition)
+          // console.log(fulfillment, condition)
           return condition
         }
         // console.log('TYPE_FULFILL!')
@@ -270,10 +270,10 @@ Peer.prototype = {
           this.sendLedgerError(requestId, 'first protocol unsupported')
           return
         }
-        console.log(obj.data[0].protocolName + ' data', obj.data[0].data)
+        // console.log(obj.data[0].protocolName + ' data', obj.data[0].data)
 
         this.handleProtocolRequest(obj.data[0].protocolName, obj.data[0].data).then(result => {
-           console.log('sendind back result!', obj, result)
+           // console.log('sendind back result!', obj, result)
           this.sendResult(obj.requestId, obj.data[0].protocolName, result)
         }, err => {
           // console.log('sendind back err!', err)
