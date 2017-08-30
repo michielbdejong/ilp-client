@@ -90,6 +90,8 @@ describe('Connector', () => {
       }
       return this.client1.peer.interledgerPayment(transfer, packet).then(result => {
         assert.deepEqual(result, fulfillment)
+        assert.equal(this.connector.peers['peer_' + this.client1.name].balance, 8766)
+        assert.equal(this.connector.peers['peer_' + this.client2.name].balance, 11234)
         return this.client1.peer.unpaid('balance', Buffer.from([0]))
       }).then(response => {
         // (10000 - 1234) = 34 * 256 + 62

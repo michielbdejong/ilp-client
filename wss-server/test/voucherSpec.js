@@ -77,9 +77,46 @@ describe('Connector', () => {
           custom: {}
         })
         console.log(this.client1)
-        assert.equal(this.client1.peer.balance, 11235)
-        assert.equal(this.client2.peer.balance, 10000)
+        assert.equal(this.connector.peers['peer_' + this.client1.name].balance, 8765)
+        assert.equal(this.connector.peers['peer_' + this.client2.name].balance, 10000)
       })
+    })
+
+    it('should reject from insufficiently vouched wallets on dummy ledger', function (done) {
+      const fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
+      const condition = sha256(fulfillment)
+
+      // console.log('setting up test', fulfillment, condition)
+      const packet = IlpPacket.serializeIlpPayment({
+        amount: '1234',
+        account: 'peer.testing.' + this.client2.name + '.hi'
+      })
+      this.client2.fulfillments[condition] = fulfillment
+
+      // This is ledger plugin interface format, will be used in incoming_prepare event
+      // to VirtualPeer:
+      const lpiTransfer = {
+        id: uuid(),
+        from: this.wallet1,
+        to: 'test.crypto.eth.rinkeby.dummy-account',
+        ledger: 'test.crypto.eth.rinkeby.',
+        amount: '12345',
+        ilp: packet,
+        noteToSelf: {},
+        executionCondition: condition.toString('base64'),
+        expiresAt: new Date(new Date().getTime() + 100000),
+        custom: {}
+      }
+      this.connector.peers.ledger_dummy.plugin.successCallback = (transferId, fulfillmentBase64) => {
+        done(new Error('should not have succeeded'))
+      }
+      this.connector.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {
+        assert.equal(rejectionReasonObj.code, 'L53')
+        assert.equal(this.connector.peers['peer_' + this.client1.name].balance, 10000)
+        assert.equal(this.connector.peers['peer_' + this.client2.name].balance, 10000)
+        done()
+      }
+      this.connector.peers.ledger_dummy.plugin.handlers.incoming_prepare(lpiTransfer)
     })
 
     it('should accept from vouched wallets on dummy ledger', function (done) {
@@ -110,11 +147,11 @@ describe('Connector', () => {
       this.connector.peers.ledger_dummy.plugin.successCallback = (transferId, fulfillmentBase64) => {
         assert.equal(transferId, lpiTransfer.id)
         assert.deepEqual(Buffer.from(fulfillmentBase64, 'base64'), fulfillment)
+        assert.equal(this.connector.peers['peer_' + this.client1.name].balance, 10000)
+        assert.equal(this.connector.peers['peer_' + this.client2.name].balance, 11234)
         done()
       }
       this.connector.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {
-        assert.equal(this.client1.peer.balance, 10000)
-        assert.equal(this.client2.peer.balance, 10000)
         done(rejectionReasonObj)
       }
       this.connector.peers.ledger_dummy.plugin.handlers.incoming_prepare(lpiTransfer)
