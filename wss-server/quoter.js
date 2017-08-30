@@ -24,7 +24,7 @@ function findPoint(val, from, to, curveBuf) {
     cursor += 16
   }
   let perc = (val - prev[from]) / (next[from] - prev[from])
-  return (prev[to] + perc * (next[to] - prev[to])).toString()
+  return (prev[to] + perc * (next[to] - prev[to]))
 }
 
 function sourceToDest(x, curve) {
@@ -74,7 +74,7 @@ Quoter.prototype = {
     const curve = this.findCurve(req.destinationAccount)
     // console.log(curve)
     return Promise.resolve({
-      destinationAmount: sourceToDest(parseInt(req.sourceAmount), curve.buf),
+      destinationAmount: sourceToDest(parseInt(req.sourceAmount), curve.buf).toString(),
       sourceHoldDuration: 3000
     })
   },
@@ -83,7 +83,7 @@ Quoter.prototype = {
     const curve = this.findCurve(req.destinationAccount)
     // console.log(curve)
     return Promise.resolve({
-      sourceAmount: destToSource(parseInt(req.destinationAmount), curve.buf),
+      sourceAmount: destToSource(parseInt(req.destinationAmount), curve.buf).toString(),
       sourceHoldDuration: 3000
     })
   },

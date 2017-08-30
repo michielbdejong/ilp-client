@@ -57,7 +57,7 @@ describe('Connector', () => {
       this.connector.peers.ledger_dummy.plugin.fulfillment = fulfillment
       const transfer = {
         // transferId will be added  by Peer#conditional(transfer, protocolData)
-        amount: '1235',
+        amount: 1235,
         executionCondition: condition,
         expiresAt: new Date(new Date().getTime() + 100000)
       }
@@ -76,6 +76,9 @@ describe('Connector', () => {
           expiresAt: this.connector.peers.ledger_dummy.plugin.transfers[0].expiresAt,
           custom: {}
         })
+        console.log(this.client1)
+        assert.equal(this.client1.peer.balance, 11235)
+        assert.equal(this.client2.peer.balance, 10000)
       })
     })
 
@@ -110,6 +113,8 @@ describe('Connector', () => {
         done()
       }
       this.connector.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {
+        assert.equal(this.client1.peer.balance, 10000)
+        assert.equal(this.client2.peer.balance, 10000)
         done(rejectionReasonObj)
       }
       this.connector.peers.ledger_dummy.plugin.handlers.incoming_prepare(lpiTransfer)

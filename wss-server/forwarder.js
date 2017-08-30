@@ -20,7 +20,7 @@ Forwarder.prototype = {
     }
     // console.log('finding quote', payment)
     const { onwardAmount, onwardPeer } = this.quoter.findHop(payment.account, parseInt(payment.amount))
-    // console.log('quote', onwardAmount, onwardPeer, this.peers)
+    console.log('quote', onwardAmount, onwardPeer)
     if (!onwardPeer || !this.peers[onwardPeer]) {
       return Promise.reject(ERROR_NO_ROUTE)
     }

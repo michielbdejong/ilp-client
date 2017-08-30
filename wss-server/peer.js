@@ -71,6 +71,18 @@ const VouchPacket = {
   }
 }
 
+function assertType(x, typeName) {
+  if (typeof x !== typeName) {
+    throw new Error(JSON.stringify(x) + ' is not a ' + typeName)
+   }
+}
+
+function assertClass(x, className) {
+  if (!x instanceof className) {
+    throw new Error(JSON.stringify(x) + ' is not a ' + className)
+   }
+}
+
 function Peer(baseLedger, peerName, initialBalance, ws, quoter, forwarder, fulfiller, voucher) {
   this.requestIdUsed = 0
   this.baseLedger = baseLedger
@@ -79,6 +91,7 @@ function Peer(baseLedger, peerName, initialBalance, ws, quoter, forwarder, fulfi
   this.forwarder = forwarder
   this.fulfiller = fulfiller
   this.voucher = voucher
+  console.log('BALANCE SET', initialBalance)
   this.balance = initialBalance // ledger units this node owes to that peer
   this.requestsSent = {}
   this.transfersSent = {}
@@ -216,7 +229,12 @@ Peer.prototype = {
   },
 
   incoming(buf) {
+    assertClass(buf, Buffer)
+
     const obj = ClpPacket.deserialize(buf)
+    assertType(obj.type, 'number')
+    assertType(obj.requestId, 'number')
+    assertType(obj.data, 'object')
  
     // console.log('incoming:', JSON.stringify(obj))
     switch(obj.type) {
@@ -228,7 +246,7 @@ Peer.prototype = {
       case ClpPacket.TYPE_RESPONSE:
         // console.log('TYPE_RESPONSE!')
         if (Array.isArray(obj.data) && obj.data.length) {
-        this.requestsSent[obj.requestId].resolve(obj.data[0])
+          this.requestsSent[obj.requestId].resolve(obj.data[0])
         } else { // treat it as an ACK, see https://github.com/interledger/rfcs/issues/283
           this.requestsSent[obj.requestId].resolve()
         }
@@ -247,6 +265,7 @@ Peer.prototype = {
           return
         }
         // adjust balance
+        console.log('BALANCE DEC', obj.data)
         this.balance -= obj.data.amount
         this.sendResult(obj.requestId) // ACK
         let paymentPromise
@@ -285,6 +304,7 @@ Peer.prototype = {
             protocolData: []
           })
           // refund balance
+          console.log('BALANCE INC', obj.data)
           this.balance += obj.data.amount
         })
         break
@@ -303,6 +323,7 @@ Peer.prototype = {
           this.sendError(obj.requestId, this.makeLedgerError('fulfillment incorrect'))
         } else {
           this.transfersSent[obj.data.transferId].resolve(obj.data.fulfillment)
+          console.log('BALANCE INC', this.transfersSent[obj.data.transferId].amount)
           this.balance += this.transfersSent[obj.data.transferId].amount
           this.sendResult(obj.requestId) // ACK
         }
@@ -340,6 +361,9 @@ Peer.prototype = {
     }
   },
   unpaid(protocolName, data) {
+    assertType(protocolName, 'string')
+    assertClass(data, Buffer)
+
     // console.log('unpaid', protocolName, data)
     const requestId = ++this.requestIdUsed
     this.sendCall(ClpPacket.TYPE_MESSAGE, requestId, [
@@ -356,6 +380,10 @@ Peer.prototype = {
   },
 
   conditional(transfer, protocolData) {
+    assertType(transfer.amount, 'number')
+    assertClass(transfer.executionCondition, Buffer)
+    assertClass(transfer.expiresAt, Date)
+
     console.log('conditional(', {transfer, protocolData})
     const requestId = ++this.requestIdUsed
     const transferId = uuid()
@@ -382,7 +410,7 @@ Peer.prototype = {
       protocolData
     })
     return new Promise((resolve, reject) => {
-      this.transfersSent[transferId] = { resolve, reject, condition: transfer.executionCondition }
+      this.transfersSent[transferId] = { resolve, reject, condition: transfer.executionCondition, amount: transfer.amount }
     })
   },
 
