@@ -26,7 +26,7 @@ Client.prototype = {
         this.peers = {}
         this.forwarder = new Forwarder(this.quoter, this.peers)
         // console.log('creating client peer')
-        this.peer = new Peer(this.name, 10000, this.ws, this.quoter, this.forwarder, (condition) => {
+        this.peer = new Peer('client-peer.', this.name, 10000, this.ws, this.quoter, this.forwarder, (condition) => {
           // console.log('fulfilling!', condition.toString('hex'), this.fulfillments)
           return this.fulfillments[condition.toString('hex')]
         })
@@ -76,7 +76,13 @@ describe('Connector', () => {
         destinationHoldDuration: 3000
       })
       return this.client1.peer.unpaid('ilp', packet).then(result => {
-        console.log(result)
+        const resultObj = IlpPacket.deserializeIlqpLiquidityResponse(result.data)
+        assert.deepEqual(resultObj, {
+          liquidityCurve: Buffer.from('00000000000000000000000000000000000000000000ffff000000000000ffff', 'hex'),
+          appliesToPrefix: 'peer.testing.' + this.client2.name + '.',
+          sourceHoldDuration: 15000,
+          expiresAt: resultObj.expiresAt
+        })
       })
     })
 
@@ -85,13 +91,19 @@ describe('Connector', () => {
       const packet = Buffer.from([0])
       return this.client1.peer.unpaid('info', packet).then(response => {
         console.log(response)
+        const infoStr = response.data.slice(2).toString('ascii') // assume length <= 127
+        assert.deepEqual(response.data[0], 2)
+        assert.deepEqual(response.data[1], infoStr.length)
+        assert.deepEqual(infoStr, 'peer.testing.' + this.client1.name)
+        assert.equal(response.protocolName, 'info')
       })
     })
 
     it('should respond to balance', function () {
       const packet = Buffer.from([0])
       return this.client1.peer.unpaid('balance', packet).then(response => {
-        console.log(response)
+        assert.deepEqual(response.data, Buffer.from('02080000000000002710', 'hex'))
+        assert.equal(response.protocolName, 'balance')
       })
     })
 
@@ -112,7 +124,12 @@ describe('Connector', () => {
         expiresAt: new Date(new Date().getTime() + 100000)
       }
       return this.client1.peer.interledgerPayment(transfer, packet).then(result => {
-        console.log(result)
+        assert.equal(result, fulfillment.toString('hex'))
+        return this.client1.peer.unpaid('balance', Buffer.from([0]))
+      }).then(response => {
+        // (10000 - 1234) = 34 * 256 + 62
+        assert.deepEqual(response.data, Buffer.from([2, 8, 0, 0, 0, 0, 0, 0, 34, 62]))
+        assert.equal(response.protocolName, 'balance')
       })
     })
   })

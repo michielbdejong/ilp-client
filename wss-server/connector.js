@@ -39,7 +39,7 @@ Connector.prototype = {
         const peerId = parts[1]
         const peerToken = parts[2] // TODO: use this to authorize reconnections
         console.log('assigned peerId!', peerId)
-        this.peers[peerId] = new Peer(peerId, 10000, ws, this.quoter, this.forwarder)
+        this.peers[peerId] = new Peer(this.baseLedger, peerId, 10000, ws, this.quoter, this.forwarder)
         this.quoter.setCurve(this.baseLedger + peerId + '.', Buffer.from([
           0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0, 255, 255,	0, 0, 0, 0, 0, 0, 255, 255

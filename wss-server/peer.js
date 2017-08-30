@@ -22,9 +22,10 @@ const InfoPacket = {
   }
 }
 
-function Peer(ledgerPrefix, initialBalance, ws, quoter, forwarder, fulfiller) {
+function Peer(baseLedger, peerName, initialBalance, ws, quoter, forwarder, fulfiller) {
   this.requestIdUsed = 0
-  this.ledgerPrefix = ledgerPrefix
+  this.baseLedger = baseLedger
+  this.peerName = peerName
   this.quoter = quoter
   this.forwarder = forwarder
   this.fulfiller = fulfiller
@@ -59,7 +60,7 @@ Peer.prototype = {
     this.sendError(requestId, IlpPacket.serializeIlpError({
       code: codes[name],
       name,
-      triggeredBy: this.ledgerPrefix + 'me',
+      triggeredBy: this.baseLedger + 'me',
       forwardedBy: [],
       triggeredAt: new Date(),
       data: JSON.stringify({})
@@ -85,7 +86,7 @@ Peer.prototype = {
       case 'info':
         if (dataBuf[0] === 0) {
           // console.log('info!', dataBuf)
-          return Promise.resolve(InfoPacket.serializeResponse(this.baseLedger + '.' + this.peerName))
+          return Promise.resolve(InfoPacket.serializeResponse(this.baseLedger + this.peerName))
         }
         break
       case 'balance':
@@ -101,7 +102,7 @@ Peer.prototype = {
     if (protocolName) { // RESPONSE
       this.sendCall(ClpPacket.TYPE_RESPONSE, requestId, [
         {
-          protocolName: 'ilp',
+          protocolName,
           contentType: ClpPacket.MIME_APPLICATION_OCTET_STREAM,
           data: result
         }
@@ -139,7 +140,7 @@ Peer.prototype = {
       rejectionReason: IlpPacket.serializeIlpError({
         code: 'F02',
         name: 'Unreachable',
-        triggeredBy: this.ledgerPrefix + 'me',
+        triggeredBy: this.baseLedger + 'me',
         forwardedBy: [
         ],
         triggeredAt: new Date(),
@@ -272,7 +273,7 @@ Peer.prototype = {
         console.log(obj.data[0].protocolName + ' data', obj.data[0].data)
 
         this.handleProtocolRequest(obj.data[0].protocolName, obj.data[0].data).then(result => {
-          // console.log('sendind back result!', result)
+           console.log('sendind back result!', obj, result)
           this.sendResult(obj.requestId, obj.data[0].protocolName, result)
         }, err => {
           // console.log('sendind back err!', err)
