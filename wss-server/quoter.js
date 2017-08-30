@@ -106,6 +106,19 @@ Quoter.prototype = {
       onwardAmount: destToSource(amount, curve.buf),
       onwardPeer: curve.peer
     }
+  },
+
+  getRoutesArray(omitPeer) {
+    let arr = []
+    for (let prefix of this.curves) {
+      if (this.curves[prefix].peer !== omitPeer) {
+        arr.push({
+           destination_ledger: prefix,
+           points: this.curves[prefix].curve.toString('base64')
+        })
+      }
+    }
+    return arr
   }
 }
 

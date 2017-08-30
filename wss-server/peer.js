@@ -188,15 +188,27 @@ Peer.prototype = {
 
       case 'cpp':
         const obj = CcpPacket.deserialize(dataBuf)
-        console.log('received route broadcast!', obj)
-        for (let route of obj.new_routes) {
-          if (this.quoter.setCurve(route.destination_ledger, Buffer.from(route.points, 'base64'), 'peer_' + this.name)) {
-            // route is new to us
-            this.forwarder.forwardRoute(route)
-          }
+        switch (obj.type) {
+          case CcpPacket.TYPE_ROUTES:
+            console.log('received route broadcast!', obj)
+            for (let route of obj.new_routes) {
+              if (this.quoter.setCurve(route.destination_ledger, Buffer.from(route.points, 'base64'), 'peer_' + this.peerName)) {
+                // route is new to us
+                this.forwarder.forwardRoute(route)
+              }
+            }
+            return Promise.resolve() // ack
+          case CcpPacket.TYPE_REQUEST_FULL_TABLE:
+            return Ccp.serialize({
+              type: CcpPacket.TYPE_ROUTES,
+              data: {
+                new_routes: this.quoter.getRoutesArray(this.peerName),
+                unreachable_through_me: []
+              }
+            })
         }
-        return Promise.resolve() // ack
-
+        return Promise.reject(this.makeLedgerError('unknown call id'))
+     
       case 'vouch':
         const obj = VouchPacket.deserialize(dataBuf)
         console.log('received vouch!', obj)
@@ -457,11 +469,12 @@ Peer.prototype = {
     ])
   },
 
-  announceRoute(route) {
+  announceRoutes(routes) {
     return this.unpaid('ccp', CcpPacket.serialize({
       type: CcpPacket.TYPE_ROUTES,
       data: {
-        new_routes: [ route ]
+        new_routes: routes,
+        unreachable_through_me: []
       }
     })
   }
