@@ -20,7 +20,16 @@ function Connector(baseLedger, pluginConfigs) {
   for (name in pluginConfigs) {
     const plugin = new Plugin[name](pluginConfigs[name])
     plugin.connect()    
-    this.peers['ledger_' + name] = new VirtualPeer(plugin, this.forwarder)
+    this.peers['ledger_' + name] = new VirtualPeer(plugin, this.forwarder, (fromAddress, amount) => {
+      console.log('checkVouch', fromAddress, amount, this.vouchingMap, this.peers)
+      if (!this.vouchingMap[fromAddress]) {
+        return false
+      }
+      const balance = this.peers['peer_' + this.vouchingMap[fromAddress]].balance
+      console.log('checking balance', balance, amount)
+      return balance > amount
+    })
+
     this.quoter.setCurve(plugin.getInfo().prefix, Buffer.from([
       0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 255, 255,	0, 0, 0, 0, 0, 0, 255, 255

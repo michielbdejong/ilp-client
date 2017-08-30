@@ -1,8 +1,11 @@
-const Connector = require('../connector')
-const IlpPacket = require('ilp-packet')
-const Client = require('../client')
 const assert = require('chai').assert
 const crypto = require('crypto')
+const uuid = require('uuid/v4')
+
+const IlpPacket = require('ilp-packet')
+
+const Connector = require('../connector')
+const Client = require('../client')
 const sha256 = require('../sha256')
 
 describe('Connector', () => {
@@ -46,19 +49,19 @@ describe('Connector', () => {
       const fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
       const condition = sha256(fulfillment)
 
-      console.log('setting up test', fulfillment, condition)
+      // console.log('setting up test', fulfillment, condition)
       const packet = IlpPacket.serializeIlpPayment({
         amount: '1234',
         account: this.wallet1
       })
       this.connector.peers.ledger_dummy.plugin.fulfillment = fulfillment
       const transfer = {
-        // transferId will be added  by Pqer#conditional(transfer, protocolData)
+        // transferId will be added  by Peer#conditional(transfer, protocolData)
         amount: '1235',
         executionCondition: condition,
         expiresAt: new Date(new Date().getTime() + 100000)
       }
-      console.log('test prepared!', transfer, this.connector.peers.ledger_dummy.plugin)
+      // console.log('test prepared!', transfer, this.connector.peers.ledger_dummy.plugin)
       return this.client1.peer.interledgerPayment(transfer, packet).then(result => {
         assert.deepEqual(result, fulfillment)
         assert.deepEqual(this.connector.peers.ledger_dummy.plugin.transfers[0], {
@@ -74,6 +77,42 @@ describe('Connector', () => {
           custom: {}
         })
       })
+    })
+
+    it('should accept from vouched wallets on dummy ledger', function (done) {
+      const fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
+      const condition = sha256(fulfillment)
+
+      // console.log('setting up test', fulfillment, condition)
+      const packet = IlpPacket.serializeIlpPayment({
+        amount: '1234',
+        account: 'peer.testing.' + this.client2.name + '.hi'
+      })
+      this.client2.fulfillments[condition] = fulfillment
+
+      // This is ledger plugin interface format, will be used in incoming_prepare event
+      // to VirtualPeer:
+      const lpiTransfer = {
+        id: uuid(),
+        from: this.wallet1,
+        to: 'test.crypto.eth.rinkeby.dummy-account',
+        ledger: 'test.crypto.eth.rinkeby.',
+        amount: '1234',
+        ilp: packet,
+        noteToSelf: {},
+        executionCondition: condition.toString('base64'),
+        expiresAt: new Date(new Date().getTime() + 100000),
+        custom: {}
+      }
+      this.connector.peers.ledger_dummy.plugin.successCallback = (transferId, fulfillmentBase64) => {
+        assert.equal(transferId, lpiTransfer.id)
+        assert.deepEqual(Buffer.from(fulfillmentBase64, 'base64'), fulfillment)
+        done()
+      }
+      this.connector.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {
+        done(rejectionReasonObj)
+      }
+      this.connector.peers.ledger_dummy.plugin.handlers.incoming_prepare(lpiTransfer)
     })
   })
 })

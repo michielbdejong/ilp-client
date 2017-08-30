@@ -1,27 +1,17 @@
 const IlpPacket = require('ilp-packet')
 const uuid = require('uuid/v4')
 
-function VirtualPeer(plugin, forwarder) {
+function VirtualPeer(plugin, forwarder, checkVouch) {
   this.plugin = plugin
   this.forwarder = forwarder
+  this.checkVouch = checkVouch
   this.transfersSent = {}
-  this.vouches = {}
   this.plugin.on('incoming_prepare', this.handleTransfer.bind(this))
   this.plugin.on('outgoing_fulfill', this.handleFulfill.bind(this))
   this.plugin.on('outgoing_reject', this.handleReject.bind(this))
 }
 
 VirtualPeer.prototype = {
-  checkVouch(fromAddress, amount) {
-    if (!this.vouches[fromAddress]) {
-      return false
-    }
-    return this.vouches[fromAddress] > amount
-  },
-
-  setVouch(address, max) {
-    this.vouches[address] = max
-  },
 
   handleTransfer(transfer) {
     // Technically, this is checking the vouch for the wrong
@@ -42,7 +32,7 @@ VirtualPeer.prototype = {
         code: 'L53',
         name: 'transfer was sent from a wallet that was not vouched for (sufficiently)',
         message: 'transfer was sent from a wallet that was not vouched for (sufficiently)',
-        triggered_by: plugin.getAccount(),
+        triggered_by: this.plugin.getAccount(),
         forwarded_by: [],
         triggered_at: new Date().getTime(),
         additional_info: {}

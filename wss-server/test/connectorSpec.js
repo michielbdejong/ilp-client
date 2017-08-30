@@ -83,7 +83,7 @@ describe('Connector', () => {
         account: 'peer.testing.' + this.client2.name + '.hi'
       })
       const transfer = {
-        // transferId will be added  by Pqer#conditional(transfer, protocolData)
+        // transferId will be added  by Peer#conditional(transfer, protocolData)
         amount: '1234',
         executionCondition: condition,
         expiresAt: new Date(new Date().getTime() + 100000)

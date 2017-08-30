@@ -18,7 +18,13 @@ DummyPlugin.prototype = {
   },
   connect() {},
   getAccount() { return this.prefix + 'dummy-account' },
-  getInfo() { return { prefix: this.prefix } }
+  getInfo() { return { prefix: this.prefix } },
+  fulfillCondition(transferId, conditionBase64) {
+    this.successCallback(transferId, conditionBase64)
+  },
+  rejectIncomingTransfer(transferId, rejectionReasonObj) {
+    this.failureCallback(transferId, rejectionReasonObj)
+  }
 }
 
 module.exports = DummyPlugin
