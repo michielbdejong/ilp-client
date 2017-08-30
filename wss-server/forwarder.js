@@ -20,13 +20,15 @@ Forwarder.prototype = {
     }
     // console.log('finding quote', payment)
     const { onwardAmount, onwardPeer } = this.quoter.findHop(payment.account, parseInt(payment.amount))
+    // console.log('quote', onwardAmount, onwardPeer, this.peers)
     if (!onwardPeer || !this.peers[onwardPeer]) {
       return Promise.reject(ERROR_NO_ROUTE)
     }
     if (onwardAmount > transfer.amount) {
-      // console.log('lack source amount', onwardAmount, transfer.amount)
+      console.log('lack source amount', onwardAmount / 1000, transfer.amount / 1000)
       return Promise.reject(ERROR_LACK_SOURCE_AMOUNT)
     }
+    console.log('calling')
     return this.peers[onwardPeer].interledgerPayment({
       amount: onwardAmount,
       expiresAt: new Date(transfer.expiresAt.getTime() - MIN_MESSAGE_WINDOW),
