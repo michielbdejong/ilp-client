@@ -4,12 +4,29 @@ const IlpPacket = require('ilp-packet')
 const Quoter = require('./quoter')
 const Forwarder = require('./forwarder')
 const Peer = require('./peer')
+const Plugin = {
+  xrp: require('ilp-plugin-xrp-escrow')
+}
+const VirtualPeer = require('./virtual-peer')
+
+const config = {
+  xrp: {
+    secret: 'shRm6dnkLMzTxBUMgCy6bB6jweS3X',
+    server: 'wss://s.altnet.rippletest.net:51233',
+    prefix: 'test.crypto.xrp.'
+  }
+}
 
 function Connector(baseLedger) {
   this.quoter = new Quoter()
   this.peers = {}
   this.baseLedger = baseLedger
   this.forwarder = new Forwarder(this.quoter, this.peers)
+  for (name in config) {
+    const plugin = new Plugin[name](config[name])
+    plugin.connect()
+    this.peers[name] = new VirtualPeer(plugin, this.forwarder)
+  }
 }
 
 Connector.prototype = {
