@@ -34,7 +34,14 @@ Forwarder.prototype = {
       expiresAt: new Date(transfer.expiresAt.getTime() - MIN_MESSAGE_WINDOW),
       executionCondition: transfer.executionCondition
     }, paymentPacket)
-  }
+  },
+  forwardRoute(route) {
+    for (name in this.peers) {
+      if (name.startsWith('peer_')) {// only forward over CLP peers, not virtual peers (ledger plugins)
+        this.peers[name].announceRoute(route)
+      }
+    }
+  }     
 }
 
 module.exports = Forwarder

@@ -37,11 +37,23 @@ function destToSource(y, curve) {
 
 Quoter.prototype = {
   setCurve(prefix, curveBuf, peer) {
+    // for existing destinations:
+    if (typeof this.curves[prefix] !== 'undefined') {
+      // enforce same peer as existing curve:
+      if (peer !== this.curves[prefix].peer) {
+        return false
+      }
+      // if the curve is the same, there is nothing to update;
+      if (curveBuf.compare(this.curves[prefix].buf) === 0) {
+        // return false to avoid forwarding this update to others
+        return false
+      }
+    }
     this.curves[prefix] = {
       buf: curveBuf,
       peer
     }
-    // console.log('curve set!', prefix, curveBuf.toString('hex'), peer)
+    return true
   },
 
   findCurve(address) {

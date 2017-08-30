@@ -3,6 +3,18 @@ const IlpPacket = require('ilp-packet')
 const uuid = require('uuid/v4')
 const sha256 = require('./sha256')
 
+function lengthPrefixFor(buf) {
+  if (buf.length < 128) {
+    return Buffer.from([buf.length])
+  } else {
+    // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
+    const lenLen = 128 + 2
+    const lenLo = buf.length % 256
+    const lenHi = (buf.length - lenLo) / 256
+    return Buffer.from([lenLen, lenHi, lenLo ])
+  }
+}
+
 const BalancePacket = {
    serializeResponse(num) {
      let prefix = '0208' + '0000' + '0000' + '0000' + '0000'
@@ -11,20 +23,34 @@ const BalancePacket = {
    }
 }
 const InfoPacket = {
-   serializeResponse(info) {
-     if (info.length < 128) {
-       return Buffer.concat([ Buffer.from([ 2, info.length ]), Buffer.from(info, 'ascii') ])
-     } else {
-       // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
-       const lenLen = 128 + 2
-       const lenLo = info.length % 256
-       const lenHi = (info.length - lenLo) / 256
-       return Buffer.concat([ Buffer.from([ 2, lenLen, lenHi, lenLo ]), Buffer.from(info, 'ascii') ])
-     }
+  serializeResponse(info) {
+    const infoBuf = Buffer.from(info, 'ascii')
+    return Buffer.concat([
+      Buffer.from([2]),
+      lengthPrefixFor(infoBuf),
+      infoBuf
+    ])
   }
 }
 
-const CppPacket = {
+const CcpPacket = {
+  TYPE_ROUTES: 0,
+  TYPE_REQUEST_FULL_TABLE: 1,
+
+  serialize(obj) {
+    if (obj.type === 0) {
+      const dataBuf = JSON.stringify(obj.data)
+      return Buffer.concat([
+        Buffer.from([0]),
+        lengthPrefixFor(dataBuf),
+        dataBuf
+      ])
+    } else if obj.type === 1) {
+      return Buffer.from([1])
+    }
+    throw new Error('unknown packet type')
+  },
+
   deserialize(dataBuf) {
     let lenLen = 1
     if (dataBuf[0] >= 128) {
@@ -161,7 +187,14 @@ Peer.prototype = {
         return Promise.reject(this.makeLedgerError('unknown call id'))
 
       case 'cpp':
-        console.log('received route broadcast!', CppPacket.deserialize(dataBuf))
+        const obj = CcpPacket.deserialize(dataBuf)
+        console.log('received route broadcast!', obj)
+        for (let route of obj.new_routes) {
+          if (this.quoter.setCurve(route.destination_ledger, Buffer.from(route.points, 'base64'), 'peer_' + this.name)) {
+            // route is new to us
+            this.forwarder.forwardRoute(route)
+          }
+        }
         return Promise.resolve() // ack
 
       case 'vouch':
@@ -422,6 +455,15 @@ Peer.prototype = {
         data: payment
       }
     ])
+  },
+
+  announceRoute(route) {
+    return this.unpaid('ccp', CcpPacket.serialize({
+      type: CcpPacket.TYPE_ROUTES,
+      data: {
+        new_routes: [ route ]
+      }
+    })
   }
 }
 
