@@ -12,23 +12,73 @@ const BalancePacket = {
 }
 const InfoPacket = {
    serializeResponse(info) {
-     if (info.length > 127) {
-       const lenLo = info.length % 256
-       const lenHi = (info.length - lenLo) / 256 + 128
-       return Buffer.concat([ Buffer.from([ 2, lenHi, lenLo ]), Buffer.from(info, 'ascii') ])
-     } else {
+     if (info.length < 128) {
        return Buffer.concat([ Buffer.from([ 2, info.length ]), Buffer.from(info, 'ascii') ])
+     } else {
+       // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
+       const lenLen = 128 + 2
+       const lenLo = info.length % 256
+       const lenHi = (info.length - lenLo) / 256
+       return Buffer.concat([ Buffer.from([ 2, lenLen, lenHi, lenLo ]), Buffer.from(info, 'ascii') ])
      }
   }
 }
 
-function Peer(baseLedger, peerName, initialBalance, ws, quoter, forwarder, fulfiller) {
+const CppPacket = {
+  deserialize(dataBuf) {
+    let lenLen = 1
+    if (dataBuf[0] >= 128) {
+      // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
+      lenLen = 1 + (dataBuf[0]-128)
+    }
+    let obj
+    try {
+      obj = JSON.parse(dataBuf.slice(lenLen).toString('ascii'))
+    } catch(e) {
+    }
+    return obj
+  }
+}
+
+const VouchPacket = {
+  deserialize(dataBuf) {
+    let lenLen = 1
+    let addressLen = dataBuf[1]
+    if (dataBuf[1] >= 128) {
+      // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
+      lenLen = 1 + (dataBuf[0]-128)
+      // TODO: write unit tests for this code and see if we can use it to
+      // read the address, condition, and amount of a rollback
+      addressLen = 0
+      cursor = 2
+      switch (lenLen) {
+        case 7: addressLen = addressLen * 256 + dataBuf[cursor++]
+        case 6: addressLen = addressLen * 256 + dataBuf[cursor++]
+        case 5: addressLen = addressLen * 256 + dataBuf[cursor++]
+        case 4: addressLen = addressLen * 256 + dataBuf[cursor++]
+        case 3: addressLen = addressLen * 256 + dataBuf[cursor++]
+        case 2: addressLen = addressLen * 256 + dataBuf[cursor++]
+        case 1: addressLen = addressLen * 256 + dataBuf[cursor++]
+      }
+    }
+    console.log(dataBuf, lenLen, dataBuf.slice(lenLen))
+    return {
+      callId: dataBuf[0], // 1: 'vouch for', 2: 'reach me at', 3: 'roll back'
+      address: dataBuf.slice(1 + lenLen).toString('ascii')
+      //TODO: report condition and amount in case callId is 'roll back', and
+      //stop them from being concatenated as bytes at the end of the address.
+    }
+  }
+}
+
+function Peer(baseLedger, peerName, initialBalance, ws, quoter, forwarder, fulfiller, voucher) {
   this.requestIdUsed = 0
   this.baseLedger = baseLedger
   this.peerName = peerName
   this.quoter = quoter
   this.forwarder = forwarder
   this.fulfiller = fulfiller
+  this.voucher = voucher
   this.balance = initialBalance // ledger units this node owes to that peer
   this.requestsSent = {}
   this.transfersSent = {}
@@ -51,20 +101,21 @@ Peer.prototype = {
   },
 
   // this function may still change due to https://github.com/interledger/rfcs/issues/282
-  sendLedgerError(requestId, name) {
+  makeLedgerError(name) {
     const codes = {
       'account balance lower than transfer amount': 'L01',
       'empty message': 'L02',
-      'first protocol unsupported': 'L03'
+      'first protocol unsupported': 'L03',
+      'unknown call id': 'P01' // same for all protocols
     }
-    this.sendError(requestId, IlpPacket.serializeIlpError({
+    return IlpPacket.serializeIlpError({
       code: codes[name],
       name,
       triggeredBy: this.baseLedger + 'me',
       forwardedBy: [],
       triggeredAt: new Date(),
       data: JSON.stringify({})
-    }))
+    })
   },
 
   handleProtocolRequest(protocolName, dataBuf) {
@@ -79,27 +130,40 @@ Peer.prototype = {
           return this.quoter.answerBySource(request.data).then(IlpPacket.serializeIlqpBySourceResponse)
         case IlpPacket.Type.TYPE_ILQP_BY_DESTINATION_REQUEST:
           return this.answerByDest(request.data).then(IlpPacket.serializeIlqpByDestinationResponse)
-        default:
-          throw new Error('unrecognized ilp packet type')
         }
-        break
+        return Promise.reject(this.makeLedgerError('unknown call id'))
+
       case 'info':
         if (dataBuf[0] === 0) {
           // console.log('info!', dataBuf)
           return Promise.resolve(InfoPacket.serializeResponse(this.baseLedger + this.peerName))
         }
-        break
+        return Promise.reject(this.makeLedgerError('unknown call id'))
+
       case 'balance':
         if (dataBuf[0] === 0) {
           // console.log('balance!', dataBuf)
           return Promise.resolve(BalancePacket.serializeResponse(this.balance))
         }
-        break
+        return Promise.reject(this.makeLedgerError('unknown call id'))
+
+      case 'cpp':
+        console.log('received route broadcast!', CppPacket.deserialize(dataBuf))
+        return Promise.resolve() // ack
+
+      case 'vouch':
+        const obj = VouchPacket.deserialize(dataBuf)
+        console.log('received vouch!', obj)
+        return this.voucher(obj.address)
+
+      default:
+        return Promise.reject(this.makeLedgerError('first protocol unsupported'))
     }
   },
 
   sendResult(requestId, protocolName, result) {
-    if (protocolName) { // RESPONSE
+    console.log('sendResult(', {requestId, protocolName, result})
+    if (result) { // RESPONSE
       this.sendCall(ClpPacket.TYPE_RESPONSE, requestId, [
         {
           protocolName,
@@ -179,7 +243,7 @@ Peer.prototype = {
         // console.log('TYPE_PREPARE!')
         if (obj.data.amount > this.balance) {
           // console.log('too poor!', obj, this.balance)
-          this.sendLedgerError(obj.requestId, 'account balance lower than transfer amount')
+          this.sendError(obj.requestId, this.makeLedgerError('account balance lower than transfer amount'))
           return
         }
         // adjust balance
@@ -235,12 +299,12 @@ Peer.prototype = {
         }
         // console.log('TYPE_FULFILL!')
         if (typeof this.transfersSent[obj.data.transferId] === undefined) {
-          this.sendLedgerError(obj.requestId, 'unknown transfer id')
+          this.sendError(obj.requestId, this.makeLedgerError('unknown transfer id'))
         } else if (new Date().getTime() > this.transfersSent[obj.data.transferId].expiresAt) { // FIXME: this is not leap second safe (but not a problem if MIN_MESSAGE_WINDOW is at least 1 second)
-          this.sendLedgerError(obj.requestId, 'fulfilled too late')
+          this.sendError(obj.requestId, this.makeLedgerError('fulfilled too late'))
         } else if (sha256(obj.data.fulfillment).toString('hex') !== this.transfersSent[obj.data.transferId].conditionHex) {
           // console.log('compared!', sha256(obj.data.fulfillment).toString('hex'), this.transfersSent[obj.data.transferId].conditionHex)
-          this.sendLedgerError(obj.requestId, 'fulfillment incorrect')
+          this.sendError(obj.requestId, this.makeLedgerError('fulfillment incorrect'))
         } else {
           this.transfersSent[obj.data.transferId].resolve(obj.data.fulfillment)
           this.balance += this.transfersSent[obj.data.transferId].amount
@@ -251,7 +315,7 @@ Peer.prototype = {
       case ClpPacket.TYPE_REJECT:
         // console.log('TYPE_REJECT!')
         if (typeof this.transfersSent[obj.data.transferId] === undefined) {
-          this.sendLedgerError(obj.requestId, 'unknown transfer id')
+          this.sendError(obj.requestId, this.makeLedgerError('unknown transfer id'))
         } else {
           this.transfersSent[obj.data.transferId].reject(obj.data.rejectionReason)
           this.sendResult(obj.requestId) // ACK
@@ -261,22 +325,16 @@ Peer.prototype = {
       case ClpPacket.TYPE_MESSAGE:
         // console.log('TYPE_MESSAGE!')
         if (!Array.isArray(obj.data) || !obj.data.length) {
-          this.sendLedgerError(requestId, 'empty message')
+          this.sendError(requestId, this.makeLedgerError('empty message'))
           return
         }
         // console.log('first entry', obj.data[0])
 
-        if(['ilp', 'info', 'balance'].indexOf(obj.data[0].protocolName) === -1) {
-          this.sendLedgerError(requestId, 'first protocol unsupported')
-          return
-        }
-        // console.log(obj.data[0].protocolName + ' data', obj.data[0].data)
-
         this.handleProtocolRequest(obj.data[0].protocolName, obj.data[0].data).then(result => {
-           // console.log('sendind back result!', obj, result)
+          console.log('sendind back result!', obj, result)
           this.sendResult(obj.requestId, obj.data[0].protocolName, result)
         }, err => {
-          // console.log('sendind back err!', err)
+          console.log('sendind back err!', err)
           this.sendError(requestId, err)
         })
         break

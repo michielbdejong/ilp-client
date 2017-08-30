@@ -5,26 +5,21 @@ const Quoter = require('./quoter')
 const Forwarder = require('./forwarder')
 const Peer = require('./peer')
 const Plugin = {
-  xrp: require('ilp-plugin-xrp-escrow')
+  xrp: require('ilp-plugin-xrp-escrow'),
+  dummy: require('./test/dummyPlugin')
 }
 const VirtualPeer = require('./virtual-peer')
 
-const config = {
-  xrp: {
-    secret: 'shRm6dnkLMzTxBUMgCy6bB6jweS3X',
-    server: 'wss://s.altnet.rippletest.net:51233',
-    prefix: 'test.crypto.xrp.'
-  }
-}
-
-function Connector(baseLedger) {
+function Connector(baseLedger, pluginConfigs) {
   this.quoter = new Quoter()
   this.peers = {}
   this.baseLedger = baseLedger
   this.forwarder = new Forwarder(this.quoter, this.peers)
-  for (name in config) {
-    const plugin = new Plugin[name](config[name])
-    plugin.connect()
+  this.vouchingMap = {}
+
+  for (name in pluginConfigs) {
+    const plugin = new Plugin[name](pluginConfigs[name])
+    plugin.connect()    
     this.peers[name] = new VirtualPeer(plugin, this.forwarder)
   }
 }
@@ -39,7 +34,11 @@ Connector.prototype = {
         const peerId = parts[1]
         const peerToken = parts[2] // TODO: use this to authorize reconnections
         // console.log('assigned peerId!', peerId)
-        this.peers[peerId] = new Peer(this.baseLedger, peerId, 10000, ws, this.quoter, this.forwarder)
+        this.peers[peerId] = new Peer(this.baseLedger, peerId, 10000, ws, this.quoter, this.forwarder, undefined, (address) => {
+          this.vouchingMap[address] = peerId
+          console.log('vouched!', this.vouchingMap)
+          return Promise.resolve()
+        })
         this.quoter.setCurve(this.baseLedger + peerId + '.', Buffer.from([
           0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0, 255, 255,	0, 0, 0, 0, 0, 0, 255, 255

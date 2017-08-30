@@ -50,7 +50,17 @@ Client.prototype = {
 
 describe('Connector', () => {
   beforeEach(function () {
-    this.connector = new Connector('peer.testing.')
+    this.connector = new Connector('peer.testing.', {
+      xrp: {
+        secret: 'shRm6dnkLMzTxBUMgCy6bB6jweS3X',
+        server: 'wss://s.altnet.rippletest.net:51233',
+        prefix: 'test.crypto.xrp.'
+      },
+      dummy: {
+        prefix: 'test.crypto.eth.rinkeby.'
+      }
+    })
+
     return this.connector.open(8000)
   })
   afterEach(function () {
@@ -127,6 +137,18 @@ describe('Connector', () => {
         // (10000 - 1234) = 34 * 256 + 62
         assert.deepEqual(response.data, Buffer.from([2, 8, 0, 0, 0, 0, 0, 0, 34, 62]))
         assert.equal(response.protocolName, 'balance')
+      })
+    })
+    it('should store a vouch', function() {
+      const wallet = 'test.crypto.eth.rinkeby.4thgw3dtrseawfrsfdxzsfzsfgdz'
+      console.log(  Buffer.from([0, wallet.length]), Buffer.from(wallet, 'ascii'))
+      const packet = Buffer.concat([
+        Buffer.from([0, wallet.length]),
+        Buffer.from(wallet, 'ascii')
+      ])
+      return this.client1.peer.unpaid('vouch', packet).then(result => {
+        console.log(result)
+        assert.equal(this.connector.vouchingMap[wallet], this.client1.name)
       })
     })
   })
