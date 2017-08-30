@@ -18,13 +18,13 @@ Forwarder.prototype = {
     if (transfer.expiresAt.getTime() < new Date().getTime() + FORWARD_TIMEOUT) {
       return Promise.reject(ERROR_LACK_TIME)
     }
-    console.log('finding quote', payment)
+    // console.log('finding quote', payment)
     const { onwardAmount, onwardPeer } = this.quoter.findHop(payment.account, parseInt(payment.amount))
     if (!onwardPeer || !this.peers[onwardPeer]) {
       return Promise.reject(ERROR_NO_ROUTE)
     }
     if (onwardAmount > transfer.amount) {
-      console.log('lack source amount', onwardAmount, transfer.amount)
+      // console.log('lack source amount', onwardAmount, transfer.amount)
       return Promise.reject(ERROR_LACK_SOURCE_AMOUNT)
     }
     return this.peers[onwardPeer].interledgerPayment({

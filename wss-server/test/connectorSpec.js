@@ -21,13 +21,13 @@ Client.prototype = {
         perMessageDeflate: false
       })
       this.ws.on('open', () => {
-        console.log('ws open')
+        // console.log('ws open')
         this.quoter = new Quoter()
         this.peers = {}
         this.forwarder = new Forwarder(this.quoter, this.peers)
-        console.log('creating client peer')
+        // console.log('creating client peer')
         this.peer = new Peer(this.name, 10000, this.ws, this.quoter, this.forwarder, (condition) => {
-          console.log('fulfilling!', condition.toString('hex'), this.fulfillments)
+          // console.log('fulfilling!', condition.toString('hex'), this.fulfillments)
           return this.fulfillments[condition.toString('hex')]
         })
         resolve()
@@ -38,12 +38,12 @@ Client.prototype = {
   close() {
     return new Promise(resolve => {
       this.ws.on('close', () => {
-        console.log('close emitted!')
+        // console.log('close emitted!')
         resolve()
       })
-      console.log('closing client!')
+      // console.log('closing client!')
       this.ws.close()
-      console.log('started closing client!')
+      // console.log('started closing client!')
     })
   }
 }
@@ -70,12 +70,14 @@ describe('Connector', () => {
     })
 
     it('should respond to quote', function () {
-      console.log('in the test!')
+      // console.log('in the test!')
       const packet = IlpPacket.serializeIlqpLiquidityRequest({
         destinationAccount: 'peer.testing.' + this.client2.name + '.hi',
         destinationHoldDuration: 3000
       })
-      return this.client1.peer.unpaid('ilp', packet)
+      return this.client1.peer.unpaid('ilp', packet).then(result => {
+        console.log(result)
+      })
     })
 
 
@@ -109,7 +111,9 @@ describe('Connector', () => {
         executionCondition: condition,
         expiresAt: new Date(new Date().getTime() + 100000)
       }
-      return this.client1.peer.interledgerPayment(transfer, packet)
+      return this.client1.peer.interledgerPayment(transfer, packet).then(result => {
+        console.log(result)
+      })
     })
   })
 })

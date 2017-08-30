@@ -38,7 +38,7 @@ function Peer(ledgerPrefix, initialBalance, ws, quoter, forwarder, fulfiller) {
 
 Peer.prototype = {
   sendCall(type, requestId, data) {
-    console.log('sendCall', {type, requestId, data })
+    // console.log('sendCall', {type, requestId, data })
     this.ws.send(ClpPacket.serialize({ type, requestId, data }))
   },
 
@@ -70,7 +70,7 @@ Peer.prototype = {
     switch (protocolName) {
       case 'ilp':
         const request = IlpPacket.deserializeIlpPacket(dataBuf)
-        console.log('ilp message!', request)
+        // console.log('ilp message!', request)
         switch (request.type) {
         case IlpPacket.Type.TYPE_ILQP_LIQUIDITY_REQUEST:
           return this.quoter.answerLiquidity(request.data).then(IlpPacket.serializeIlqpLiquidityResponse)
@@ -84,13 +84,13 @@ Peer.prototype = {
         break
       case 'info':
         if (dataBuf[0] === 0) {
-          console.log('info!', dataBuf)
+          // console.log('info!', dataBuf)
           return Promise.resolve(InfoPacket.serializeResponse(this.baseLedger + '.' + this.peerName))
         }
         break
       case 'balance':
         if (dataBuf[0] === 0) {
-          console.log('balance!', dataBuf)
+          // console.log('balance!', dataBuf)
           return Promise.resolve(BalancePacket.serializeResponse(this.balance))
         }
         break
@@ -153,15 +153,15 @@ Peer.prototype = {
   incoming(buf) {
     const obj = ClpPacket.deserialize(buf)
  
-    console.log('incoming:', JSON.stringify(obj))
+    // console.log('incoming:', JSON.stringify(obj))
     switch(obj.type) {
       case ClpPacket.TYPE_ACK:
-        console.log('TYPE_ACK!')
+        // console.log('TYPE_ACK!')
         this.requestsSent[obj.requestId].resolve()
         break
 
       case ClpPacket.TYPE_RESPONSE:
-        console.log('TYPE_RESPONSE!')
+        // console.log('TYPE_RESPONSE!')
         if (Array.isArray(obj.data) && obj.data.length) {
         this.requestsSent[obj.requestId].resolve(obj.data[0])
         } else { // treat it as an ACK, see https://github.com/interledger/rfcs/issues/283
@@ -170,14 +170,14 @@ Peer.prototype = {
         break
 
       case ClpPacket.TYPE_ERROR:
-        console.log('TYPE_ERROR!')
+        // console.log('TYPE_ERROR!')
         this.requestsSent[obj.requestId].reject(obj.data.rejectionReason)
         break
 
       case ClpPacket.TYPE_PREPARE:
-        console.log('TYPE_PREPARE!')
+        // console.log('TYPE_PREPARE!')
         if (obj.data.amount > this.balance) {
-          console.log('too poor!', obj, this.balance)
+          // console.log('too poor!', obj, this.balance)
           this.sendLedgerError(obj.requestId, 'account balance lower than transfer amount')
           return
         }
@@ -186,7 +186,7 @@ Peer.prototype = {
         this.sendResult(obj.requestId) // ACK
         let paymentPromise
         if (this.fulfiller) {
-          console.log('trying the fulfiller!')
+          // console.log('trying the fulfiller!')
           const fulfillment = this.fulfiller(obj.data.executionCondition)
           if (fulfillment) {
             paymentPromise = Promise.resolve(fulfillment)
@@ -194,7 +194,7 @@ Peer.prototype = {
           console.log(fulfillment)
         }
         if (!paymentPromise) {
-          console.log('forwarding payment', obj)
+          // console.log('forwarding payment', obj)
           paymentPromise = this.forwarder.forward({ // transfer
             amount: obj.data.amount,
             executionCondition: obj.data.executionCondition,
@@ -207,7 +207,7 @@ Peer.prototype = {
           reject() {}
         }
         paymentPromise.then((fulfillment) => {
-          console.log('sending fulfill call')
+          // console.log('sending fulfill call')
           this.sendCall(ClpPacket.TYPE_FULFILL, replyRequestId, {
             transferId: obj.data.transferId,
             fulfillment,
@@ -226,19 +226,19 @@ Peer.prototype = {
 
       case ClpPacket.TYPE_FULFILL:
         function sha256(fulfillmentHex) {
-          console.log({ fulfillmentHex })
+          // console.log({ fulfillmentHex })
           const fulfillment = Buffer.from(fulfillmentHex, 'hex')
           const condition = crypto.createHash('sha256').update(fulfillment).digest()
           console.log(fulfillment, condition)
           return condition
         }
-        console.log('TYPE_FULFILL!')
+        // console.log('TYPE_FULFILL!')
         if (typeof this.transfersSent[obj.data.transferId] === undefined) {
           this.sendLedgerError(obj.requestId, 'unknown transfer id')
         } else if (new Date().getTime() > this.transfersSent[obj.data.transferId].expiresAt) { // FIXME: this is not leap second safe (but not a problem if MIN_MESSAGE_WINDOW is at least 1 second)
           this.sendLedgerError(obj.requestId, 'fulfilled too late')
         } else if (sha256(obj.data.fulfillment).toString('hex') !== this.transfersSent[obj.data.transferId].conditionHex) {
-          console.log('compared!', sha256(obj.data.fulfillment).toString('hex'), this.transfersSent[obj.data.transferId].conditionHex)
+          // console.log('compared!', sha256(obj.data.fulfillment).toString('hex'), this.transfersSent[obj.data.transferId].conditionHex)
           this.sendLedgerError(obj.requestId, 'fulfillment incorrect')
         } else {
           this.transfersSent[obj.data.transferId].resolve(obj.data.fulfillment)
@@ -248,7 +248,7 @@ Peer.prototype = {
         break
 
       case ClpPacket.TYPE_REJECT:
-        console.log('TYPE_REJECT!')
+        // console.log('TYPE_REJECT!')
         if (typeof this.transfersSent[obj.data.transferId] === undefined) {
           this.sendLedgerError(obj.requestId, 'unknown transfer id')
         } else {
@@ -258,12 +258,12 @@ Peer.prototype = {
         break
 
       case ClpPacket.TYPE_MESSAGE:
-        console.log('TYPE_MESSAGE!')
+        // console.log('TYPE_MESSAGE!')
         if (!Array.isArray(obj.data) || !obj.data.length) {
           this.sendLedgerError(requestId, 'empty message')
           return
         }
-        console.log('first entry', obj.data[0])
+        // console.log('first entry', obj.data[0])
 
         if(['ilp', 'info', 'balance'].indexOf(obj.data[0].protocolName) === -1) {
           this.sendLedgerError(requestId, 'first protocol unsupported')
@@ -272,10 +272,10 @@ Peer.prototype = {
         console.log(obj.data[0].protocolName + ' data', obj.data[0].data)
 
         this.handleProtocolRequest(obj.data[0].protocolName, obj.data[0].data).then(result => {
-          console.log('sendind back result!', result)
+          // console.log('sendind back result!', result)
           this.sendResult(obj.requestId, obj.data[0].protocolName, result)
         }, err => {
-          console.log('sendind back err!', err)
+          // console.log('sendind back err!', err)
           this.sendError(requestId, err)
         })
         break
@@ -285,7 +285,7 @@ Peer.prototype = {
     }
   },
   unpaid(protocolName, data) {
-    console.log('unpaid', protocolName, data)
+    // console.log('unpaid', protocolName, data)
     const requestId = ++this.requestIdUsed
     this.sendCall(ClpPacket.TYPE_MESSAGE, requestId, [
       {
@@ -310,7 +310,7 @@ Peer.prototype = {
         }, 0)
       },
       reject(err) {
-        console.log('prepare was rejected!', err)
+        // console.log('prepare was rejected!', err)
         // if the PREPARE failed, the whole transfer fails:
         this.transfersSent[transferId].reject(err)
         setTimeout(() => { // not sure if this works for deleting the entry

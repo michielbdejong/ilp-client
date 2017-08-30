@@ -17,10 +17,11 @@ function findPoint(val, from, to, curveBuf) {
     // y:  8  9 10 11     12 13 14 15
     const readX = curveBuf[cursor + 7] + 256 * (curveBuf[cursor + 6] + (256 * curveBuf[cursor + 5] + (256 * curveBuf[cursor + 4])))
     const readY = curveBuf[cursor + 15] + 256 * (curveBuf[cursor + 14] + (256 * curveBuf[cursor + 13] + (256 * curveBuf[cursor + 12])))
+    // console.log('read!', cursor, readX, readY)
     prev = next
     next = [ readX, readY ]
-    console.log('searching!', prev, next, from, to, val, cursor)
-    cursor += 8
+    // console.log('searching!', prev, next, from, to, val, cursor)
+    cursor += 16
   }
   let perc = (val - prev[from]) / (next[from] - prev[from])
   return (prev[to] + perc * (next[to] - prev[to])).toString()
@@ -40,7 +41,7 @@ Quoter.prototype = {
       buf: curveBuf,
       peer
     }
-    console.log('curve set!', prefix, curveBuf.toString('hex'), peer)
+    // console.log('curve set!', prefix, curveBuf.toString('hex'), peer)
   },
 
   findCurve(address) {
@@ -60,7 +61,7 @@ Quoter.prototype = {
 
   answerLiquidity(req) {
     const curve = this.findCurve(req.destinationAccount)
-    console.log('got quote response!', curve)
+    // console.log(curve)
     return Promise.resolve({
       liquidityCurve: curve.buf,
       appliesToPrefix: curve.prefix,
@@ -71,6 +72,7 @@ Quoter.prototype = {
   
   answerBySource(req) {
     const curve = this.findCurve(req.destinationAccount)
+    // console.log(curve)
     return Promise.resolve({
       destinationAmount: sourceToDest(parseInt(req.sourceAmount), curve.buf),
       sourceHoldDuration: 3000
@@ -79,6 +81,7 @@ Quoter.prototype = {
   
   answerByDest(req) {
     const curve = this.findCurve(req.destinationAccount)
+    // console.log(curve)
     return Promise.resolve({
       sourceAmount: destToSource(parseInt(req.destinationAmount), curve.buf),
       sourceHoldDuration: 3000
