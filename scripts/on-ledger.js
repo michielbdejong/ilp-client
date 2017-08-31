@@ -21,8 +21,8 @@ Promise.all([sender.connect(), receiver.connect()]).then(() => {
     console.log('transfer arrived', transfer)
     receiver.fulfillCondition(transfer.id, fulfillment.toString('base64'))
   })
-
-  sender.on('outgoing_fulfill', (transfer, fulfillment) => { console.log('test success!', transfer, fulfillment) })
+  let successes = 0
+  sender.on('outgoing_fulfill', (transfer, fulfillment) => { console.log('test success!', ++successes) })
   sender.on('outgoing_reject', (transfer, reason) => { console.log('test failed by receiver!', transfer, reason) })
   sender.on('outgoing_cancel', (transfer, reason) => { console.log('test failed by ledger!', transfer, reason) })
 
@@ -61,5 +61,5 @@ Promise.all([sender.connect(), receiver.connect()]).then(() => {
     }, err => {
       console.err('second transfer failed', err)
     })
-  }, 11000)
+  }, 20000)
 })
