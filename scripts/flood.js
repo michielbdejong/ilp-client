@@ -1,13 +1,11 @@
 const assert = require('chai').assert
 const crypto = require('crypto')
-const uuid = require('uuid/v4')
 
 const IlpPacket = require('ilp-packet')
 
-const Connector = require('../src/connector')
 const Client = require('../src/client')
 const sha256 = require('../src/sha256')
-function Flooder() {
+function Flooder () {
   this.client1 = new Client()
   this.client2 = new Client()
 
@@ -15,7 +13,7 @@ function Flooder() {
 }
 
 Flooder.prototype = {
-  open(url) {
+  open (url) {
     return Promise.all([ this.client1.open(url), this.client2.open(url) ]).then(() => {
       const packet = Buffer.concat([
         Buffer.from([0, this.wallet1.length]),
@@ -24,10 +22,10 @@ Flooder.prototype = {
       return this.client1.peer.clp.unpaid('vouch', packet)
     })
   },
-  close() {
+  close () {
     return Promise.all([ this.client1.close(), this.client2.close() ])
   },
-  sendOne() {
+  sendOne () {
     const fulfillment = crypto.randomBytes(32)
     const condition = sha256(fulfillment)
 
@@ -49,7 +47,7 @@ Flooder.prototype = {
       process.exit(1)
     })
   },
-  flood(num) {
+  flood (num) {
     let promises = []
     for (let i = 0; i < num; i++) {
       promises.push(this.sendOne())
