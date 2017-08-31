@@ -90,7 +90,7 @@ const VouchPacket = {
     // console.log(dataBuf, lenLen, dataBuf.slice(lenLen))
     return {
       callId: dataBuf[0], // 1: 'vouch for', 2: 'reach me at', 3: 'roll back'
-      address: dataBuf.slice(1 + lenLen, addressLen).toString('ascii')
+      address: dataBuf.slice(1 + lenLen, 1 + lenLen + addressLen).toString('ascii')
       // TODO: report condition and amount in case callId is 'roll back', and
       // stop them from being concatenated as bytes at the end of the address.
     }
