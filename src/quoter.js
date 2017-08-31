@@ -17,10 +17,10 @@ function findPoint(val, from, to, curveBuf) {
     // y:  8  9 10 11     12 13 14 15
     const readX = curveBuf[cursor + 7] + 256 * (curveBuf[cursor + 6] + (256 * curveBuf[cursor + 5] + (256 * curveBuf[cursor + 4])))
     const readY = curveBuf[cursor + 15] + 256 * (curveBuf[cursor + 14] + (256 * curveBuf[cursor + 13] + (256 * curveBuf[cursor + 12])))
-    console.log('read!', cursor, readX, readY)
+    // console.log('read!', cursor, readX, readY)
     prev = next
     next = [ readX, readY ]
-    console.log('searching!', prev, next, from, to, val, cursor)
+    // console.log('searching!', prev, next, from, to, val, cursor)
     cursor += 16
   }
   let perc = (val - prev[from]) / (next[from] - prev[from])

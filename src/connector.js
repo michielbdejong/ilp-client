@@ -6,7 +6,7 @@ const Forwarder = require('./forwarder')
 const Peer = require('./peer')
 const Plugin = {
   xrp: require('ilp-plugin-xrp-escrow'),
-  dummy: require('./test/dummyPlugin')
+  dummy: require('../test/helpers/dummyPlugin')
 }
 const VirtualPeer = require('./virtual-peer')
 
@@ -21,12 +21,12 @@ function Connector(baseLedger, pluginConfigs) {
     const plugin = new Plugin[name](pluginConfigs[name])
     plugin.connect()    
     this.peers['ledger_' + name] = new VirtualPeer(plugin, this.forwarder, (fromAddress, amount) => {
-      console.log('checkVouch', fromAddress, amount, this.vouchingMap)
+      // console.log('checkVouch', fromAddress, amount, this.vouchingMap)
       if (!this.vouchingMap[fromAddress]) {
         return false
       }
       const balance = this.peers['peer_' + this.vouchingMap[fromAddress]].balance
-      console.log('checking balance', balance, amount)
+      // console.log('checking balance', balance, amount)
       return balance > amount
     })
 
@@ -49,7 +49,7 @@ Connector.prototype = {
         // console.log('assigned peerId!', peerId)
         this.peers['peer_' + peerId] = new Peer(this.baseLedger, peerId, 10000, ws, this.quoter, this.forwarder, undefined, (address) => {
           this.vouchingMap[address] = peerId
-          console.log('vouched!', this.vouchingMap)
+          // console.log('vouched!', this.vouchingMap)
           return Promise.resolve()
         })
         this.quoter.setCurve(this.baseLedger + peerId + '.', Buffer.from([

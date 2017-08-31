@@ -1,9 +1,11 @@
-const Connector = require('../connector')
-const IlpPacket = require('ilp-packet')
-const Client = require('../client')
 const assert = require('chai').assert
 const crypto = require('crypto')
-const sha256 = require('../sha256')
+
+const IlpPacket = require('ilp-packet')
+
+const Connector = require('../src/connector')
+const Client = require('../src/client')
+const sha256 = require('../src/sha256')
 
 describe('Connector', () => {
   beforeEach(function () {
@@ -101,13 +103,13 @@ describe('Connector', () => {
     })
     it('should store a vouch', function() {
       const wallet = 'test.crypto.eth.rinkeby.4thgw3dtrseawfrsfdxzsfzsfgdz'
-      console.log(  Buffer.from([0, wallet.length]), Buffer.from(wallet, 'ascii'))
+      // console.log(  Buffer.from([0, wallet.length]), Buffer.from(wallet, 'ascii'))
       const packet = Buffer.concat([
         Buffer.from([0, wallet.length]),
         Buffer.from(wallet, 'ascii')
       ])
       return this.client1.peer.unpaid('vouch', packet).then(result => {
-        console.log(result)
+        // console.log(result)
         assert.equal(this.connector.vouchingMap[wallet], this.client1.name)
       })
     })

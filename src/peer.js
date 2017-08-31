@@ -45,7 +45,7 @@ const CcpPacket = {
         lengthPrefixFor(dataBuf),
         dataBuf
       ])
-    } else if obj.type === 1) {
+    } else if (obj.type === 1) {
       return Buffer.from([1])
     }
     throw new Error('unknown packet type')
@@ -87,7 +87,7 @@ const VouchPacket = {
         case 1: addressLen = addressLen * 256 + dataBuf[cursor++]
       }
     }
-    console.log(dataBuf, lenLen, dataBuf.slice(lenLen))
+    // console.log(dataBuf, lenLen, dataBuf.slice(lenLen))
     return {
       callId: dataBuf[0], // 1: 'vouch for', 2: 'reach me at', 3: 'roll back'
       address: dataBuf.slice(1 + lenLen).toString('ascii')
@@ -117,7 +117,7 @@ function Peer(baseLedger, peerName, initialBalance, ws, quoter, forwarder, fulfi
   this.forwarder = forwarder
   this.fulfiller = fulfiller
   this.voucher = voucher
-  console.log('BALANCE SET', initialBalance)
+  // console.log('BALANCE SET', initialBalance)
   this.balance = initialBalance // ledger units this node owes to that peer
   this.requestsSent = {}
   this.transfersSent = {}
@@ -128,7 +128,7 @@ function Peer(baseLedger, peerName, initialBalance, ws, quoter, forwarder, fulfi
 
 Peer.prototype = {
   sendCall(type, requestId, data) {
-     console.log('sendCall', {type, requestId, data })
+     // console.log('sendCall', {type, requestId, data })
     this.ws.send(ClpPacket.serialize({ type, requestId, data }))
   },
 
@@ -159,7 +159,7 @@ Peer.prototype = {
 
   handleProtocolRequest(protocolName, dataBuf) {
     switch (protocolName) {
-      case 'ilp':
+      case 'ilp': {
         const request = IlpPacket.deserializeIlpPacket(dataBuf)
         // console.log('ilp message!', request)
         switch (request.type) {
@@ -171,26 +171,29 @@ Peer.prototype = {
           return this.answerByDest(request.data).then(IlpPacket.serializeIlqpByDestinationResponse)
         }
         return Promise.reject(this.makeLedgerError('unknown call id'))
+      }
 
-      case 'info':
+      case 'info': {
         if (dataBuf[0] === 0) {
           // console.log('info!', dataBuf)
           return Promise.resolve(InfoPacket.serializeResponse(this.baseLedger + this.peerName))
         }
         return Promise.reject(this.makeLedgerError('unknown call id'))
+      }
 
-      case 'balance':
+      case 'balance': {
         if (dataBuf[0] === 0) {
           // console.log('balance!', dataBuf)
           return Promise.resolve(BalancePacket.serializeResponse(this.balance))
         }
         return Promise.reject(this.makeLedgerError('unknown call id'))
+      }
 
-      case 'cpp':
+      case 'cpp': {
         const obj = CcpPacket.deserialize(dataBuf)
         switch (obj.type) {
           case CcpPacket.TYPE_ROUTES:
-            console.log('received route broadcast!', obj)
+            // console.log('received route broadcast!', obj)
             for (let route of obj.new_routes) {
               if (this.quoter.setCurve(route.destination_ledger, Buffer.from(route.points, 'base64'), 'peer_' + this.peerName)) {
                 // route is new to us
@@ -208,11 +211,13 @@ Peer.prototype = {
             })
         }
         return Promise.reject(this.makeLedgerError('unknown call id'))
-     
-      case 'vouch':
+      }
+
+      case 'vouch': {
         const obj = VouchPacket.deserialize(dataBuf)
-        console.log('received vouch!', obj)
+        // console.log('received vouch!', obj)
         return this.voucher(obj.address)
+      }
 
       default:
         return Promise.reject(this.makeLedgerError('first protocol unsupported'))
@@ -310,7 +315,7 @@ Peer.prototype = {
           return
         }
         // adjust balance
-        console.log('BALANCE DEC', obj.data)
+        // console.log('BALANCE DEC', obj.data)
         this.balance -= obj.data.amount
         this.sendResult(obj.requestId) // ACK
         let paymentPromise
@@ -336,7 +341,7 @@ Peer.prototype = {
           reject() {}
         }
         paymentPromise.then((fulfillment) => {
-          console.log('sending fulfill call, paymentPromise gave:', fulfillment)
+          // console.log('sending fulfill call, paymentPromise gave:', fulfillment)
           this.sendCall(ClpPacket.TYPE_FULFILL, replyRequestId, {
             transferId: obj.data.transferId,
             fulfillment,
@@ -349,26 +354,24 @@ Peer.prototype = {
             protocolData: []
           })
           // refund balance
-          console.log('BALANCE INC', obj.data)
+          // console.log('BALANCE INC', obj.data)
           this.balance += obj.data.amount
         })
         break
 
       case ClpPacket.TYPE_FULFILL:
-        console.log('WHAT')
         const conditionCheck = sha256(obj.data.fulfillment)
-        console.log('WHAT')
-        console.log('TYPE_FULFILL!', obj.data, conditionCheck , this.transfersSent[obj.data.transferId].condition)
+        // console.log('TYPE_FULFILL!', obj.data, conditionCheck , this.transfersSent[obj.data.transferId].condition)
         if (typeof this.transfersSent[obj.data.transferId] === undefined) {
           this.sendError(obj.requestId, this.makeLedgerError('unknown transfer id'))
         } else if (new Date().getTime() > this.transfersSent[obj.data.transferId].expiresAt) { // FIXME: this is not leap second safe (but not a problem if MIN_MESSAGE_WINDOW is at least 1 second)
           this.sendError(obj.requestId, this.makeLedgerError('fulfilled too late'))
         } else if (conditionCheck.compare(this.transfersSent[obj.data.transferId].condition) !== 0) {
-          console.log('compared!', conditionCheck, this.transfersSent[obj.data.transferId].condition)
+          // console.log('compared!', conditionCheck, this.transfersSent[obj.data.transferId].condition)
           this.sendError(obj.requestId, this.makeLedgerError('fulfillment incorrect'))
         } else {
           this.transfersSent[obj.data.transferId].resolve(obj.data.fulfillment)
-          console.log('BALANCE INC', this.transfersSent[obj.data.transferId].amount)
+          // console.log('BALANCE INC', this.transfersSent[obj.data.transferId].amount)
           this.balance += this.transfersSent[obj.data.transferId].amount
           this.sendResult(obj.requestId) // ACK
         }
@@ -393,10 +396,10 @@ Peer.prototype = {
         // console.log('first entry', obj.data[0])
 
         this.handleProtocolRequest(obj.data[0].protocolName, obj.data[0].data).then(result => {
-          console.log('sendind back result!', obj, result)
+          // console.log('sendind back result!', obj, result)
           this.sendResult(obj.requestId, obj.data[0].protocolName, result)
         }, err => {
-          console.log('sendind back err!', err)
+          // console.log('sendind back err!', err)
           this.sendError(requestId, err)
         })
         break
@@ -429,7 +432,7 @@ Peer.prototype = {
     assertClass(transfer.executionCondition, Buffer)
     assertClass(transfer.expiresAt, Date)
 
-    console.log('conditional(', {transfer, protocolData})
+    // console.log('conditional(', {transfer, protocolData})
     const requestId = ++this.requestIdUsed
     const transferId = uuid()
     this.requestsSent[requestId] = {
@@ -476,7 +479,7 @@ Peer.prototype = {
         new_routes: routes,
         unreachable_through_me: []
       }
-    })
+    }))
   }
 }
 

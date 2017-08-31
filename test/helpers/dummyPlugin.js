@@ -11,7 +11,7 @@ DummyPlugin.prototype = {
   sendTransfer(transfer) {
     this.transfers.push(transfer)
     setTimeout(() => {
-      console.log('dummy plugin fulfills!', transfer, this.fulfillment)
+      // console.log('dummy plugin fulfills!', transfer, this.fulfillment)
       this.handlers.outgoing_fulfill(transfer, this.fulfillment.toString('base64'))
     }, 0)
     return Promise.resolve(null)

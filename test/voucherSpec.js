@@ -4,9 +4,9 @@ const uuid = require('uuid/v4')
 
 const IlpPacket = require('ilp-packet')
 
-const Connector = require('../connector')
-const Client = require('../client')
-const sha256 = require('../sha256')
+const Connector = require('../src/connector')
+const Client = require('../src/client')
+const sha256 = require('../src/sha256')
 
 describe('Connector', () => {
   beforeEach(function () {
@@ -76,7 +76,7 @@ describe('Connector', () => {
           expiresAt: this.connector.peers.ledger_dummy.plugin.transfers[0].expiresAt,
           custom: {}
         })
-        console.log(this.client1)
+        // console.log(this.client1)
         assert.equal(this.connector.peers['peer_' + this.client1.name].balance, 8765)
         assert.equal(this.connector.peers['peer_' + this.client2.name].balance, 10000)
       })

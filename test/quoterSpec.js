@@ -1,5 +1,6 @@
-const Quoter = require('../quoter')
 const assert = require('chai').assert
+
+const Quoter = require('../src/quoter')
 
 describe('Quoter', () => {
   beforeEach(function () {

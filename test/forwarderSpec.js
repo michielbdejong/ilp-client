@@ -3,14 +3,14 @@ const crypto = require('crypto')
 
 const IlpPacket = require('ilp-packet')
 
-const Quoter = require('../quoter')
-const Forwarder = require('../forwarder')
+const Quoter = require('../src/quoter')
+const Forwarder = require('../src/forwarder')
 
 describe('Forwarder', () => {
   beforeEach(function () {
     const fulfillment = Buffer.from('1234*fulfillmen1234*fulfillment', 'ascii')
     const executionCondition = crypto.createHash('sha256').update(fulfillment).digest()
-    console.log(fulfillment, executionCondition)
+    // console.log(fulfillment, executionCondition)
 
     this.transfer = {
       amount: 1234567891,
