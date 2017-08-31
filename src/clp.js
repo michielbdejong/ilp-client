@@ -256,12 +256,12 @@ Clp.prototype = {
     const requestId = ++this.requestIdUsed
     const transferId = uuid()
     this.requestsSent[requestId] = {
-      resolve () {
+      resolve: function () {
         setTimeout(() => { // not sure if this works for deleting the entry
           // delete this.requestsSent[requestId]
         }, 0)
       },
-      reject (err) {
+      reject: function (err) {
         // console.log('prepare was rejected!', err)
         // if the PREPARE failed, the whole transfer fails:
         this.transfersSent[transferId].reject(err)
