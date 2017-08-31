@@ -31,6 +31,7 @@ Clp.prototype = {
   },
 
   sendError (requestId, err) {
+    console.log('SENDING ERROR', err, typeof err)
     this.sendCall(ClpPacket.TYPE_ERROR, requestId, {
       rejectionReason: err,
       protocolData: []
@@ -284,7 +285,9 @@ Clp.prototype = {
 
   handleProtocolRequest (protocolName, packet, transfer) {
     if (this.protocolHandlers[protocolName]) {
-      return this.protocolHandlers[protocolName](packet, transfer)
+      return this.protocolHandlers[protocolName](packet, transfer).catch(err => {
+        throw this.makeLedgerError(err.message)
+      })
     } else {
       return Promise.reject(this.makeLedgerError('first protocol unsupported'))
     }

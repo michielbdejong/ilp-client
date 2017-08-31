@@ -1,10 +1,10 @@
 const IlpPacket = require('ilp-packet')
 const uuid = require('uuid/v4')
 
-function VirtualPeer (plugin, forwarder, checkVouch) {
+function VirtualPeer (plugin, forwardCb, checkVouchCb) {
   this.plugin = plugin
-  this.forwarder = forwarder
-  this.checkVouch = checkVouch
+  this.forwardCb = forwardCb
+  this.checkVouchCb = checkVouchCb
   this.transfersSent = {}
   this.plugin.on('incoming_prepare', this.handleTransfer.bind(this))
   this.plugin.on('outgoing_fulfill', this.handleFulfill.bind(this))
@@ -17,8 +17,8 @@ VirtualPeer.prototype = {
     // Technically, this is checking the vouch for the wrong
     // amount, but if the vouch checks out for the source amount,
     // then it's also good enough to cover onwardAmount
-    if (this.checkVouch(transfer.from, parseInt(transfer.amount))) {
-      this.forwarder.forward({
+    if (this.checkVouchCb(transfer.from, parseInt(transfer.amount))) {
+      this.forwardCb({
         expiresAt: new Date(transfer.expiresAt),
         amount: parseInt(transfer.amount),
         executionCondition: Buffer.from(transfer.executionCondition, 'base64')
@@ -41,10 +41,32 @@ VirtualPeer.prototype = {
   },
 
   interledgerPayment (transfer, payment) {
+    console.log('sending ILP payment on on-ledger transfer')
     const paymentObj = IlpPacket.deserializeIlpPayment(payment)
     const transferId = uuid()
     const promise = new Promise((resolve, reject) => {
-      this.transfersSent[transferId] = { resolve, reject }
+      this.transfersSent[transferId] = {
+        resolve(result) {
+          console.log('transfer result in VirtualPeer', result)
+          resolve(result)
+        },
+        reject(err) {
+          console.log('transfer err  in VirtualPeer', err, typeof err, Buffer.isBuffer(err))
+          reject(err)
+        }
+      }
+    })
+    console.log('VirtualPeer calls sendTransfer!', {
+      id: transferId,
+      from: this.plugin.getAccount(),
+      to: paymentObj.account,
+      ledger: this.plugin.getInfo().prefix,
+      amount: paymentObj.amount,
+      ilp: payment.toString('base64'),
+      noteToSelf: {},
+      executionCondition: transfer.executionCondition.toString('base64'),
+      expiresAt: transfer.expiresAt.toISOString(),
+      custom: {}
     })
     this.plugin.sendTransfer({
       id: transferId,
@@ -52,13 +74,17 @@ VirtualPeer.prototype = {
       to: paymentObj.account,
       ledger: this.plugin.getInfo().prefix,
       amount: paymentObj.amount,
-      ilp: payment,
+      ilp: payment.toString('base64'),
       noteToSelf: {},
       executionCondition: transfer.executionCondition.toString('base64'),
-      expiresAt: transfer.expiresAt,
+      expiresAt: transfer.expiresAt.toISOString(),
       custom: {}
     }).catch(err => {
-      this.transfersSent[transferId].reject(err)
+      console.log('sendTransfer failed', err)
+      this.transfersSent[transferId].reject({
+        code: 'L62',
+        name: err.message
+      })
     })
     return promise
   },

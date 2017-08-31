@@ -18,7 +18,7 @@ function Connector (baseLedger, pluginConfigs) {
   for (let name in pluginConfigs) {
     const plugin = new Plugin[name](pluginConfigs[name])
     plugin.connect()
-    this.peers['ledger_' + name] = new VirtualPeer(plugin, this.forwarder, (fromAddress, amount) => {
+    this.peers['ledger_' + name] = new VirtualPeer(plugin, this.forwarder.forward.bind(this.forwarder), (fromAddress, amount) => {
       // console.log('checkVouch', fromAddress, amount, this.vouchingMap)
       if (!this.vouchingMap[fromAddress]) {
         return false

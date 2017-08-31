@@ -106,16 +106,16 @@ function Peer (baseLedger, peerName, initialBalance, ws, quoter, forwarder, fulf
   this.voucher = voucher
 
   this.clp = new Clp(initialBalance, ws, {
-    ilp: this.handleIlp.bind(this),
-    vouch: this.handleVouch.bind(this),
-    ccp: this.handleCcp.bind(this),
-    info: this.handleInfo.bind(this),
-    balance: this.handleBalance.bind(this)
+    ilp: this._handleIlp.bind(this),
+    vouch: this._handleVouch.bind(this),
+    ccp: this._handleCcp.bind(this),
+    info: this._handleInfo.bind(this),
+    balance: this._handleBalance.bind(this)
   })
 }
 
 Peer.prototype = {
-  handleIlp (dataBuf, transfer) {
+  _handleIlp (dataBuf, transfer) {
     if (transfer) {
       if (this.fulfiller) {
         // console.log('trying the fulfiller!')
@@ -141,7 +141,7 @@ Peer.prototype = {
     return Promise.reject(this.makeLedgerError('unknown call id'))
   },
 
-  handleInfo (dataBuf) {
+  _handleInfo (dataBuf) {
     if (dataBuf[0] === 0) {
       // console.log('info!', dataBuf)
       return Promise.resolve(InfoPacket.serializeResponse(this.baseLedger + this.peerName))
@@ -149,7 +149,7 @@ Peer.prototype = {
     return Promise.reject(this.makeLedgerError('unknown call id'))
   },
 
-  handleBalance (dataBuf) {
+  _handleBalance (dataBuf) {
     if (dataBuf[0] === 0) {
       // console.log('balance!', dataBuf)
       return Promise.resolve(BalancePacket.serializeResponse(this.clp.balance))
@@ -157,7 +157,7 @@ Peer.prototype = {
     return Promise.reject(this.makeLedgerError('unknown call id'))
   },
 
-  handleCcp (dataBuf) {
+  _handleCcp (dataBuf) {
     const obj = CcpPacket.deserialize(dataBuf)
     switch (obj.type) {
       case CcpPacket.TYPE_ROUTES:
@@ -181,13 +181,14 @@ Peer.prototype = {
     return Promise.reject(this.makeLedgerError('unknown call id'))
   },
 
-  handleVouch (dataBuf) {
+  _handleVouch (dataBuf) {
     const obj = VouchPacket.deserialize(dataBuf)
     // console.log('received vouch!', obj)
     return this.voucher(obj.address)
   },
 
   interledgerPayment (transfer, payment) {
+    console.log('sending ILP payment on CLP transfer')
     return this.clp.conditional(transfer, [
       {
         protocolName: 'ilp',

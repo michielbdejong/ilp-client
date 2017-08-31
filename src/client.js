@@ -3,6 +3,7 @@ const crypto = require('crypto')
 
 const Forwarder = require('./forwarder')
 const Peer = require('./peer')
+const VirtualPeer = require('./virtual-peer')
 const Quoter = require('./quoter')
 
 function Client () {
@@ -30,6 +31,19 @@ Client.prototype = {
         resolve()
       })
     })
+  },
+
+  // See https://github.com/michielbdejong/ilp-node/issues/9
+  receiveOnLedger(plugin) {
+    function onIncomingPrepare (transfer, packet) {
+      return this.fulfillments[transfer.executionCondition]
+    }
+
+    function vouchChecker (fromWallet) {
+      return true
+    }
+
+    this.virtualPeer = new VirtualPeer(plugin, onIncomingPrepare.bind(this), vouchChecker)
   },
 
   close () {

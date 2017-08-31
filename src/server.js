@@ -1,11 +1,7 @@
 const Connector = require('./connector')
 
 const connector = new Connector('peer.testing.', {
-  xrp: {
-    secret: 'shRm6dnkLMzTxBUMgCy6bB6jweS3X',
-    server: 'wss://s.altnet.rippletest.net:51233',
-    prefix: 'test.crypto.xrp.'
-  },
+  xrp: require('../config/xrp.js')[0],
   dummy: {
     prefix: 'test.crypto.eth.rinkeby.'
   }
