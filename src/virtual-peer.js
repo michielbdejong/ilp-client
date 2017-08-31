@@ -15,6 +15,7 @@ function VirtualPeer (plugin, forwardCb, checkVouchCb, connectorAddress) {
 VirtualPeer.prototype = {
 
   handleTransfer (transfer) {
+    console.log('handleTransfer!', Buffer.from(transfer.executionCondition, 'base64'))
     // Technically, this is checking the vouch for the wrong
     // amount, but if the vouch checks out for the source amount,
     // then it's also good enough to cover onwardAmount
@@ -24,7 +25,12 @@ VirtualPeer.prototype = {
         amount: parseInt(transfer.amount),
         executionCondition: Buffer.from(transfer.executionCondition, 'base64')
       }, Buffer.from(transfer.ilp, 'base64')).then((fulfillment) => {
-        this.plugin.fulfillCondition(transfer.id, fulfillment.toString('base64'))
+        console.log('submitting fulfillment to ledger!', transfer.executionCondition, fulfillment)
+        this.plugin.fulfillCondition(transfer.id, fulfillment.toString('base64')).then(() =>{
+          console.log('submitted that fulfillment to ledger!', transfer.executionCondition, fulfillment)
+        }, err => {
+          console.log('failed to submit that fulfillment to ledger!', transfer.executionCondition, fulfillment, err)
+        })
       }, (err) => {
         this.plugin.rejectIncomingTransfer(transfer.id, IlpPacket.deserializeIlpError(err))
       })
@@ -86,10 +92,12 @@ VirtualPeer.prototype = {
   },
 
   handleFulfill (transfer, fulfillmentBase64) {
+    console.log('handling fulfill!', Buffer.from(transfer.executionCondition, 'base64'), Buffer.from(fulfillmentBase64, 'base64'))
     this.transfersSent[transfer.id].resolve(Buffer.from(fulfillmentBase64, 'base64'))
   },
 
   handleReject (transfer, rejectionReasonBase64) {
+    console.log('handling reject!', Buffer.from(transfer.executionCondition, 'base64'), Buffer.from(rejectionReasonBase64, 'base64'))
     this.transfersSent[transfer.id].reject(Buffer.from(rejectionReasonBase64, 'base64'))
   }
 }
