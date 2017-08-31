@@ -25,7 +25,7 @@ function Connector(baseLedger, pluginConfigs) {
       if (!this.vouchingMap[fromAddress]) {
         return false
       }
-      const balance = this.peers['peer_' + this.vouchingMap[fromAddress]].balance
+      const balance = this.peers['peer_' + this.vouchingMap[fromAddress]].clp.balance
       // console.log('checking balance', balance, amount)
       return balance > amount
     })
