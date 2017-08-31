@@ -17,49 +17,44 @@ Promise.all([sender.connect(), receiver.connect()]).then(() => {
   const fulfillment = crypto.randomBytes(32)
   const condition = sha256(fulfillment)
 
+  let arriveds = 0
+  let submitteds = 0
   receiver.on('incoming_prepare', (transfer) => {
-    console.log('transfer arrived', transfer)
-    receiver.fulfillCondition(transfer.id, fulfillment.toString('base64'))
+    console.log('transfer arrived', ++arriveds, transfer)
+    receiver.fulfillCondition(transfer.id, fulfillment.toString('base64')).then(() => {
+      console.log('submitted', ++submitteds)
+    }, err => {
+      console.error('submit failed!', err)
+    })
   })
   let successes = 0
   sender.on('outgoing_fulfill', (transfer, fulfillment) => { console.log('test success!', ++successes) })
   sender.on('outgoing_reject', (transfer, reason) => { console.log('test failed by receiver!', transfer, reason) })
   sender.on('outgoing_cancel', (transfer, reason) => { console.log('test failed by ledger!', transfer, reason) })
-
+  let sents = 0
+  function send() {
+    sender.sendTransfer({
+      id: uuid(),
+      ledger: sender.getInfo().prefix,
+      from: sender.getAccount(),
+      to: receiver.getAccount(),
+      amount: '10',
+      expiresAt: new Date(new Date().getTime() + 100000).toISOString(),
+      executionCondition: condition.toString('base64'),
+      ilp: Packet.serializeIlpPayment({ amount: '1', account: receiver.getAccount() }).toString('base64'),
+      noteToSelf: {}
+    }).then(() => {
+      console.log('transfer sent', ++sents)
+    }, err => {
+      console.err('transfer failed', err)
+    })
+  }
   setTimeout(function() {
     console.log('first timeout fired')
-    sender.sendTransfer({
-      id: uuid(),
-      ledger: sender.getInfo().prefix,
-      from: sender.getAccount(),
-      to: receiver.getAccount(),
-      amount: '10',
-      expiresAt: new Date(new Date().getTime() + 100000).toISOString(),
-      executionCondition: condition.toString('base64'),
-      ilp: Packet.serializeIlpPayment({ amount: '1', account: receiver.getAccount() }).toString('base64'),
-      noteToSelf: {}
-    }).then(() => {
-      console.log('first transfer sent')
-    }, err => {
-      console.err('first transfer failed', err)
-    })
-  }, 10000)
+    send()
+  }, 5000)
   setTimeout(function() {
     console.log('second timeout fired')
-    sender.sendTransfer({
-      id: uuid(),
-      ledger: sender.getInfo().prefix,
-      from: sender.getAccount(),
-      to: receiver.getAccount(),
-      amount: '10',
-      expiresAt: new Date(new Date().getTime() + 100000).toISOString(),
-      executionCondition: condition.toString('base64'),
-      ilp: Packet.serializeIlpPayment({ amount: '1', account: receiver.getAccount() }).toString('base64'),
-      noteToSelf: {}
-    }).then(() => {
-      console.log('second transfer sent')
-    }, err => {
-      console.err('second transfer failed', err)
-    })
-  }, 20000)
+    send()
+  }, 6000)
 })
