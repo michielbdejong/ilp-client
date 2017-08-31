@@ -15,5 +15,5 @@ Listening on ws://localhost:8000/
 In another:
 ```js
 $ node scripts/flood.js
-100000 transfers took 40486ms, that is 2469.9896260435708 req/s.
+100000 transfers took 34739ms, that is 2878.6090561040905 payments per second.
 ```

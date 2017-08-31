@@ -64,6 +64,6 @@ flooder.open('ws://localhost:8000/').then(() => {
   return flooder.flood(NUM)
 }).then(() => {
   const endTime = new Date().getTime()
-  console.log(NUM + ' transfers took ' + (endTime - startTime) + 'ms, that is '  + (1000 * NUM / (endTime - startTime)) + ' req/s.')
+  console.log(NUM + ' transfers took ' + (endTime - startTime) + 'ms, that is '  + (1000 * NUM / (endTime - startTime)) + ' payments per second.')
   flooder.close()
 })
