@@ -1,6 +1,4 @@
-const WebSocket = require('ws');
-const ClpPacket = require('clp-packet')
-const IlpPacket = require('ilp-packet')
+const WebSocket = require('ws')
 const Quoter = require('./quoter')
 const Forwarder = require('./forwarder')
 const Peer = require('./peer')
@@ -17,9 +15,9 @@ function Connector (baseLedger, pluginConfigs) {
   this.forwarder = new Forwarder(this.quoter, this.peers)
   this.vouchingMap = {}
 
-  for (name in pluginConfigs) {
+  for (let name in pluginConfigs) {
     const plugin = new Plugin[name](pluginConfigs[name])
-    plugin.connect()    
+    plugin.connect()
     this.peers['ledger_' + name] = new VirtualPeer(plugin, this.forwarder, (fromAddress, amount) => {
       // console.log('checkVouch', fromAddress, amount, this.vouchingMap)
       if (!this.vouchingMap[fromAddress]) {
@@ -31,8 +29,10 @@ function Connector (baseLedger, pluginConfigs) {
     })
 
     this.quoter.setCurve(plugin.getInfo().prefix, Buffer.from([
-      0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 255, 255,	0, 0, 0, 0, 0, 0, 255, 255
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 255, 255,
+      0, 0, 0, 0, 0, 0, 255, 255
     ]), 'ledger_' + name)
   }
 }
@@ -45,7 +45,7 @@ Connector.prototype = {
       this.wss.on('connection', (ws, httpReq) => {
         const parts = httpReq.url.split('/')
         const peerId = parts[1]
-        const peerToken = parts[2] // TODO: use this to authorize reconnections
+        // const peerToken = parts[2] // TODO: use this to authorize reconnections
         // console.log('assigned peerId!', peerId)
         this.peers['peer_' + peerId] = new Peer(this.baseLedger, peerId, 10000, ws, this.quoter, this.forwarder, undefined, (address) => {
           this.vouchingMap[address] = peerId
@@ -53,8 +53,10 @@ Connector.prototype = {
           return Promise.resolve()
         })
         this.quoter.setCurve(this.baseLedger + peerId + '.', Buffer.from([
-          0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0,
-          0, 0, 0, 0, 0, 0, 255, 255,	0, 0, 0, 0, 0, 0, 255, 255
+          0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 255, 255,
+          0, 0, 0, 0, 0, 0, 255, 255
         ]), 'peer_' + peerId)
       })
     })

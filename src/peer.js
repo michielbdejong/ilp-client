@@ -1,8 +1,6 @@
 const ClpPacket = require('clp-packet')
 const IlpPacket = require('ilp-packet')
-const uuid = require('uuid/v4')
 
-const sha256 = require('./sha256')
 const Clp = require('./clp')
 
 function lengthPrefixFor (buf) {
@@ -13,19 +11,19 @@ function lengthPrefixFor (buf) {
     const lenLen = 128 + 2
     const lenLo = buf.length % 256
     const lenHi = (buf.length - lenLo) / 256
-    return Buffer.from([lenLen, lenHi, lenLo ])
+    return Buffer.from([lenLen, lenHi, lenLo])
   }
 }
 
 const BalancePacket = {
-   serializeResponse(num) {
-     let prefix = '0208' + '0000' + '0000' + '0000' + '0000'
-     let suffix = num.toString(16)
-     return Buffer.from(prefix.substring(0, prefix.length - suffix.length) + suffix, 'hex')
-   }
+  serializeResponse (num) {
+    let prefix = '0208' + '0000' + '0000' + '0000' + '0000'
+    let suffix = num.toString(16)
+    return Buffer.from(prefix.substring(0, prefix.length - suffix.length) + suffix, 'hex')
+  }
 }
 const InfoPacket = {
-  serializeResponse(info) {
+  serializeResponse (info) {
     const infoBuf = Buffer.from(info, 'ascii')
     return Buffer.concat([
       Buffer.from([2]),
@@ -57,12 +55,12 @@ const CcpPacket = {
     let lenLen = 1
     if (dataBuf[0] >= 128) {
       // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
-      lenLen = 1 + (dataBuf[0]-128)
+      lenLen = 1 + (dataBuf[0] - 128)
     }
     let obj
     try {
       obj = JSON.parse(dataBuf.slice(lenLen).toString('ascii'))
-    } catch(e) {
+    } catch (e) {
     }
     return obj
   }
@@ -74,41 +72,29 @@ const VouchPacket = {
     let addressLen = dataBuf[1]
     if (dataBuf[1] >= 128) {
       // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
-      lenLen = 1 + (dataBuf[0]-128)
+      lenLen = 1 + (dataBuf[0] - 128)
       // TODO: write unit tests for this code and see if we can use it to
       // read the address, condition, and amount of a rollback
       addressLen = 0
-      cursor = 2
+      let cursor = 2
       switch (lenLen) {
-        case 7: addressLen = addressLen * 256 + dataBuf[cursor++]
-        case 6: addressLen = addressLen * 256 + dataBuf[cursor++]
-        case 5: addressLen = addressLen * 256 + dataBuf[cursor++]
-        case 4: addressLen = addressLen * 256 + dataBuf[cursor++]
-        case 3: addressLen = addressLen * 256 + dataBuf[cursor++]
-        case 2: addressLen = addressLen * 256 + dataBuf[cursor++]
-        case 1: addressLen = addressLen * 256 + dataBuf[cursor++]
+        case 7: addressLen = addressLen * 256 + dataBuf[cursor++] // eslint-disable-line no-fallthrough
+        case 6: addressLen = addressLen * 256 + dataBuf[cursor++] // eslint-disable-line no-fallthrough
+        case 5: addressLen = addressLen * 256 + dataBuf[cursor++] // eslint-disable-line no-fallthrough
+        case 4: addressLen = addressLen * 256 + dataBuf[cursor++] // eslint-disable-line no-fallthrough
+        case 3: addressLen = addressLen * 256 + dataBuf[cursor++] // eslint-disable-line no-fallthrough
+        case 2: addressLen = addressLen * 256 + dataBuf[cursor++] // eslint-disable-line no-fallthrough
+        case 1: addressLen = addressLen * 256 + dataBuf[cursor++] // eslint-disable-line no-fallthrough
       }
     }
     // console.log(dataBuf, lenLen, dataBuf.slice(lenLen))
     return {
       callId: dataBuf[0], // 1: 'vouch for', 2: 'reach me at', 3: 'roll back'
-      address: dataBuf.slice(1 + lenLen).toString('ascii')
-      //TODO: report condition and amount in case callId is 'roll back', and
-      //stop them from being concatenated as bytes at the end of the address.
+      address: dataBuf.slice(1 + lenLen, addressLen).toString('ascii')
+      // TODO: report condition and amount in case callId is 'roll back', and
+      // stop them from being concatenated as bytes at the end of the address.
     }
   }
-}
-
-function assertType (x, typeName) {
-  if (typeof x !== typeName) {
-    throw new Error(JSON.stringify(x) + ' is not a ' + typeName)
-   }
-}
-
-function assertClass (x, className) {
-  if (!x instanceof className) {
-    throw new Error(JSON.stringify(x) + ' is not a ' + className)
-   }
 }
 
 function Peer (baseLedger, peerName, initialBalance, ws, quoter, forwarder, fulfiller, voucher) {
@@ -145,16 +131,16 @@ Peer.prototype = {
     const request = IlpPacket.deserializeIlpPacket(dataBuf)
     // console.log('ilp message!', request)
     switch (request.type) {
-    case IlpPacket.Type.TYPE_ILQP_LIQUIDITY_REQUEST:
-      return this.quoter.answerLiquidity(request.data).then(IlpPacket.serializeIlqpLiquidityResponse)
-    case IlpPacket.Type.TYPE_ILQP_BY_SOURCE_REQUEST:
-      return this.quoter.answerBySource(request.data).then(IlpPacket.serializeIlqpBySourceResponse)
-    case IlpPacket.Type.TYPE_ILQP_BY_DESTINATION_REQUEST:
-      return this.answerByDest(request.data).then(IlpPacket.serializeIlqpByDestinationResponse)
+      case IlpPacket.Type.TYPE_ILQP_LIQUIDITY_REQUEST:
+        return this.quoter.answerLiquidity(request.data).then(IlpPacket.serializeIlqpLiquidityResponse)
+      case IlpPacket.Type.TYPE_ILQP_BY_SOURCE_REQUEST:
+        return this.quoter.answerBySource(request.data).then(IlpPacket.serializeIlqpBySourceResponse)
+      case IlpPacket.Type.TYPE_ILQP_BY_DESTINATION_REQUEST:
+        return this.answerByDest(request.data).then(IlpPacket.serializeIlqpByDestinationResponse)
     }
     return Promise.reject(this.makeLedgerError('unknown call id'))
   },
- 
+
   handleInfo (dataBuf) {
     if (dataBuf[0] === 0) {
       // console.log('info!', dataBuf)
@@ -184,7 +170,7 @@ Peer.prototype = {
         }
         return Promise.resolve() // ack
       case CcpPacket.TYPE_REQUEST_FULL_TABLE:
-        return Ccp.serialize({
+        return CcpPacket.serialize({
           type: CcpPacket.TYPE_ROUTES,
           data: {
             new_routes: this.quoter.getRoutesArray(this.peerName),

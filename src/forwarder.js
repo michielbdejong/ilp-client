@@ -7,13 +7,13 @@ const ERROR_LACK_TIME = 1
 const ERROR_LACK_SOURCE_AMOUNT = 2
 const ERROR_NO_ROUTE = 3
 
-function Forwarder(quoter, peers) {
+function Forwarder (quoter, peers) {
   this.quoter = quoter
   this.peers = peers
 }
 
 Forwarder.prototype = {
-  forward(transfer, paymentPacket) {
+  forward (transfer, paymentPacket) {
     const payment = IlpPacket.deserializeIlpPayment(paymentPacket)
     if (transfer.expiresAt.getTime() < new Date().getTime() + FORWARD_TIMEOUT) {
       return Promise.reject(ERROR_LACK_TIME)
@@ -35,13 +35,14 @@ Forwarder.prototype = {
       executionCondition: transfer.executionCondition
     }, paymentPacket)
   },
-  forwardRoute(route) {
-    for (name in this.peers) {
-      if (name.startsWith('peer_')) {// only forward over CLP peers, not virtual peers (ledger plugins)
+
+  forwardRoute (route) {
+    for (let name in this.peers) {
+      if (name.startsWith('peer_')) { // only forward over CLP peers, not virtual peers (ledger plugins)
         this.peers[name].announceRoute(route)
       }
     }
-  }     
+  }
 }
 
 module.exports = Forwarder

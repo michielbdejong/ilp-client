@@ -3,16 +3,14 @@ const IlpPacket = require('ilp-packet')
 const uuid = require('uuid/v4')
 const sha256 = require('./sha256')
 
-function assertType(x, typeName) {
-  if (typeof x !== typeName) {
-    throw new Error(JSON.stringify(x) + ' is not a ' + typeName)
-   }
+function assertType (x, typeName) {
+  if (typeof x === typeName) { return }
+  throw new Error(JSON.stringify(x) + ' is not a ' + typeName)
 }
 
-function assertClass(x, className) {
-  if (!x instanceof className) {
-    throw new Error(JSON.stringify(x) + ' is not a ' + className)
-   }
+function assertClass (x, className) {
+  if (x instanceof className) { return }
+  throw new Error(JSON.stringify(x) + ' is not a ' + className)
 }
 
 function Clp(initialBalance, ws, protocolHandlers) {
