@@ -53,7 +53,7 @@ Flooder.prototype = {
 
     // set up receiver; this will work for both the client's CLP Peer
     // and its XRP VirtualPeer:
-    this.client2.fulfillments[condition] = fulfillment
+    this.client2.knowFulfillment(condition, fulfillment)
     console.log('receiver set up', condition, fulfillment)
 
     const packet = IlpPacket.serializeIlpPayment({

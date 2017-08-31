@@ -52,7 +52,7 @@ describe('High Throughput', () => {
         const fulfillment = crypto.randomBytes(32)
         const condition = sha256(fulfillment)
 
-        this.client2.fulfillments[condition] = fulfillment
+        this.client2.knowFulfillment(condition, fulfillment)
         const packet = IlpPacket.serializeIlpPayment({
           amount: '1',
           account: 'peer.testing.' + this.client2.name + '.hi'
@@ -85,7 +85,7 @@ describe('High Throughput', () => {
         amount: '1',
         account: 'peer.testing.' + this.client2.name + '.hi'
       })
-      this.client2.fulfillments[condition] = fulfillment
+      this.client2.knowFulfillment(condition, fulfillment)
 
       // This is ledger plugin interface format, will be used in incoming_prepare event
       // to VirtualPeer:

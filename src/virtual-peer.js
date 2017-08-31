@@ -41,33 +41,33 @@ VirtualPeer.prototype = {
   },
 
   interledgerPayment (transfer, payment) {
-    console.log('sending ILP payment on on-ledger transfer')
+    // console.log('sending ILP payment on on-ledger transfer')
     const paymentObj = IlpPacket.deserializeIlpPayment(payment)
     const transferId = uuid()
     const promise = new Promise((resolve, reject) => {
       this.transfersSent[transferId] = {
         resolve(result) {
-          console.log('transfer result in VirtualPeer', result)
+          // console.log('transfer result in VirtualPeer', result)
           resolve(result)
         },
         reject(err) {
-          console.log('transfer err  in VirtualPeer', err, typeof err, Buffer.isBuffer(err))
+          // console.log('transfer err  in VirtualPeer', err, typeof err, Buffer.isBuffer(err))
           reject(err)
         }
       }
     })
-    console.log('VirtualPeer calls sendTransfer!', {
-      id: transferId,
-      from: this.plugin.getAccount(),
-      to: paymentObj.account,
-      ledger: this.plugin.getInfo().prefix,
-      amount: paymentObj.amount,
-      ilp: payment.toString('base64'),
-      noteToSelf: {},
-      executionCondition: transfer.executionCondition.toString('base64'),
-      expiresAt: transfer.expiresAt.toISOString(),
-      custom: {}
-    })
+    // console.log('VirtualPeer calls sendTransfer!', {
+    //   id: transferId,
+    //   from: this.plugin.getAccount(),
+    //   to: paymentObj.account,
+    //   ledger: this.plugin.getInfo().prefix,
+    //   amount: paymentObj.amount,
+    //   ilp: payment.toString('base64'),
+    //   noteToSelf: {},
+    //   executionCondition: transfer.executionCondition.toString('base64'),
+    //   expiresAt: transfer.expiresAt.toISOString(),
+    //   custom: {}
+    // })
     this.plugin.sendTransfer({
       id: transferId,
       from: this.plugin.getAccount(),

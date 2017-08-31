@@ -188,7 +188,7 @@ Peer.prototype = {
   },
 
   interledgerPayment (transfer, payment) {
-    console.log('sending ILP payment on CLP transfer')
+    // console.log('sending ILP payment on CLP transfer')
     return this.clp.conditional(transfer, [
       {
         protocolName: 'ilp',

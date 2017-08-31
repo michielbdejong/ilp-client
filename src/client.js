@@ -25,8 +25,8 @@ Client.prototype = {
         this.forwarder = new Forwarder(this.quoter, this.peers)
         // console.log('creating client peer')
         this.peer = new Peer('client-peer.', this.name, 1000000000, this.ws, this.quoter, this.forwarder, (condition) => {
-          // console.log('client is fulfilling!', condition, this.fulfillments)
-          return this.fulfillments[condition]
+          // console.log('client is fulfilling over CLP!', condition, this.fulfillments)
+          return this.fulfillments[condition.toString('hex')]
         })
         resolve()
       })
@@ -36,7 +36,8 @@ Client.prototype = {
   // See https://github.com/michielbdejong/ilp-node/issues/9
   receiveOnLedger(plugin) {
     function onIncomingPrepare (transfer, packet) {
-      return this.fulfillments[transfer.executionCondition]
+      // console.log('client is fulfilling on-ledger!', transfer, transfer.executionCondition.toString('hex'), this.fulfillments)
+      return Promise.resolve(this.fulfillments[transfer.executionCondition.toString('hex')])
     }
 
     function vouchChecker (fromWallet) {
@@ -45,7 +46,9 @@ Client.prototype = {
 
     this.virtualPeer = new VirtualPeer(plugin, onIncomingPrepare.bind(this), vouchChecker)
   },
-
+  knowFulfillment(condition, fulfillment) {
+    this.fulfillments[condition.toString('hex')] = fulfillment
+  },
   close () {
     return new Promise(resolve => {
       this.ws.on('close', () => {

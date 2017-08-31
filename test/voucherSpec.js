@@ -69,7 +69,7 @@ describe('Vouching System', () => {
           to: 'test.crypto.eth.rinkeby.4thgw3dtrseawfrsfdxzsfzsfgdz',
           ledger: 'test.crypto.eth.rinkeby.',
           amount: '1234',
-          ilp: packet,
+          ilp: packet.toString('base64'),
           noteToSelf: {},
           executionCondition: condition.toString('base64'),
           expiresAt: this.connector.peers.ledger_dummy.plugin.transfers[0].expiresAt,
@@ -90,7 +90,7 @@ describe('Vouching System', () => {
         amount: '1234',
         account: 'peer.testing.' + this.client2.name + '.hi'
       })
-      this.client2.fulfillments[condition] = fulfillment
+      this.client2.knowFulfillment(condition, fulfillment)
 
       // This is ledger plugin interface format, will be used in incoming_prepare event
       // to VirtualPeer:
@@ -127,7 +127,7 @@ describe('Vouching System', () => {
         amount: '1234',
         account: 'peer.testing.' + this.client2.name + '.hi'
       })
-      this.client2.fulfillments[condition] = fulfillment
+      this.client2.knowFulfillment(condition, fulfillment)
 
       // This is ledger plugin interface format, will be used in incoming_prepare event
       // to VirtualPeer:
@@ -137,7 +137,7 @@ describe('Vouching System', () => {
         to: 'test.crypto.eth.rinkeby.dummy-account',
         ledger: 'test.crypto.eth.rinkeby.',
         amount: '1234',
-        ilp: packet,
+        ilp: packet.toString('base64'),
         noteToSelf: {},
         executionCondition: condition.toString('base64'),
         expiresAt: new Date(new Date().getTime() + 100000),
