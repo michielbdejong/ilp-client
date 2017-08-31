@@ -4,7 +4,7 @@ const uuid = require('uuid/v4')
 const sha256 = require('./sha256')
 
 function assertType (x, typeName) {
-  if (typeof x === typeName) { return }
+  if (typeof x === typeName) { return } // eslint-disable-line valid-typeof
   throw new Error(JSON.stringify(x) + ' is not a ' + typeName)
 }
 
@@ -13,7 +13,7 @@ function assertClass (x, className) {
   throw new Error(JSON.stringify(x) + ' is not a ' + className)
 }
 
-function Clp(initialBalance, ws, protocolHandlers) {
+function Clp (initialBalance, ws, protocolHandlers) {
   this.requestIdUsed = 0
   this.balance = initialBalance // ledger units this node owes to that peer
   this.requestsSent = {}
@@ -25,12 +25,12 @@ function Clp(initialBalance, ws, protocolHandlers) {
 }
 
 Clp.prototype = {
-  sendCall(type, requestId, data) {
-     // console.log('sendCall', {type, requestId, data })
+  sendCall (type, requestId, data) {
+    // console.log('sendCall', {type, requestId, data })
     this.ws.send(ClpPacket.serialize({ type, requestId, data }))
   },
 
-  sendError(requestId, err) {
+  sendError (requestId, err) {
     this.sendCall(ClpPacket.TYPE_ERROR, requestId, {
       rejectionReason: err,
       protocolData: []
@@ -38,7 +38,7 @@ Clp.prototype = {
   },
 
   // this function may still change due to https://github.com/interledger/rfcs/issues/282
-  makeLedgerError(name) {
+  makeLedgerError (name) {
     const codes = {
       'account balance lower than transfer amount': 'L01',
       'empty message': 'L02',
@@ -55,7 +55,7 @@ Clp.prototype = {
     })
   },
 
-  sendResult(requestId, protocolName, result) {
+  sendResult (requestId, protocolName, result) {
     // console.log('sendResult(', {requestId, protocolName, result})
     if (result) { // RESPONSE
       this.sendCall(ClpPacket.TYPE_RESPONSE, requestId, [
@@ -72,26 +72,26 @@ Clp.prototype = {
     }
   },
 
-  sendFulfillment(transferId, fulfillment) {
+  sendFulfillment (transferId, fulfillment) {
     // fulfill is a new request
     const requestId = ++this.requestIdUsed
     this.requestsSent[requestId] = {
-      resolve() {},
-      reject() {}
+      resolve () {},
+      reject () {}
     }
     this.sendCall(ClpPacket.TYPE_FULFILL, requestId, {
-        transferId,
-        fulfillment,
-        protocolData: []
+      transferId,
+      fulfillment,
+      protocolData: []
     })
   },
 
-  sendReject(transferId, err) { 
+  sendReject (transferId, err) {
     // reject is a new request
     const requestId = ++this.requestIdUsed
     this.requestsSent[requestId] = {
-      resolve() {},
-      reject() {}
+      resolve () {},
+      reject () {}
     }
     this.sendCall(ClpPacket.TYPE_REJECT, requestId, {
       transferId,
@@ -109,16 +109,16 @@ Clp.prototype = {
     })
   },
 
-  incoming(buf) {
+  incoming (buf) {
     assertClass(buf, Buffer)
 
     const obj = ClpPacket.deserialize(buf)
     assertType(obj.type, 'number')
     assertType(obj.requestId, 'number')
     assertType(obj.data, 'object')
- 
+
     // console.log('incoming:', JSON.stringify(obj))
-    switch(obj.type) {
+    switch (obj.type) {
       case ClpPacket.TYPE_ACK:
         // console.log('TYPE_ACK!')
         this.requestsSent[obj.requestId].resolve()
@@ -152,8 +152,8 @@ Clp.prototype = {
 
         const replyRequestId = ++this.requestIdUsed
         this.requestsSent[replyRequestId] = {
-          resolve() {},
-          reject() {}
+          resolve () {},
+          reject () {}
         }
 
         this.handleProtocolRequest(obj.data.protocolData[0].protocolName, obj.data.protocolData[0].data, { // transfer
@@ -166,7 +166,7 @@ Clp.prototype = {
             transferId: obj.data.transferId,
             fulfillment,
             protocolData: []
-          }) 
+          })
         }, (err) => {
           this.sendCall(ClpPacket.TYPE_REJECT, replyRequestId, {
             transferId: obj.data.transferId,
@@ -182,7 +182,7 @@ Clp.prototype = {
       case ClpPacket.TYPE_FULFILL:
         const conditionCheck = sha256(obj.data.fulfillment)
         // console.log('TYPE_FULFILL!', obj.data, conditionCheck , this.transfersSent[obj.data.transferId].condition)
-        if (typeof this.transfersSent[obj.data.transferId] === undefined) {
+        if (typeof this.transfersSent[obj.data.transferId] === 'undefined') {
           this.sendError(obj.requestId, this.makeLedgerError('unknown transfer id'))
         } else if (new Date().getTime() > this.transfersSent[obj.data.transferId].expiresAt) { // FIXME: this is not leap second safe (but not a problem if MIN_MESSAGE_WINDOW is at least 1 second)
           this.sendError(obj.requestId, this.makeLedgerError('fulfilled too late'))
@@ -199,7 +199,7 @@ Clp.prototype = {
 
       case ClpPacket.TYPE_REJECT:
         // console.log('TYPE_REJECT!')
-        if (typeof this.transfersSent[obj.data.transferId] === undefined) {
+        if (typeof this.transfersSent[obj.data.transferId] === 'undefined') {
           this.sendError(obj.requestId, this.makeLedgerError('unknown transfer id'))
         } else {
           this.transfersSent[obj.data.transferId].reject(obj.data.rejectionReason)
@@ -210,7 +210,7 @@ Clp.prototype = {
       case ClpPacket.TYPE_MESSAGE:
         // console.log('TYPE_MESSAGE!')
         if (!Array.isArray(obj.data) || !obj.data.length) {
-          this.sendError(requestId, this.makeLedgerError('empty message'))
+          this.sendError(obj.requestId, this.makeLedgerError('empty message'))
           return
         }
         // console.log('first entry', obj.data[0])
@@ -220,7 +220,7 @@ Clp.prototype = {
           this.sendResult(obj.requestId, obj.data[0].protocolName, result)
         }, err => {
           // console.log('sendind back err!', err)
-          this.sendError(requestId, err)
+          this.sendError(obj.requestId, err)
         })
         break
 
@@ -228,7 +228,7 @@ Clp.prototype = {
         throw new Error('clp packet type not recognized')
     }
   },
-  unpaid(protocolName, data) {
+  unpaid (protocolName, data) {
     assertType(protocolName, 'string')
     assertClass(data, Buffer)
 
@@ -247,7 +247,7 @@ Clp.prototype = {
     })
   },
 
-  conditional(transfer, protocolData) {
+  conditional (transfer, protocolData) {
     assertType(transfer.amount, 'number')
     assertClass(transfer.executionCondition, Buffer)
     assertClass(transfer.expiresAt, Date)
@@ -256,12 +256,12 @@ Clp.prototype = {
     const requestId = ++this.requestIdUsed
     const transferId = uuid()
     this.requestsSent[requestId] = {
-      resolve() {
+      resolve () {
         setTimeout(() => { // not sure if this works for deleting the entry
           // delete this.requestsSent[requestId]
         }, 0)
       },
-      reject(err) {
+      reject (err) {
         // console.log('prepare was rejected!', err)
         // if the PREPARE failed, the whole transfer fails:
         this.transfersSent[transferId].reject(err)
@@ -270,7 +270,7 @@ Clp.prototype = {
         }, 0)
       }
     }
-   this.sendCall(ClpPacket.TYPE_PREPARE, requestId, {
+    this.sendCall(ClpPacket.TYPE_PREPARE, requestId, {
       transferId,
       amount: transfer.amount,
       expiresAt: transfer.expiresAt,
@@ -281,7 +281,8 @@ Clp.prototype = {
       this.transfersSent[transferId] = { resolve, reject, condition: transfer.executionCondition, amount: transfer.amount }
     })
   },
-  handleProtocolRequest(protocolName, packet, transfer) {
+
+  handleProtocolRequest (protocolName, packet, transfer) {
     if (this.protocolHandlers[protocolName]) {
       return this.protocolHandlers[protocolName](packet, transfer)
     } else {

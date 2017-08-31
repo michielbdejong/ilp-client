@@ -1,4 +1,4 @@
-const WebSocket = require('ws');
+const WebSocket = require('ws')
 const crypto = require('crypto')
 
 const Forwarder = require('./forwarder')
