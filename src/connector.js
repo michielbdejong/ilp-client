@@ -38,7 +38,7 @@ function Connector (baseLedger, pluginConfigs) {
 }
 
 Connector.prototype = {
-  open (port) {
+  open (port, initialBalancePerPeer = 10000) {
     return new Promise(resolve => {
       this.wss = new WebSocket.Server({ port }, resolve)
     }).then(() => {
@@ -47,7 +47,7 @@ Connector.prototype = {
         const peerId = parts[1]
         // const peerToken = parts[2] // TODO: use this to authorize reconnections
         // console.log('assigned peerId!', peerId)
-        this.peers['peer_' + peerId] = new Peer(this.baseLedger, peerId, 10000, ws, this.quoter, this.forwarder, undefined, (address) => {
+        this.peers['peer_' + peerId] = new Peer(this.baseLedger, peerId, initialBalancePerPeer, ws, this.quoter, this.forwarder, undefined, (address) => {
           this.vouchingMap[address] = peerId
           // console.log('vouched!', this.vouchingMap)
           return Promise.resolve()

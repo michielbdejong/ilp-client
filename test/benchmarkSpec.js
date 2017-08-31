@@ -46,7 +46,7 @@ describe('High Throughput', () => {
       return Promise.all([ this.client1.close(), this.client2.close() ])
     })
 
-    it('should make 10000 CLP to CLP payments (two hops inside single thread)', function () {
+    it('should make 1000 CLP to CLP payments (two hops inside single thread)', function () {
       this.timeout(10000)
       const sendOne = () => {
         const fulfillment = crypto.randomBytes(32)
@@ -68,15 +68,15 @@ describe('High Throughput', () => {
         })
       }
       let promises = []
-      for (let i = 0; i < 10000; i++) {
+      for (let i = 0; i < 1000; i++) {
         promises.push(sendOne())
       }
       return Promise.all(promises)
     })
 
-    it('should make 10000 ilp-plugin-onledger-escrow to CLP payments (using dummy plugin)', function (done) {
+    it('should make 1000 ilp-plugin-onledger-escrow to CLP payments (using dummy plugin)', function (done) {
       this.timeout(10000)
-      const NUM = 10000
+      const NUM = 1000
       const fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
       const condition = sha256(fulfillment)
 
@@ -113,7 +113,7 @@ describe('High Throughput', () => {
       }
     })
 
-    it('should make 10000 CLP to ilp-plugin-onledger-escrow payments (using dummy plugin)', function () {
+    it('should make 1000 CLP to ilp-plugin-onledger-escrow payments (using dummy plugin)', function () {
       this.timeout(10000)
       const fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
       const condition = sha256(fulfillment)
@@ -132,7 +132,7 @@ describe('High Throughput', () => {
       }
       // console.log('test prepared!', transfer, this.connector.peers.ledger_dummy.plugin)
       let promises = []
-      for (let i = 0; i < 10000; i++) {
+      for (let i = 0; i < 1000; i++) {
         promises.push(this.client1.peer.interledgerPayment(transfer, packet).then(result => {
           assert.deepEqual(result, fulfillment)
         }))

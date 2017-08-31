@@ -268,7 +268,7 @@ Clp.prototype = {
         setTimeout(() => { // not sure if this works for deleting the entry
           delete this.requestsSent[requestId]
         }, 0)
-      }
+      }.bind(this)
     }
     this.sendCall(ClpPacket.TYPE_PREPARE, requestId, {
       transferId,

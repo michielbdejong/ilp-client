@@ -12,5 +12,5 @@ const connector = new Connector('peer.testing.', {
 })
 
 // ...
-connector.open(8000)
+connector.open(8000, 1000000)
 console.log('Listening on ws://localhost:8000/')
