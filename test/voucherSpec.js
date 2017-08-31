@@ -7,7 +7,7 @@ const Connector = require('../src/connector')
 const Client = require('../src/client')
 const sha256 = require('../src/sha256')
 
-describe('Connector', () => {
+describe('Vouching System', () => {
   beforeEach(function () {
     this.connector = new Connector('peer.testing.', {
       xrp: {

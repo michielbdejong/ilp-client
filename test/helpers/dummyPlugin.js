@@ -23,6 +23,7 @@ DummyPlugin.prototype = {
     this.successCallback(transferId, conditionBase64)
   },
   rejectIncomingTransfer (transferId, rejectionReasonObj) {
+    // console.log(rejectionReasonObj)
     this.failureCallback(transferId, rejectionReasonObj)
   }
 }
