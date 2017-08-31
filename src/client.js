@@ -34,7 +34,7 @@ Client.prototype = {
   },
 
   // See https://github.com/michielbdejong/ilp-node/issues/9
-  receiveOnLedger(plugin) {
+  sendAndReceiveOnLedger(plugin, connectorAddress) {
     function onIncomingPrepare (transfer, packet) {
       // console.log('client is fulfilling on-ledger!', transfer, transfer.executionCondition.toString('hex'), this.fulfillments)
       return Promise.resolve(this.fulfillments[transfer.executionCondition.toString('hex')])
@@ -44,7 +44,7 @@ Client.prototype = {
       return true
     }
 
-    this.virtualPeer = new VirtualPeer(plugin, onIncomingPrepare.bind(this), vouchChecker)
+    this.virtualPeer = new VirtualPeer(plugin, onIncomingPrepare.bind(this), vouchChecker, connectorAddress)
   },
   knowFulfillment(condition, fulfillment) {
     this.fulfillments[condition.toString('hex')] = fulfillment

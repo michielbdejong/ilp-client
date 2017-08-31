@@ -9,17 +9,20 @@ const VirtualPeer = require('../src/virtual-peer')
 const sha256 = require('../src/sha256')
 
 function Flooder () {
-  this.client1 = new Client()
-  this.client2 = new Client()
-
+  // connector's on-ledger address:
   this.config = require('../config/xrp.js')
+
+  this.wallet0 = this.config[0].prefix + this.config[0].address
+
+  this.client1 = new Client()
   this.plugin1 = new XrpPlugin(this.config[1])
   this.wallet1 = this.config[1].prefix + this.config[1].address
-  this.client1.receiveOnLedger(this.plugin1)
+  this.client1.sendAndReceiveOnLedger(this.plugin1, this.wallet0)
 
+  this.client2 = new Client()
   this.plugin2 = new XrpPlugin(this.config[2])
   this.wallet2 = this.config[2].prefix + this.config[2].address
-  this.client2.receiveOnLedger(this.plugin2)
+  this.client2.sendAndReceiveOnLedger(this.plugin2, this.wallet0)
 }
 
 Flooder.prototype = {
@@ -86,18 +89,16 @@ Flooder.prototype = {
   }
 }
 
-const NUM = 1
+console.log(process.argv)
+const NUM = parseInt(process.argv[2]) || 1
+const from = process.argv[3] || 'clp'
+const to = process.argv[4] || 'clp'
+
 const flooder = new Flooder()
 let startTime
 flooder.open('ws://localhost:8000/').then(() => {
   startTime = new Date().getTime()
-  return flooder.flood(NUM, 'clp', 'clp')
-}).then(() => {
-  return flooder.flood(NUM, 'clp', 'xrp')
-}).then(() => {
-  return flooder.flood(NUM, 'xrp', 'clp')
-}).then(() => {
-  return flooder.flood(NUM, 'xrp', 'xrp')
+  return flooder.flood(NUM, from, to)
 }).then(() => {
   const endTime = new Date().getTime()
   console.log(NUM + ' transfers took ' + (endTime - startTime) + 'ms, that is '  + (1000 * NUM / (endTime - startTime)) + ' payments per second.')
