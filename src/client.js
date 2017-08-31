@@ -5,14 +5,14 @@ const Forwarder = require('./forwarder')
 const Peer = require('./peer')
 const Quoter = require('./quoter')
 
-function Client() {
+function Client () {
   this.name = crypto.randomBytes(16).toString('hex')
   this.token = crypto.randomBytes(16).toString('hex')
   this.fulfillments = {}
 }
 
 Client.prototype = {
-  open(url) {
+  open (url) {
     return new Promise(resolve => {
       this.ws = new WebSocket(url + this.name + '/' + this.token, {
         perMessageDeflate: false
@@ -32,7 +32,7 @@ Client.prototype = {
     })
   },
 
-  close() {
+  close () {
     return new Promise(resolve => {
       this.ws.on('close', () => {
         // console.log('close emitted!')

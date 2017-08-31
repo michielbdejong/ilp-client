@@ -1,5 +1,4 @@
 const assert = require('chai').assert
-const crypto = require('crypto')
 const uuid = require('uuid/v4')
 
 const IlpPacket = require('ilp-packet')
@@ -31,7 +30,7 @@ describe('Connector', () => {
     beforeEach(function () {
       this.client1 = new Client()
       this.client2 = new Client()
-      
+
       this.wallet1 = 'test.crypto.eth.rinkeby.4thgw3dtrseawfrsfdxzsfzsfgdz'
       return Promise.all([ this.client1.open('ws://localhost:8000/'), this.client2.open('ws://localhost:8000/') ]).then(() => {
         const packet = Buffer.concat([

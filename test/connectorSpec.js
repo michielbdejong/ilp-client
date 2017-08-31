@@ -55,7 +55,6 @@ describe('Connector', () => {
       })
     })
 
-
     it('should respond to info', function () {
       const packet = Buffer.from([0])
       return this.client1.peer.clp.unpaid('info', packet).then(response => {
@@ -78,7 +77,7 @@ describe('Connector', () => {
     it('should make a payment', function () {
       const fulfillment = crypto.randomBytes(32)
       const condition = sha256(fulfillment)
-     
+
       this.client2.fulfillments[condition] = fulfillment
       const packet = IlpPacket.serializeIlpPayment({
         amount: '1234',
@@ -101,7 +100,8 @@ describe('Connector', () => {
         assert.equal(response.protocolName, 'balance')
       })
     })
-    it('should store a vouch', function() {
+
+    it('should store a vouch', function () {
       const wallet = 'test.crypto.eth.rinkeby.4thgw3dtrseawfrsfdxzsfzsfgdz'
       // console.log(  Buffer.from([0, wallet.length]), Buffer.from(wallet, 'ascii'))
       const packet = Buffer.concat([

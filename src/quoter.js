@@ -1,10 +1,10 @@
 // This is a simplification of https://github.com/interledgerjs/ilp-routing/blob/master/src/lib/prefix-map.js
 
-function Quoter() {
+function Quoter () {
   this.curves = {}
 }
 
-function findPoint(val, from, to, curveBuf) {
+function findPoint (val, from, to, curveBuf) {
   let cursor = 0
   let prev = [0, 0]
   let next = [0, 0]
@@ -27,16 +27,16 @@ function findPoint(val, from, to, curveBuf) {
   return (prev[to] + perc * (next[to] - prev[to]))
 }
 
-function sourceToDest(x, curve) {
+function sourceToDest (x, curve) {
   return findPoint(x, 0, 1, curve)
 }
 
-function destToSource(y, curve) {
+function destToSource (y, curve) {
   return findPoint(y, 1, 0, curve)
 }
 
 Quoter.prototype = {
-  setCurve(prefix, curveBuf, peer) {
+  setCurve (prefix, curveBuf, peer) {
     // for existing destinations:
     if (typeof this.curves[prefix] !== 'undefined') {
       // enforce same peer as existing curve:
@@ -56,33 +56,33 @@ Quoter.prototype = {
     return true
   },
 
-  findCurve(address) {
+  findCurve (address) {
     const parts = address.split('.')
-    let account = parts.pop()
+    parts.pop()
     while (parts.length) {
       const prefix = parts.join('.') + '.'
       if (this.curves[prefix]) {
         return Object.assign(this.curves[prefix], {
           prefix
         })
-       }
+      }
       parts.pop()
     }
     throw new Error('no curve found')
   },
 
-  answerLiquidity(req) {
+  answerLiquidity (req) {
     const curve = this.findCurve(req.destinationAccount)
     // console.log(curve)
     return Promise.resolve({
       liquidityCurve: curve.buf,
       appliesToPrefix: curve.prefix,
       sourceHoldDuration: 15000,
-      expiresAt: new Date(Date.now() + 3600*1000)
+      expiresAt: new Date(Date.now() + 3600 * 1000)
     })
   },
-  
-  answerBySource(req) {
+
+  answerBySource (req) {
     const curve = this.findCurve(req.destinationAccount)
     // console.log(curve)
     return Promise.resolve({
@@ -90,8 +90,8 @@ Quoter.prototype = {
       sourceHoldDuration: 3000
     })
   },
-  
-  answerByDest(req) {
+
+  answerByDest (req) {
     const curve = this.findCurve(req.destinationAccount)
     // console.log(curve)
     return Promise.resolve({
@@ -100,7 +100,7 @@ Quoter.prototype = {
     })
   },
 
-  findHop(address, amount) {
+  findHop (address, amount) {
     const curve = this.findCurve(address)
     return {
       onwardAmount: destToSource(amount, curve.buf),
@@ -108,13 +108,13 @@ Quoter.prototype = {
     }
   },
 
-  getRoutesArray(omitPeer) {
+  getRoutesArray (omitPeer) {
     let arr = []
     for (let prefix of this.curves) {
       if (this.curves[prefix].peer !== omitPeer) {
         arr.push({
-           destination_ledger: prefix,
-           points: this.curves[prefix].curve.toString('base64')
+          destination_ledger: prefix,
+          points: this.curves[prefix].curve.toString('base64')
         })
       }
     }

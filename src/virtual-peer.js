@@ -1,7 +1,7 @@
 const IlpPacket = require('ilp-packet')
 const uuid = require('uuid/v4')
 
-function VirtualPeer(plugin, forwarder, checkVouch) {
+function VirtualPeer (plugin, forwarder, checkVouch) {
   this.plugin = plugin
   this.forwarder = forwarder
   this.checkVouch = checkVouch
@@ -13,15 +13,15 @@ function VirtualPeer(plugin, forwarder, checkVouch) {
 
 VirtualPeer.prototype = {
 
-  handleTransfer(transfer) {
+  handleTransfer (transfer) {
     // Technically, this is checking the vouch for the wrong
     // amount, but if the vouch checks out for the source amount,
     // then it's also good enough to cover onwardAmount
     if (this.checkVouch(transfer.from, parseInt(transfer.amount))) {
       this.forwarder.forward({
-       expiresAt: new Date(transfer.expiresAt),
-       amount: parseInt(transfer.amount),
-       executionCondition: Buffer.from(transfer.executionCondition, 'base64')
+        expiresAt: new Date(transfer.expiresAt),
+        amount: parseInt(transfer.amount),
+        executionCondition: Buffer.from(transfer.executionCondition, 'base64')
       }, Buffer.from(transfer.ilp, 'base64')).then((fulfillment) => {
         this.plugin.fulfillCondition(transfer.id, fulfillment.toString('base64'))
       }, (err) => {
@@ -40,7 +40,7 @@ VirtualPeer.prototype = {
     }
   },
 
-  interledgerPayment(transfer, payment) {
+  interledgerPayment (transfer, payment) {
     const paymentObj = IlpPacket.deserializeIlpPayment(payment)
     const transferId = uuid()
     const promise = new Promise((resolve, reject) => {
@@ -63,11 +63,11 @@ VirtualPeer.prototype = {
     return promise
   },
 
-  handleFulfill(transfer, fulfillmentBase64) {
+  handleFulfill (transfer, fulfillmentBase64) {
     this.transfersSent[transfer.id].resolve(Buffer.from(fulfillmentBase64, 'base64'))
   },
 
-  handleReject(transfer, rejectionReasonBase64) {
+  handleReject (transfer, rejectionReasonBase64) {
     this.transfersSent[transfer.id].reject(Buffer.from(rejectionReasonBase64, 'base64'))
   }
 }

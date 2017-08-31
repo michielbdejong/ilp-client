@@ -1,14 +1,14 @@
-function DummyPlugin(config) {
+function DummyPlugin (config) {
   this.handlers = {}
   this.transfers = []
   this.prefix = config.prefix
 }
 
 DummyPlugin.prototype = {
-  on(eventName, callback) {
+  on (eventName, callback) {
     this.handlers[eventName] = callback
   },
-  sendTransfer(transfer) {
+  sendTransfer (transfer) {
     this.transfers.push(transfer)
     setTimeout(() => {
       // console.log('dummy plugin fulfills!', transfer, this.fulfillment)
@@ -16,13 +16,13 @@ DummyPlugin.prototype = {
     }, 0)
     return Promise.resolve(null)
   },
-  connect() {},
-  getAccount() { return this.prefix + 'dummy-account' },
-  getInfo() { return { prefix: this.prefix } },
-  fulfillCondition(transferId, conditionBase64) {
+  connect () {},
+  getAccount () { return this.prefix + 'dummy-account' },
+  getInfo () { return { prefix: this.prefix } },
+  fulfillCondition (transferId, conditionBase64) {
     this.successCallback(transferId, conditionBase64)
   },
-  rejectIncomingTransfer(transferId, rejectionReasonObj) {
+  rejectIncomingTransfer (transferId, rejectionReasonObj) {
     this.failureCallback(transferId, rejectionReasonObj)
   }
 }

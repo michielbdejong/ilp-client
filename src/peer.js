@@ -5,7 +5,7 @@ const uuid = require('uuid/v4')
 const sha256 = require('./sha256')
 const Clp = require('./clp')
 
-function lengthPrefixFor(buf) {
+function lengthPrefixFor (buf) {
   if (buf.length < 128) {
     return Buffer.from([buf.length])
   } else {
@@ -39,7 +39,7 @@ const CcpPacket = {
   TYPE_ROUTES: 0,
   TYPE_REQUEST_FULL_TABLE: 1,
 
-  serialize(obj) {
+  serialize (obj) {
     if (obj.type === 0) {
       const dataBuf = JSON.stringify(obj.data)
       return Buffer.concat([
@@ -53,7 +53,7 @@ const CcpPacket = {
     throw new Error('unknown packet type')
   },
 
-  deserialize(dataBuf) {
+  deserialize (dataBuf) {
     let lenLen = 1
     if (dataBuf[0] >= 128) {
       // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
@@ -69,7 +69,7 @@ const CcpPacket = {
 }
 
 const VouchPacket = {
-  deserialize(dataBuf) {
+  deserialize (dataBuf) {
     let lenLen = 1
     let addressLen = dataBuf[1]
     if (dataBuf[1] >= 128) {
@@ -99,19 +99,19 @@ const VouchPacket = {
   }
 }
 
-function assertType(x, typeName) {
+function assertType (x, typeName) {
   if (typeof x !== typeName) {
     throw new Error(JSON.stringify(x) + ' is not a ' + typeName)
    }
 }
 
-function assertClass(x, className) {
+function assertClass (x, className) {
   if (!x instanceof className) {
     throw new Error(JSON.stringify(x) + ' is not a ' + className)
    }
 }
 
-function Peer(baseLedger, peerName, initialBalance, ws, quoter, forwarder, fulfiller, voucher) {
+function Peer (baseLedger, peerName, initialBalance, ws, quoter, forwarder, fulfiller, voucher) {
   this.baseLedger = baseLedger
   this.peerName = peerName
   this.quoter = quoter
@@ -129,7 +129,7 @@ function Peer(baseLedger, peerName, initialBalance, ws, quoter, forwarder, fulfi
 }
 
 Peer.prototype = {
-  handleIlp(dataBuf, transfer) {
+  handleIlp (dataBuf, transfer) {
     if (transfer) {
       if (this.fulfiller) {
         // console.log('trying the fulfiller!')
@@ -155,7 +155,7 @@ Peer.prototype = {
     return Promise.reject(this.makeLedgerError('unknown call id'))
   },
  
-  handleInfo(dataBuf) {
+  handleInfo (dataBuf) {
     if (dataBuf[0] === 0) {
       // console.log('info!', dataBuf)
       return Promise.resolve(InfoPacket.serializeResponse(this.baseLedger + this.peerName))
@@ -163,7 +163,7 @@ Peer.prototype = {
     return Promise.reject(this.makeLedgerError('unknown call id'))
   },
 
-  handleBalance(dataBuf) {
+  handleBalance (dataBuf) {
     if (dataBuf[0] === 0) {
       // console.log('balance!', dataBuf)
       return Promise.resolve(BalancePacket.serializeResponse(this.clp.balance))
@@ -171,7 +171,7 @@ Peer.prototype = {
     return Promise.reject(this.makeLedgerError('unknown call id'))
   },
 
-  handleCcp(dataBuf) {
+  handleCcp (dataBuf) {
     const obj = CcpPacket.deserialize(dataBuf)
     switch (obj.type) {
       case CcpPacket.TYPE_ROUTES:
@@ -195,13 +195,13 @@ Peer.prototype = {
     return Promise.reject(this.makeLedgerError('unknown call id'))
   },
 
-  handleVouch(dataBuf) {
+  handleVouch (dataBuf) {
     const obj = VouchPacket.deserialize(dataBuf)
     // console.log('received vouch!', obj)
     return this.voucher(obj.address)
   },
 
-  interledgerPayment(transfer, payment) {
+  interledgerPayment (transfer, payment) {
     return this.clp.conditional(transfer, [
       {
         protocolName: 'ilp',
@@ -211,7 +211,7 @@ Peer.prototype = {
     ])
   },
 
-  announceRoutes(routes) {
+  announceRoutes (routes) {
     return this.clp.unpaid('ccp', CcpPacket.serialize({
       type: CcpPacket.TYPE_ROUTES,
       data: {

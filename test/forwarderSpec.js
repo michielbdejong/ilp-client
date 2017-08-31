@@ -20,15 +20,15 @@ describe('Forwarder', () => {
     this.fulfillment = fulfillment
     this.payment = IlpPacket.serializeIlpPayment({
       account: 'g.example.dest',
-      amount: '4560',
+      amount: '4560'
     })
 
     this.quoter = new Quoter()
     this.forwarder = new Forwarder(this.quoter, {
       'this one': {
-         interledgerPayment(transfer, payment) {
-           return Promise.resolve(fulfillment)
-         }
+        interledgerPayment (transfer, payment) {
+          return Promise.resolve(fulfillment)
+        }
       }
     })
     // 12345 = 48 * 256 + 57

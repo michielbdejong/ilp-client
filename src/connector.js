@@ -10,7 +10,7 @@ const Plugin = {
 }
 const VirtualPeer = require('./virtual-peer')
 
-function Connector(baseLedger, pluginConfigs) {
+function Connector (baseLedger, pluginConfigs) {
   this.quoter = new Quoter()
   this.peers = {}
   this.baseLedger = baseLedger
@@ -38,7 +38,7 @@ function Connector(baseLedger, pluginConfigs) {
 }
 
 Connector.prototype = {
-  open(port) {
+  open (port) {
     return new Promise(resolve => {
       this.wss = new WebSocket.Server({ port }, resolve)
     }).then(() => {
@@ -59,7 +59,7 @@ Connector.prototype = {
       })
     })
   },
-  close() {
+  close () {
     return new Promise(resolve => {
       this.wss.close(resolve)
     })
