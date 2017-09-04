@@ -4,9 +4,9 @@
   "description": "Connector used for https://github.com/interledger/interledger/wiki/Interledger-over-CLP",
   "main": "src/connector.js",
   "dependencies": {
-    "clp-packet": "github:interledgerjs/clp-packet#mj-serialize-deserialize",
+    "clp-packet": "github:interledgerjs/clp-packet#mj-testnet-1",
     "ilp-packet": "^1.3.0",
-    "ilp-plugin-xrp-escrow": "github:michielbdejong/ilp-plugin-xrp-escrow#mj-ledger-prefix",
+    "ilp-plugin-xrp-escrow": "github:michielbdejong/ilp-plugin-xrp-escrow#mj-testnet-1",
     "uuid": "^3.1.0",
     "ws": "^3.1.0"
   },
