@@ -2,7 +2,7 @@
   "name": "ilp-node",
   "version": "3.0.0",
   "description": "Connector used for https://github.com/interledger/interledger/wiki/Interledger-over-CLP",
-  "main": "src/connector.js",
+  "main": "src/server-from-env-vars.js",
   "dependencies": {
     "clp-packet": "github:interledgerjs/clp-packet#mj-testnet-1",
     "ilp-packet": "^1.3.0",
