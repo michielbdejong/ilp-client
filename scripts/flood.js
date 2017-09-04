@@ -64,7 +64,7 @@ Flooder.prototype = {
     // set up receiver; this will work for both the client's CLP Peer
     // and its XRP VirtualPeer:
     this.client2.knowFulfillment(condition, fulfillment)
-    console.log('receiver set up', condition, fulfillment)
+    // console.log('receiver set up', condition, fulfillment)
 
     const packet = IlpPacket.serializeIlpPayment({
       amount: '1',
@@ -79,11 +79,11 @@ Flooder.prototype = {
     const peerToUse = (from === 'clp' ?
       this.client1.peer :
       this.client1.virtualPeer)
-    console.log('sending payment', from, to)
+    // console.log('sending payment', from, to)
     return peerToUse.interledgerPayment(transfer, packet).then(result => {
-      console.log('success!', from, to, condition, fulfillment, result)
+      // console.log('success!', from, to, condition, fulfillment, result)
     }, (err) => {
-      console.error('fail!', JSON.stringify(err))
+      // console.error('fail!', JSON.stringify(err))
       process.exit(1)
     })
   },
