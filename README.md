@@ -27,7 +27,7 @@ $ node scripts/flood.js 10000 clp clp
 <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Aan_de_Zuidpool_-_p1913-160.jpg">
 
 ```js
-$ node scripts/genSecrets.js wss://amundsen.herokuapp.com
+$ node scripts/genSecrets.js wss://amundsen.herokuapp.com rHrrxo57wXH5AqTgjq91cQCZCpiU16W5ps
 $ cat config/clp.js
 $ vim config/xrp.js
 $ node scripts/flood.js 10000 clp clp

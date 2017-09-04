@@ -15,21 +15,26 @@ function Flooder () {
     clp: require(__dirname + '/../config/clp.js')
   }
 
-  this.wallet0 = this.config.xrp[0].prefix + this.config.xrp[0].address
+
+  // note that this.config.xrp[0] is already used by the server script,
+  // so for the sender and receiver clients here, we use
+  // this.config.xrp[1] and this.config.xrp[2]:
 
   this.client1 = new Client()
   this.client1.name = this.config.clp[0].name
   this.client1.token = this.config.clp[0].token
   this.plugin1 = new XrpPlugin(this.config.xrp[1])
   this.wallet1 = this.config.xrp[1].prefix + this.config.xrp[1].address
-  this.client1.sendAndReceiveOnLedger(this.plugin1, this.wallet0)
+  this.connector1 = this.config.xrp[1].prefix + this.config.xrp[1].connector
+  this.client1.sendAndReceiveOnLedger(this.plugin1, this.connector1)
 
   this.client2 = new Client()
   this.client2.name = this.config.clp[1].name
   this.client2.token = this.config.clp[1].token
   this.plugin2 = new XrpPlugin(this.config.xrp[2])
   this.wallet2 = this.config.xrp[2].prefix + this.config.xrp[2].address
-  this.client2.sendAndReceiveOnLedger(this.plugin2, this.wallet0)
+  this.connector2 = this.config.xrp[2].prefix + this.config.xrp[2].connector
+  this.client2.sendAndReceiveOnLedger(this.plugin2, this.connector2)
 }
 
 Flooder.prototype = {
