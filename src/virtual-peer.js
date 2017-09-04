@@ -48,13 +48,13 @@ VirtualPeer.prototype = {
   },
 
   interledgerPayment (transfer, payment) {
-    // console.log('sending ILP payment on on-ledger transfer')
+    console.log('sending ILP payment on on-ledger transfer')
     const paymentObj = IlpPacket.deserializeIlpPayment(payment)
     const transferId = uuid()
     const promise = new Promise((resolve, reject) => {
       this.transfersSent[transferId] = {
         resolve(result) {
-          // console.log('transfer result in VirtualPeer', result)
+          console.log('transfer result in VirtualPeer', result)
           resolve(result)
         },
         reject(err) {
