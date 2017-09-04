@@ -13,8 +13,13 @@ In another:
 $ node scripts/genSecrets.js
 $ cat config/clp.js
 $ vim config/xrp.js
-$ node scripts/flood.js 
-100000 transfers took 34739ms, that is 2878.6090561040905 payments per second.
+$ node scripts/flood.js 10000 clp clp
+[ '/Users/michiel/.nvm/versions/node/v7.7.1/bin/node',
+  '/Users/michiel/gh/michielbdejong/ilp-node/scripts/flood.js',
+  '10000',
+  'clp',
+  'clp' ]
+10000 transfers took 3058ms, that is 3270.1111837802487 payments per second.
 ```
 
 ## Connect to Amundsen
@@ -25,7 +30,12 @@ $ node scripts/flood.js
 $ node scripts/genSecrets.js wss://amundsen.herokuapp.com
 $ cat config/clp.js
 $ vim config/xrp.js
-$ node scripts/flood.js 
-100000 transfers took 34739ms, that is 2878.6090561040905 payments per second.
+$ node scripts/flood.js 10000 clp clp
+[ '/Users/michiel/.nvm/versions/node/v7.7.1/bin/node',
+  '/Users/michiel/gh/michielbdejong/ilp-node/scripts/flood.js',
+  '10000',
+  'clp',
+  'clp' ]
+10000 transfers took 9044ms, that is 1105.7054400707652 payments per second.
 ```
 
