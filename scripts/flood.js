@@ -9,25 +9,32 @@ const VirtualPeer = require('../src/virtual-peer')
 const sha256 = require('../src/sha256')
 
 function Flooder () {
-  // connector's on-ledger address:
-  this.config = require('../config/xrp.js')
+  this.config = {
+    // connector's on-ledger address:
+    xrp: require(__dirname + '/../config/xrp.js'),
+    clp: require(__dirname + '/../config/clp.js')
+  }
 
-  this.wallet0 = this.config[0].prefix + this.config[0].address
+  this.wallet0 = this.config.xrp[0].prefix + this.config.xrp[0].address
 
   this.client1 = new Client()
-  this.plugin1 = new XrpPlugin(this.config[1])
-  this.wallet1 = this.config[1].prefix + this.config[1].address
+  this.client1.name = this.config.clp[0].name
+  this.client1.token = this.config.clp[0].token
+  this.plugin1 = new XrpPlugin(this.config.xrp[1])
+  this.wallet1 = this.config.xrp[1].prefix + this.config.xrp[1].address
   this.client1.sendAndReceiveOnLedger(this.plugin1, this.wallet0)
 
   this.client2 = new Client()
-  this.plugin2 = new XrpPlugin(this.config[2])
-  this.wallet2 = this.config[2].prefix + this.config[2].address
+  this.client2.name = this.config.clp[1].name
+  this.client2.token = this.config.clp[1].token
+  this.plugin2 = new XrpPlugin(this.config.xrp[2])
+  this.wallet2 = this.config.xrp[2].prefix + this.config.xrp[2].address
   this.client2.sendAndReceiveOnLedger(this.plugin2, this.wallet0)
 }
 
 Flooder.prototype = {
-  open (url) {
-    return Promise.all([ this.client1.open(url), this.client2.open(url) ]).then(() => {
+  open () {
+    return Promise.all([ this.client1.open(this.config.clp[0].url), this.client2.open(this.config.clp[1].url) ]).then(() => {
       return Promise.all([
         this.client1.peer.clp.unpaid('vouch', Buffer.concat([
           Buffer.from([0, this.wallet1.length]),
@@ -96,7 +103,7 @@ const to = process.argv[4] || 'clp'
 
 const flooder = new Flooder()
 let startTime
-flooder.open('ws://localhost:8000/').then(() => {
+flooder.open().then(() => {
   startTime = new Date().getTime()
   return flooder.flood(NUM, from, to)
 }).then(() => {

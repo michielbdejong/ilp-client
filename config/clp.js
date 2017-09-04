@@ -1,0 +1,12 @@
+module.exports = [
+  {
+    "url": "wss://amundsen.herokuapp.com/d2aadb4ff797f82d82a151409d64df69fa3c9104f60b9dcdeca6ab1a416b66fd/58dd66cc7acf0131ed41b678b0336787773286458537f9e5a3749cba21f323a3",
+    "name": "d2aadb4ff797f82d82a151409d64df69fa3c9104f60b9dcdeca6ab1a416b66fd",
+    "token": "58dd66cc7acf0131ed41b678b0336787773286458537f9e5a3749cba21f323a3"
+  },
+  {
+    "url": "wss://amundsen.herokuapp.com/da044d4b198991edfea04f4c4e97849d6013a2c650796a5c01d2c190547496bc/ef50a18c2bee860c6ec79e92913bc1beba917536e9176e533fedeeea30931e78",
+    "name": "da044d4b198991edfea04f4c4e97849d6013a2c650796a5c01d2c190547496bc",
+    "token": "ef50a18c2bee860c6ec79e92913bc1beba917536e9176e533fedeeea30931e78"
+  }
+]

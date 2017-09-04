@@ -1,8 +1,8 @@
 {
   "name": "ilp-node",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Connector used for https://github.com/interledger/interledger/wiki/Interledger-over-CLP",
-  "main": "src/server-from-env-vars.js",
+  "main": "src/connector.js",
   "dependencies": {
     "clp-packet": "github:interledgerjs/clp-packet#mj-testnet-1",
     "ilp-packet": "^1.3.0",
@@ -23,7 +23,7 @@
   "scripts": {
     "lint": "eslint .",
     "test": "mocha",
-    "start": "node src/server.js"
+    "start": "node src/server-from-env-vars.js"
   },
   "engines": {
     "node": ">=8"
