@@ -123,6 +123,7 @@ Clp.prototype = {
       case ClpPacket.TYPE_ACK:
         // console.log('TYPE_ACK!')
         this.requestsSent[obj.requestId].resolve()
+        delete this.requestsSent[obj.requestId]
         break
 
       case ClpPacket.TYPE_RESPONSE:
@@ -131,12 +132,14 @@ Clp.prototype = {
           this.requestsSent[obj.requestId].resolve(obj.data[0])
         } else { // treat it as an ACK, see https://github.com/interledger/rfcs/issues/283
           this.requestsSent[obj.requestId].resolve()
+        delete this.requestsSent[obj.requestId]
         }
         break
 
       case ClpPacket.TYPE_ERROR:
         // console.log('TYPE_ERROR!')
         this.requestsSent[obj.requestId].reject(obj.data.rejectionReason)
+        delete this.requestsSent[obj.requestId]
         break
 
       case ClpPacket.TYPE_PREPARE:
@@ -194,6 +197,7 @@ Clp.prototype = {
           this.transfersSent[obj.data.transferId].resolve(obj.data.fulfillment)
           // console.log('BALANCE INC', this.transfersSent[obj.data.transferId].amount)
           this.balance += this.transfersSent[obj.data.transferId].amount
+          delete this.transfersSent[obj.data.transferId]
           this.sendResult(obj.requestId) // ACK
         }
         break
@@ -204,6 +208,7 @@ Clp.prototype = {
           this.sendError(obj.requestId, this.makeLedgerError('unknown transfer id'))
         } else {
           this.transfersSent[obj.data.transferId].reject(obj.data.rejectionReason)
+          delete this.transfersSent[obj.data.transferId]
           this.sendResult(obj.requestId) // ACK
         }
         break

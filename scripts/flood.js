@@ -114,5 +114,6 @@ flooder.open().then(() => {
 }).then(() => {
   const endTime = new Date().getTime()
   console.log(NUM + ' transfers took ' + (endTime - startTime) + 'ms, that is '  + (1000 * NUM / (endTime - startTime)) + ' payments per second.')
+  // console.log(Object.keys(flooder.client1.peer.clp.transfersSent).length) -> 0
   flooder.close()
 })
