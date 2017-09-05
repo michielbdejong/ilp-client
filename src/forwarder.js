@@ -28,12 +28,18 @@ Forwarder.prototype = {
       // console.log('lack source amount', onwardAmount / 1000, transfer.amount / 1000)
       return Promise.reject(ERROR_LACK_SOURCE_AMOUNT)
     }
-    // console.log('calling')
+    // console.log('calling interledgerPayment')
     return this.peers[onwardPeer].interledgerPayment({
       amount: onwardAmount,
       expiresAt: new Date(transfer.expiresAt.getTime() - MIN_MESSAGE_WINDOW),
       executionCondition: transfer.executionCondition
-    }, paymentPacket)
+    }, paymentPacket).then(result => {
+      // console.log('interledgerPayment result', result)
+      return result
+    }, err => {
+      console.log('interledgerPayment err', err)
+      throw err
+    })
   },
 
   forwardRoute (route) {

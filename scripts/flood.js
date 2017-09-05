@@ -88,8 +88,8 @@ Flooder.prototype = {
     return peerToUse.interledgerPayment(transfer, packet).then(result => {
       // console.log('success!', from, to, condition, fulfillment, result)
     }, (err) => {
-      // console.error('fail!', JSON.stringify(err))
-      process.exit(1)
+      console.error('fail!', JSON.stringify(err))
+      throw err
     })
   },
   flood (num, from, to) {
@@ -114,6 +114,11 @@ flooder.open().then(() => {
 }).then(() => {
   const endTime = new Date().getTime()
   console.log(NUM + ' transfers took ' + (endTime - startTime) + 'ms, that is '  + (1000 * NUM / (endTime - startTime)) + ' payments per second.')
+  // console.log(Object.keys(flooder.client1.peer.clp.transfersSent).length) -> 0
+  flooder.close()
+}, err => {
+  const endTime = new Date().getTime()
+  console.log('FAIL', err, 'took ' + (endTime - startTime) + 'ms.')
   // console.log(Object.keys(flooder.client1.peer.clp.transfersSent).length) -> 0
   flooder.close()
 })

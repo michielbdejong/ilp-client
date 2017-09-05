@@ -172,6 +172,7 @@ Clp.prototype = {
             protocolData: []
           })
         }, (err) => {
+          console.log('could not handle protocol request from PREPARE')
           this.sendCall(ClpPacket.TYPE_REJECT, replyRequestId, {
             transferId: obj.data.transferId,
             rejectionReason: err,
@@ -225,6 +226,7 @@ Clp.prototype = {
           // console.log('sendind back result!', obj, result)
           this.sendResult(obj.requestId, obj.data[0].protocolName, result)
         }, err => {
+          console.log('could not handle protocol request from MESSAGE')
           // console.log('sendind back err!', err)
           this.sendError(obj.requestId, err)
         })
