@@ -87,6 +87,7 @@ VirtualPeer.prototype = {
         code: 'L62',
         name: err.message
       })
+      delete this.transfersSent[transferId]
     })
     return promise
   },
@@ -94,11 +95,13 @@ VirtualPeer.prototype = {
   handleFulfill (transfer, fulfillmentBase64) {
     console.log('handling fulfill!', Buffer.from(transfer.executionCondition, 'base64'), Buffer.from(fulfillmentBase64, 'base64'))
     this.transfersSent[transfer.id].resolve(Buffer.from(fulfillmentBase64, 'base64'))
+    delete this.transfersSent[transferId]
   },
 
   handleReject (transfer, rejectionReasonBase64) {
     console.log('handling reject!', Buffer.from(transfer.executionCondition, 'base64'), Buffer.from(rejectionReasonBase64, 'base64'))
     this.transfersSent[transfer.id].reject(Buffer.from(rejectionReasonBase64, 'base64'))
+    delete this.transfersSent[transferId]
   }
 }
 
