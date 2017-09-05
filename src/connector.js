@@ -59,6 +59,7 @@ Connector.prototype = {
   },
   addPeer(peerType, peerId, initialBalance, ws) {
     const peerName = peerType + '_' + peerId
+    console.log({ peerType, peerId })
                             // function Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
      this.peers[peerName] = new Peer(this.baseLedger, peerName, initialBalance, ws, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (address) => {
        this.vouchingMap[address] = peerName
@@ -71,6 +72,7 @@ Connector.prototype = {
        0, 0, 0, 0, 0, 0, 255, 255,
        0, 0, 0, 0, 0, 0, 255, 255
      ]), 'downstream_' + peerId)
+     return Promise.resolve()
   },
   handleTransfer(transfer, paymentPacket) {
    // console.log('client is fulfilling over CLP!', condition, this.fulfillments)
@@ -82,7 +84,8 @@ Connector.prototype = {
   },
 
   connect (url, peerName) {
-    return new Promise(resolve => {
+    console.log({ url, peerName })
+    return new Promise((resolve, reject) => {
       const ws = new WebSocket(url + this.name + '/' + this.token, {
         perMessageDeflate: false
       })
@@ -94,7 +97,7 @@ Connector.prototype = {
         // console.log('creating client peer')
             // functionp Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
         this.upstreams.push(ws)
-        return this.addPeers('upstream', Buffer.from(url, 'ascii').toString('hex'), 0, ws)
+        this.addPeer('upstream', peerName, this.initialBalancePerPeer || 10000, ws).then(resolve, reject)
       })
     })
   },

@@ -13,7 +13,8 @@ function assertClass (x, className) {
   throw new Error(JSON.stringify(x) + ' is not a ' + className)
 }
 
-function Clp (initialBalance, ws, protocolHandlers) {
+function Clp (baseLedger, initialBalance, ws, protocolHandlers) {
+  this.baseLedger = baseLedger
   this.requestIdUsed = 0
   this.balance = initialBalance // ledger units this node owes to that peer
   this.requestsSent = {}

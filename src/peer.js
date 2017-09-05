@@ -104,8 +104,8 @@ function Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler
   this.transferHandler = transferHandler
   this.routeHandler = routeHandler
   this.voucher = voucher
-
-  this.clp = new Clp(initialBalance, ws, {
+console.log('Peer instantiates Clp', baseLedger)
+  this.clp = new Clp(baseLedger, initialBalance, ws, {
     ilp: this._handleIlp.bind(this),
     vouch: this._handleVouch.bind(this),
     ccp: this._handleCcp.bind(this),

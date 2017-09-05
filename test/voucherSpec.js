@@ -4,7 +4,6 @@ const uuid = require('uuid/v4')
 const IlpPacket = require('ilp-packet')
 
 const Connector = require('../src/connector')
-const Client = require('../src/client')
 const sha256 = require('../src/sha256')
 
 describe('Vouching System', () => {
@@ -28,16 +27,16 @@ describe('Vouching System', () => {
 
   describe('two clients', () => {
     beforeEach(function () {
-      this.client1 = new Client()
-      this.client2 = new Client()
+      this.client1 = new Connector('peer.testing.', {})
+      this.client2 = new Connector('peer.testing.', {})
 
       this.wallet1 = 'test.crypto.eth.rinkeby.4thgw3dtrseawfrsfdxzsfzsfgdz'
-      return Promise.all([ this.client1.open('ws://localhost:8000/'), this.client2.open('ws://localhost:8000/') ]).then(() => {
+      return Promise.all([ this.client1.connect('ws://localhost:8000/', 'local8000'), this.client2.connect('ws://localhost:8000/', 'local8000') ]).then(() => {
         const packet = Buffer.concat([
           Buffer.from([0, this.wallet1.length]),
           Buffer.from(this.wallet1, 'ascii')
         ])
-        return this.client1.peer.clp.unpaid('vouch', packet)
+        return this.client1.peers.upstream_local8000.clp.unpaid('vouch', packet)
       })
     })
     afterEach(function () {
@@ -61,7 +60,7 @@ describe('Vouching System', () => {
         expiresAt: new Date(new Date().getTime() + 100000)
       }
       // console.log('test prepared!', transfer, this.connector.peers.ledger_dummy.plugin)
-      return this.client1.peer.interledgerPayment(transfer, packet).then(result => {
+      return this.client1.peers.upstream_local8000.interledgerPayment(transfer, packet).then(result => {
         assert.deepEqual(result, fulfillment)
         assert.deepEqual(this.connector.peers.ledger_dummy.plugin.transfers[0], {
           id: this.connector.peers.ledger_dummy.plugin.transfers[0].id,
