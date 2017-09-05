@@ -97,12 +97,12 @@ const VouchPacket = {
   }
 }
 
-function Peer (baseLedger, peerName, initialBalance, ws, quoter, forwarder, fulfiller, voucher) {
+function Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
   this.baseLedger = baseLedger
   this.peerName = peerName
   this.quoter = quoter
-  this.forwarder = forwarder
-  this.fulfiller = fulfiller
+  this.transferHandler = transferHandler
+  this.routeHandler = routeHandler
   this.voucher = voucher
 
   this.clp = new Clp(initialBalance, ws, {
@@ -117,16 +117,7 @@ function Peer (baseLedger, peerName, initialBalance, ws, quoter, forwarder, fulf
 Peer.prototype = {
   _handleIlp (dataBuf, transfer) {
     if (transfer) {
-      if (this.fulfiller) {
-        // console.log('trying the fulfiller!')
-        const fulfillment = this.fulfiller(transfer.executionCondition)
-        if (fulfillment) {
-          return Promise.resolve(fulfillment)
-        }
-        // console.log(fulfillment)
-      }
-      // console.log('forwarding payment', obj)
-      return this.forwarder.forward(transfer, dataBuf)
+      return this.transferHandler(transfer, dataBuf)
     }
     const request = IlpPacket.deserializeIlpPacket(dataBuf)
     // console.log('ilp message!', request)
@@ -165,7 +156,7 @@ Peer.prototype = {
         for (let route of obj.new_routes) {
           if (this.quoter.setCurve(route.destination_ledger, Buffer.from(route.points, 'base64'), 'peer_' + this.peerName)) {
             // route is new to us
-            this.forwarder.forwardRoute(route)
+            this.routeHandler(route)
           }
         }
         return Promise.resolve() // ack

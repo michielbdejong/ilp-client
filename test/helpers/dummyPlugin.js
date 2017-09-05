@@ -20,11 +20,11 @@ DummyPlugin.prototype = {
   getAccount () { return this.prefix + 'dummy-account' },
   getInfo () { return { prefix: this.prefix } },
   fulfillCondition (transferId, conditionBase64) {
-    this.successCallback(transferId, conditionBase64)
+    return Promise.resolve(this.successCallback(transferId, conditionBase64))
   },
   rejectIncomingTransfer (transferId, rejectionReasonObj) {
     // console.log(rejectionReasonObj)
-    this.failureCallback(transferId, rejectionReasonObj)
+    return Promise.resolve(this.failureCallback(transferId, rejectionReasonObj))
   }
 }
 

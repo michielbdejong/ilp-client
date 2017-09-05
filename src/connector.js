@@ -18,7 +18,8 @@ function Connector (baseLedger, pluginConfigs) {
   for (let name in pluginConfigs) {
     const plugin = new Plugin[name](pluginConfigs[name])
     plugin.connect()
-    this.peers['ledger_' + name] = new VirtualPeer(plugin, this.forwarder.forward.bind(this.forwarder), (fromAddress, amount) => {
+                           // function VirtualPeer (plugin, forwardCb, checkVouchCb, connectorAddress) {
+    this.peers['ledger_' + name] = new VirtualPeer(plugin, this.handleTransfer.bind(this), (fromAddress, amount) => {
       // console.log('checkVouch', fromAddress, amount, this.vouchingMap)
       if (!this.vouchingMap[fromAddress]) {
         return false
@@ -47,7 +48,8 @@ Connector.prototype = {
         const peerId = parts[1]
         // const peerToken = parts[2] // TODO: use this to authorize reconnections
         // console.log('assigned peerId!', peerId)
-        this.peers['peer_' + peerId] = new Peer(this.baseLedger, peerId, initialBalancePerPeer, ws, this.quoter, this.forwarder, undefined, (address) => {
+                               // function Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
+        this.peers['peer_' + peerId] = new Peer(this.baseLedger, peerId, initialBalancePerPeer, ws, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (address) => {
           this.vouchingMap[address] = peerId
           // console.log('vouched!', this.vouchingMap)
           return Promise.resolve()
@@ -61,6 +63,11 @@ Connector.prototype = {
       })
     })
   },
+
+  handleTransfer(transfer, paymentPacket) {
+   return this.forwarder.forward(transfer, paymentPacket)
+  },
+
   close () {
     return new Promise(resolve => {
       this.wss.close(resolve)

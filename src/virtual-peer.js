@@ -20,14 +20,18 @@ VirtualPeer.prototype = {
     // amount, but if the vouch checks out for the source amount,
     // then it's also good enough to cover onwardAmount
     if (this.checkVouchCb(transfer.from, parseInt(transfer.amount))) {
-      // console.log('forwarding!!')
-      Promise.resolve(this.forwardCb({
+      // console.log('vouch check ok, forwarding!!')
+      const promise = Promise.resolve(this.forwardCb({
         expiresAt: new Date(transfer.expiresAt),
         amount: parseInt(transfer.amount),
         executionCondition: Buffer.from(transfer.executionCondition, 'base64')
-      }, Buffer.from(transfer.ilp, 'base64'))).then((fulfillment) => {
+      }, Buffer.from(transfer.ilp, 'base64')))
+      // console.log('forwarded, promise', promise)
+      promise.then((fulfillment) => {
         // console.log('submitting fulfillment to ledger!', transfer.executionCondition, fulfillment)
-        this.plugin.fulfillCondition(transfer.id, fulfillment.toString('base64')).then(() =>{
+        const fulfilled = this.plugin.fulfillCondition(transfer.id, fulfillment.toString('base64'))
+        // console.log('fulfilled, promise', fulfilled)
+        fulfilled.then(() =>{
           // console.log('submitted that fulfillment to ledger!', transfer.executionCondition, fulfillment)
         }, err => {
           console.log('failed to submit that fulfillment to ledger!', transfer.executionCondition, fulfillment, err)
@@ -37,6 +41,7 @@ VirtualPeer.prototype = {
         this.plugin.rejectIncomingTransfer(transfer.id, IlpPacket.deserializeIlpError(err))
       })
     } else {
+      console.log('vouch check not ok, rejecting!')
       this.plugin.rejectIncomingTransfer(transfer.id, {
         code: 'L53',
         name: 'transfer was sent from a wallet that was not vouched for (sufficiently)',
@@ -60,8 +65,8 @@ VirtualPeer.prototype = {
           resolve(result)
         },
         reject(err) {
-          console.log('transfer err  in VirtualPeer', err, typeof err, Buffer.isBuffer(err))
-          console.log('calling reject', reject)
+          // console.log('transfer err  in VirtualPeer', err, typeof err, Buffer.isBuffer(err))
+          // console.log('calling reject', reject)
           reject(err)
         }
       }

@@ -24,9 +24,10 @@ Client.prototype = {
         this.peers = {}
         this.forwarder = new Forwarder(this.quoter, this.peers)
         // console.log('creating client peer')
-        this.peer = new Peer('client-peer.', this.name, 1000000000, this.ws, this.quoter, this.forwarder, (condition) => {
+            // function Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
+        this.peer = new Peer('client-peer.', this.name, 1000000000, this.ws, this.quoter, (transfer, paymentPacket) => {
           // console.log('client is fulfilling over CLP!', condition, this.fulfillments)
-          return this.fulfillments[condition.toString('hex')]
+          return Promise.resolve(this.fulfillments[transfer.executionCondition.toString('hex')] || this.forwarder.forward(transfer, paymentPacket))
         })
         resolve()
       })
