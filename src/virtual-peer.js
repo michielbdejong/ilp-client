@@ -1,19 +1,36 @@
 const IlpPacket = require('ilp-packet')
 const uuid = require('uuid/v4')
 
-function VirtualPeer (plugin, forwardCb, checkVouchCb, connectorAddress) {
-  this.plugin = plugin
+function VirtualPeer (escrowPlugin, paychanPlugin, forwardCb, checkVouchCb, connectorAddress) {
+  this.escrowPlugin = escrowPlugin
+  this.paychanPlugin = paychanPlugin
   this.forwardCb = forwardCb
   this.checkVouchCb = checkVouchCb
   this.connectorAddress = connectorAddress
   this.transfersSent = {}
-  this.plugin.on('incoming_prepare', this.handleTransfer.bind(this))
-  this.plugin.on('outgoing_fulfill', this.handleFulfill.bind(this))
-  this.plugin.on('outgoing_reject', this.handleReject.bind(this))
+  this.escrowPlugin.on('incoming_prepare', this.handleTransfer.bind(this))
+  this.escrowPlugin.on('outgoing_fulfill', this.handleFulfill.bind(this))
+  this.escrowPlugin.on('outgoing_reject', this.handleReject.bind(this))
 }
 
 VirtualPeer.prototype = {
-
+  createPayChan(from, to, amount) {
+    return new this.PaychanPlugin({
+      _api = opts.api
+      _address = opts.address
+      _secret = opts.secret
+      _amount = opts.amount
+      _fundPercent = new BigNumber('0.8')
+      _destination = opts.destination
+    this._store = opts.store
+    this._keyPair = nacl.sign.keyPair.fromSeed(util.sha256(opts.channelSecret))
+    this._balance = new Balance({
+      //     123456789
+      name: 'balance_o',
+      maximum: this._amount,
+      store: this._store
+    })
+  }
   handleTransfer (transfer) {
     // console.log('handleTransfer!', Buffer.from(transfer.executionCondition, 'base64'))
     // Technically, this is checking the vouch for the wrong
@@ -29,7 +46,7 @@ VirtualPeer.prototype = {
       // console.log('forwarded, promise', promise)
       promise.then((fulfillment) => {
         // console.log('submitting fulfillment to ledger!', transfer.executionCondition, fulfillment)
-        const fulfilled = this.plugin.fulfillCondition(transfer.id, fulfillment.toString('base64'))
+        const fulfilled = this.escrowPlugin.fulfillCondition(transfer.id, fulfillment.toString('base64'))
         // console.log('fulfilled, promise', fulfilled)
         fulfilled.then(() =>{
           // console.log('submitted that fulfillment to ledger!', transfer.executionCondition, fulfillment)
@@ -38,15 +55,15 @@ VirtualPeer.prototype = {
         })
       }, (err) => {
         console.log('could not forward, rejecting')
-        this.plugin.rejectIncomingTransfer(transfer.id, IlpPacket.deserializeIlpError(err))
+        this.escrowPlugin.rejectIncomingTransfer(transfer.id, IlpPacket.deserializeIlpError(err))
       })
     } else {
       console.log('vouch check not ok, rejecting!')
-      this.plugin.rejectIncomingTransfer(transfer.id, {
+      this.escrowPlugin.rejectIncomingTransfer(transfer.id, {
         code: 'L53',
         name: 'transfer was sent from a wallet that was not vouched for (sufficiently)',
         message: 'transfer was sent from a wallet that was not vouched for (sufficiently)',
-        triggered_by: this.plugin.getAccount(),
+        triggered_by: this.escrowPlugin.getAccount(),
         forwarded_by: [],
         triggered_at: new Date().getTime(),
         additional_info: {}
@@ -73,9 +90,9 @@ VirtualPeer.prototype = {
     })
     const lpiTransfer = {
       id: transferId,
-      from: this.plugin.getAccount(),
+      from: this.escrowPlugin.getAccount(),
       to: this.connectorAddress,
-      ledger: this.plugin.getInfo().prefix,
+      ledger: this.escrowPlugin.getInfo().prefix,
       amount: paymentObj.amount,
       ilp: payment.toString('base64'),
       noteToSelf: {},
@@ -89,7 +106,7 @@ VirtualPeer.prototype = {
     }
     // console.log('VirtualPeer calls sendTransfer!', lpiTransfer)
 
-    this.plugin.sendTransfer(lpiTransfer).catch(err => {
+    this.escrowPlugin.sendTransfer(lpiTransfer).catch(err => {
       console.log('sendTransfer failed', err)
       this.transfersSent[transferId].reject({
         code: 'L62',
