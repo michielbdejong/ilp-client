@@ -20,7 +20,7 @@ describe('Vouching System', () => {
       }
     })
 
-    return this.connector.open(8000)
+    return this.connector.listen(8000)
   })
   afterEach(function () {
     return this.connector.close()
@@ -76,8 +76,8 @@ describe('Vouching System', () => {
           custom: {}
         })
         // console.log(this.client1)
-        assert.equal(this.connector.peers['peer_' + this.client1.name].clp.balance, 8765)
-        assert.equal(this.connector.peers['peer_' + this.client2.name].clp.balance, 10000)
+        assert.equal(this.connector.peers['downstream_' + this.client1.name].clp.balance, 8765)
+        assert.equal(this.connector.peers['downstream_' + this.client2.name].clp.balance, 10000)
       })
     })
 
@@ -111,8 +111,8 @@ describe('Vouching System', () => {
       }
       this.connector.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {
         assert.equal(rejectionReasonObj.code, 'L53')
-        assert.equal(this.connector.peers['peer_' + this.client1.name].clp.balance, 10000)
-        assert.equal(this.connector.peers['peer_' + this.client2.name].clp.balance, 10000)
+        assert.equal(this.connector.peers['downstream_' + this.client1.name].clp.balance, 10000)
+        assert.equal(this.connector.peers['downstream_' + this.client2.name].clp.balance, 10000)
         done()
       }
       this.connector.peers.ledger_dummy.plugin.handlers.incoming_prepare(lpiTransfer)
@@ -146,8 +146,8 @@ describe('Vouching System', () => {
       this.connector.peers.ledger_dummy.plugin.successCallback = (transferId, fulfillmentBase64) => {
         assert.equal(transferId, lpiTransfer.id)
         assert.deepEqual(Buffer.from(fulfillmentBase64, 'base64'), fulfillment)
-        assert.equal(this.connector.peers['peer_' + this.client1.name].clp.balance, 10000)
-        assert.equal(this.connector.peers['peer_' + this.client2.name].clp.balance, 11234)
+        assert.equal(this.connector.peers['downstream_' + this.client1.name].clp.balance, 10000)
+        assert.equal(this.connector.peers['downstream_' + this.client2.name].clp.balance, 11234)
         done()
       }
       this.connector.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {

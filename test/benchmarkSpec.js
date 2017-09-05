@@ -21,7 +21,7 @@ describe('High Throughput', () => {
       }
     })
     this.connector.peers.ledger_dummy.fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
-    return this.connector.open(8000)
+    return this.connector.listen(8000)
   })
   afterEach(function () {
     return this.connector.close()

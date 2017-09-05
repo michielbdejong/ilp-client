@@ -1,4 +1,5 @@
 const WebSocket = require('ws')
+const crypto = require('crypto')
 const Quoter = require('./quoter')
 const Forwarder = require('./forwarder')
 const Peer = require('./peer')
@@ -9,6 +10,10 @@ const Plugin = {
 const VirtualPeer = require('./virtual-peer')
 
 function Connector (baseLedger, pluginConfigs) {
+  this.name = crypto.randomBytes(16).toString('hex')
+  this.token = crypto.randomBytes(16).toString('hex')
+  this.upstreams = []
+  this.fulfillments = {}
   this.quoter = new Quoter()
   this.peers = {}
   this.baseLedger = baseLedger
@@ -24,7 +29,7 @@ function Connector (baseLedger, pluginConfigs) {
       if (!this.vouchingMap[fromAddress]) {
         return false
       }
-      const balance = this.peers['peer_' + this.vouchingMap[fromAddress]].clp.balance
+      const balance = this.peers[this.vouchingMap[fromAddress]].clp.balance
       // console.log('checking balance', balance, amount)
       return balance > amount
     })
@@ -39,7 +44,7 @@ function Connector (baseLedger, pluginConfigs) {
 }
 
 Connector.prototype = {
-  open (port, initialBalancePerPeer = 10000) {
+  listen (port, initialBalancePerPeer = 10000) {
     return new Promise(resolve => {
       this.wss = new WebSocket.Server({ port }, resolve)
     }).then(() => {
@@ -48,30 +53,70 @@ Connector.prototype = {
         const peerId = parts[1]
         // const peerToken = parts[2] // TODO: use this to authorize reconnections
         // console.log('assigned peerId!', peerId)
-                               // function Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
-        this.peers['peer_' + peerId] = new Peer(this.baseLedger, peerId, initialBalancePerPeer, ws, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (address) => {
-          this.vouchingMap[address] = peerId
-          // console.log('vouched!', this.vouchingMap)
-          return Promise.resolve()
-        })
-        this.quoter.setCurve(this.baseLedger + peerId + '.', Buffer.from([
-          0, 0, 0, 0, 0, 0, 0, 0,
-          0, 0, 0, 0, 0, 0, 0, 0,
-          0, 0, 0, 0, 0, 0, 255, 255,
-          0, 0, 0, 0, 0, 0, 255, 255
-        ]), 'peer_' + peerId)
+        this.addPeer('downstream', peerId, initialBalancePerPeer, ws)
+      })
+    })
+  },
+  addPeer(peerType, peerId, initialBalance, ws) {
+    const peerName = peerType + '_' + peerId
+                            // function Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
+     this.peers[peerName] = new Peer(this.baseLedger, peerName, initialBalance, ws, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (address) => {
+       this.vouchingMap[address] = peerName
+       // console.log('vouched!', this.vouchingMap)
+       return Promise.resolve()
+     })
+     this.quoter.setCurve(this.baseLedger + peerId + '.', Buffer.from([
+       0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 255, 255,
+       0, 0, 0, 0, 0, 0, 255, 255
+     ]), 'downstream_' + peerId)
+  },
+  handleTransfer(transfer, paymentPacket) {
+   // console.log('client is fulfilling over CLP!', condition, this.fulfillments)
+   return Promise.resolve(this.fulfillments[transfer.executionCondition.toString('hex')] || this.forwarder.forward(transfer, paymentPacket))
+  },
+
+  knowFulfillment(condition, fulfillment) {
+    this.fulfillments[condition.toString('hex')] = fulfillment
+  },
+
+  connect (url, peerName) {
+    return new Promise(resolve => {
+      const ws = new WebSocket(url + this.name + '/' + this.token, {
+        perMessageDeflate: false
+      })
+      ws.on('open', () => {
+        // console.log('ws open')
+        this.quoter = new Quoter()
+        this.peers = {}
+        this.forwarder = new Forwarder(this.quoter, this.peers)
+        // console.log('creating client peer')
+            // functionp Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
+        this.upstreams.push(ws)
+        return this.addPeers('upstream', Buffer.from(url, 'ascii').toString('hex'), 0, ws)
       })
     })
   },
 
-  handleTransfer(transfer, paymentPacket) {
-   return this.forwarder.forward(transfer, paymentPacket)
-  },
-
   close () {
-    return new Promise(resolve => {
-      this.wss.close(resolve)
+    let promises = this.upstreams.map(ws => {
+      return new Promise(resolve => {
+        ws.on('close', () => {
+          // console.log('close emitted!')
+          resolve()
+        })
+        // console.log('closing client!')
+        ws.close()
+        // console.log('started closing client!')
+      })
     })
+    if (this.wss) {
+      promises.push(new Promise(resolve => {
+        return this.wss.close(resolve)
+      }))
+    }
+    return Promise.all(promises)
   }
 }
 

@@ -20,7 +20,7 @@ describe('Connector', () => {
       }
     })
     this.connector.peers.ledger_dummy.fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
-    return this.connector.open(8000)
+    return this.connector.listen(8000)
   })
   afterEach(function () {
     return this.connector.close()
@@ -61,7 +61,7 @@ describe('Connector', () => {
         const infoStr = response.data.slice(2).toString('ascii') // assume length <= 127
         assert.deepEqual(response.data[0], 2)
         assert.deepEqual(response.data[1], infoStr.length)
-        assert.deepEqual(infoStr, 'peer.testing.' + this.client1.name)
+        assert.deepEqual(infoStr, 'peer.testing.downstream_' + this.client1.name)
         assert.equal(response.protocolName, 'info')
       })
     })
@@ -91,8 +91,8 @@ describe('Connector', () => {
       }
       return this.client1.peer.interledgerPayment(transfer, packet).then(result => {
         assert.deepEqual(result, fulfillment)
-        assert.equal(this.connector.peers['peer_' + this.client1.name].clp.balance, 8766)
-        assert.equal(this.connector.peers['peer_' + this.client2.name].clp.balance, 11234)
+        assert.equal(this.connector.peers['downstream_' + this.client1.name].clp.balance, 8766)
+        assert.equal(this.connector.peers['downstream_' + this.client2.name].clp.balance, 11234)
         return this.client1.peer.clp.unpaid('balance', Buffer.from([0]))
       }).then(response => {
         // (10000 - 1234) = 34 * 256 + 62
@@ -110,7 +110,7 @@ describe('Connector', () => {
       ])
       return this.client1.peer.clp.unpaid('vouch', packet).then(result => {
         // console.log(result)
-        assert.equal(this.connector.vouchingMap[wallet], this.client1.name)
+        assert.equal(this.connector.vouchingMap[wallet], 'downstream_' + this.client1.name)
       })
     })
   })
