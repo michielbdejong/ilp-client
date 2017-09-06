@@ -94,6 +94,21 @@ const CcpPacket = {
 }
 
 const VouchPacket = {
+  TYPE_VOUCH: 1,
+  TYPE_REACHME: 2,
+  TYPE_ROLLBACK: 3,
+
+  serialize (obj) {
+    // TODO: Implement TYPE_ROLLBACK
+    console.log('serializing!', obj)
+    const addressBuf = Buffer.from(obj.address, 'ascii')
+    return Buffer.concat([
+      Buffer.from([obj.type]),
+      lengthPrefixFor(addressBuf),
+      addressBuf
+    ])
+  },
+
   deserialize (dataBuf) {
     let lenLen = 1
     let addressLen = dataBuf[1]
@@ -230,6 +245,11 @@ Peer.prototype = {
     return this.clp.unpaid('info', Buffer.from([ 0 ])).then(responseMainProtocolData => {
       return InfoPacket.deserialize(responseMainProtocolData.data).address
     })
+  },
+  vouchBothWays(address) {
+    const packet1 = VouchPacket.serialize({ type: VouchPacket.TYPE_VOUCH, address })
+    const packet2 = VouchPacket.serialize({ type: VouchPacket.TYPE_REACHME, address })
+    return Promise.all([this.clp.unpaid('vouch', packet1), this.clp.unpaid('vouch', packet2) ])
   }
 }
 

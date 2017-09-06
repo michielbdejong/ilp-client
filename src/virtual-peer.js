@@ -80,7 +80,7 @@ VirtualPeer.prototype = {
       ilp: payment.toString('base64'),
       noteToSelf: {},
       executionCondition: transfer.executionCondition.toString('base64'),
-      expiresAt: transfer.expiresAt,//.toISOString(),
+      expiresAt: transfer.expiresAt.toISOString(),
       custom: {}
     }
     if (paymentObj.account.startsWith(lpiTransfer.ledger)) {

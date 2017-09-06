@@ -11,11 +11,13 @@ const VirtualPeer = require('./virtual-peer')
 
 function IlpNode (config) {
   this.upstreams = []
+  this.plugins = []
+  this.vouchableAddresses = []
+  this.vouchablePeers = []
   this.fulfillments = {}
   this.quoter = new Quoter()
   this.peers = {}
   this.defaultPeers = {}
-  this.plugins = []
   this.config = config
   this.forwarder = new Forwarder(this.quoter, this.peers)
   this.vouchingMap = {}
@@ -37,7 +39,9 @@ function IlpNode (config) {
       // console.log('checking balance', balance, amount)
       return balance > amount
     })
-
+    // auto-vouch ledger VirtualPeer -> all existing CLP peers
+    this.addVouchableAddress(plugin.getAccount())
+    // and add the plugin ledger as a destination in to the routing table:
     this.quoter.setCurve(plugin.getInfo().prefix, Buffer.from([
       0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0,
@@ -48,6 +52,18 @@ function IlpNode (config) {
 }
 
 IlpNode.prototype = {
+  addVouchablePeer(peerName) {
+    this.vouchablePeers.push(peerName)
+    return Promise.all(this.vouchableAddresses.map(address => {
+      return this.peers[peerName].vouchBothWays(address)
+    }))
+  },
+  addVouchableAddress(address) {
+    this.vouchableAddresses.push(address)
+    return Promise.all(this.vouchablePeers.map(peerName => {
+      return this.peers[peerName].vouchBothWays(address)
+    }))
+  },
   addClpPeer(peerType, peerId, ws) {
     const peerName = peerType + '_' + peerId
 
@@ -56,19 +72,22 @@ IlpNode.prototype = {
 
     const ledgerPrefix = 'peer.testing.' + this.config.clp.name + '.' + peerName + '.'
     console.log({ peerType, peerId })
-                            // function Peer (ledgerPrefix, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
-     this.peers[peerName] = new Peer(ledgerPrefix, peerName, this.config.clp.initialBalancePerPeer, ws, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (address) => {
-       this.vouchingMap[address] = peerName
-       // console.log('vouched!', this.vouchingMap)
-       return Promise.resolve()
-     })
-     this.quoter.setCurve(ledgerPrefix, Buffer.from([
-       0, 0, 0, 0, 0, 0, 0, 0,
-       0, 0, 0, 0, 0, 0, 0, 0,
-       0, 0, 0, 0, 0, 0, 255, 255,
-       0, 0, 0, 0, 0, 0, 255, 255
-     ]), peerName)
-     return Promise.resolve()
+                   // function Peer (ledgerPrefix, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
+    this.peers[peerName] = new Peer(ledgerPrefix, peerName, this.config.clp.initialBalancePerPeer, ws, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (address) => {
+      this.vouchingMap[address] = peerName
+      // console.log('vouched!', this.vouchingMap)
+      return Promise.resolve()
+    })
+    // auto-vouch all existing ledger VirtualPeers -> CLP peer
+    this.addVouchablePeer(peerName)
+    // and add the CLP trustline as a destination in to the routing table:
+    this.quoter.setCurve(ledgerPrefix, Buffer.from([
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 255, 255,
+      0, 0, 0, 0, 0, 0, 255, 255
+    ]), peerName)
+    return Promise.resolve()
   },
 
   connectPlugins() {

@@ -108,15 +108,10 @@ describe('IlpNode', () => {
     })
 
     it('should store a vouch', function () {
-      const wallet = 'test.crypto.eth.rinkeby.4thgw3dtrseawfrsfdxzsfzsfgdz'
-      // console.log(  Buffer.from([0, wallet.length]), Buffer.from(wallet, 'ascii'))
-      const packet = Buffer.concat([
-        Buffer.from([0, wallet.length]),
-        Buffer.from(wallet, 'ascii')
-      ])
-      return this.client1.peers.upstream_wslocalhost8000.clp.unpaid('vouch', packet).then(result => {
+      const address = 'test.crypto.eth.rinkeby.4thgw3dtrseawfrsfdxzsfzsfgdz'
+      return this.client1.peers.upstream_wslocalhost8000.vouchBothWays(address).then(result => {
         // console.log(result)
-        assert.equal(this.ilpNode.vouchingMap[wallet], 'downstream_' + this.client1.config.clp.name)
+        assert.equal(this.ilpNode.vouchingMap[address], 'downstream_' + this.client1.config.clp.name)
       })
     })
   })
