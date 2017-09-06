@@ -3,12 +3,18 @@ const crypto = require('crypto')
 
 const IlpPacket = require('ilp-packet')
 
-const Connector = require('../src/connector')
+const IlpNode = require('../src/index')
 const sha256 = require('../src/sha256')
 
-describe('Connector', () => {
+describe('IlpNode', () => {
   beforeEach(function () {
-    this.connector = new Connector('peer.testing.', {
+    this.ilpNode = new IlpNode({
+      clp: {
+        listen: 8000,
+        name: 'server',
+        initialBalancePerPeer: 10000,
+        upstreams: []
+      },
       xrp: {
         secret: 'shRm6dnkLMzTxBUMgCy6bB6jweS3X',
         server: 'wss://s.altnet.rippletest.net:51233',
@@ -18,37 +24,37 @@ describe('Connector', () => {
         prefix: 'test.crypto.eth.rinkeby.'
       }
     })
-    this.connector.peers.ledger_dummy.fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
-    return this.connector.listen(8000)
+    this.ilpNode.peers.ledger_dummy.fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
+    return this.ilpNode.start()
   })
   afterEach(function () {
-    return this.connector.close()
+    return this.ilpNode.stop()
   })
 
   describe('two clients', () => {
     beforeEach(function () {
-      this.client1 = new Connector('peer.testing.', {})
-      this.client2 = new Connector('peer.testing.', {})
+      this.client1 = new IlpNode({ clp: { name: 'client1', upstreams: [ { url: 'ws://localhost:8000', token: 'foo' } ] } })
+      this.client2 = new IlpNode({ clp: { name: 'client2', upstreams: [ { url: 'ws://localhost:8000', token: 'bar' } ] } })
       // return this.client1.open('ws://localhost:8000/')
-      return Promise.all([ this.client1.connect('ws://localhost:8000/', 'local8000'), this.client2.connect('ws://localhost:8000/', 'local8000') ])
+      return Promise.all([ this.client1.start(), this.client2.start() ])
     })
     afterEach(function () {
       // return this.client1.close()
-      return Promise.all([ this.client1.close(), this.client2.close() ])
+      return Promise.all([ this.client1.stop(), this.client2.stop() ])
     })
 
     it('should respond to quote', function () {
       // console.log('in the test!')
       const packet = IlpPacket.serializeIlqpLiquidityRequest({
-        destinationAccount: 'peer.testing.' + this.client2.name + '.hi',
+        destinationAccount: 'peer.testing.server.downstream_client2.hi',
         destinationHoldDuration: 3000
       })
- console.log(this.client1.peers)
-      return this.client1.peers.upstream_local8000.clp.unpaid('ilp', packet).then(result => {
+ console.log('asking quote', this.client1.peers)
+      return this.client1.peers.upstream_wslocalhost8000.clp.unpaid('ilp', packet).then(result => {
         const resultObj = IlpPacket.deserializeIlqpLiquidityResponse(result.data)
         assert.deepEqual(resultObj, {
           liquidityCurve: Buffer.from('00000000000000000000000000000000000000000000ffff000000000000ffff', 'hex'),
-          appliesToPrefix: 'peer.testing.' + this.client2.name + '.',
+          appliesToPrefix: 'peer.testing.server.downstream_client2.',
           sourceHoldDuration: 15000,
           expiresAt: resultObj.expiresAt
         })
@@ -57,18 +63,18 @@ describe('Connector', () => {
 
     it('should respond to info', function () {
       const packet = Buffer.from([0])
-      return this.client1.peers.upstream_local8000.clp.unpaid('info', packet).then(response => {
+      return this.client1.peers.upstream_wslocalhost8000.clp.unpaid('info', packet).then(response => {
         const infoStr = response.data.slice(2).toString('ascii') // assume length <= 127
         assert.deepEqual(response.data[0], 2)
         assert.deepEqual(response.data[1], infoStr.length)
-        assert.deepEqual(infoStr, 'peer.testing.downstream_' + this.client1.name)
+        assert.deepEqual(infoStr, 'peer.testing.server.downstream_client1')
         assert.equal(response.protocolName, 'info')
       })
     })
 
     it('should respond to balance', function () {
       const packet = Buffer.from([0])
-      return this.client1.peers.upstream_local8000.clp.unpaid('balance', packet).then(response => {
+      return this.client1.peers.upstream_wslocalhost8000.clp.unpaid('balance', packet).then(response => {
         assert.deepEqual(response.data, Buffer.from('02080000000000002710', 'hex'))
         assert.equal(response.protocolName, 'balance')
       })
@@ -81,7 +87,7 @@ describe('Connector', () => {
       this.client2.knowFulfillment(condition, fulfillment)
       const packet = IlpPacket.serializeIlpPayment({
         amount: '1234',
-        account: 'peer.testing.' + this.client2.name + '.hi'
+        account: 'peer.testing.server.downstream_client2.hi'
       })
       const transfer = {
         // transferId will be added  by Peer#conditional(transfer, protocolData)
@@ -89,11 +95,11 @@ describe('Connector', () => {
         executionCondition: condition,
         expiresAt: new Date(new Date().getTime() + 100000)
       }
-      return this.client1.peers.upstream_local8000.interledgerPayment(transfer, packet).then(result => {
+      return this.client1.peers.upstream_wslocalhost8000.interledgerPayment(transfer, packet).then(result => {
         assert.deepEqual(result, fulfillment)
-        assert.equal(this.connector.peers['downstream_' + this.client1.name].clp.balance, 8766)
-        assert.equal(this.connector.peers['downstream_' + this.client2.name].clp.balance, 11234)
-        return this.client1.peers.upstream_local8000.clp.unpaid('balance', Buffer.from([0]))
+        assert.equal(this.ilpNode.peers['downstream_' + this.client1.config.clp.name].clp.balance, 8766)
+        assert.equal(this.ilpNode.peers['downstream_' + this.client2.config.clp.name].clp.balance, 11234)
+        return this.client1.peers.upstream_wslocalhost8000.clp.unpaid('balance', Buffer.from([0]))
       }).then(response => {
         // (10000 - 1234) = 34 * 256 + 62
         assert.deepEqual(response.data, Buffer.from([2, 8, 0, 0, 0, 0, 0, 0, 34, 62]))
@@ -108,9 +114,9 @@ describe('Connector', () => {
         Buffer.from([0, wallet.length]),
         Buffer.from(wallet, 'ascii')
       ])
-      return this.client1.peers.upstream_local8000.clp.unpaid('vouch', packet).then(result => {
+      return this.client1.peers.upstream_wslocalhost8000.clp.unpaid('vouch', packet).then(result => {
         // console.log(result)
-        assert.equal(this.connector.vouchingMap[wallet], 'downstream_' + this.client1.name)
+        assert.equal(this.ilpNode.vouchingMap[wallet], 'downstream_' + this.client1.config.clp.name)
       })
     })
   })

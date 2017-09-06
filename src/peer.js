@@ -135,7 +135,7 @@ Peer.prototype = {
   _handleInfo (dataBuf) {
     if (dataBuf[0] === 0) {
       // console.log('info!', dataBuf)
-      return Promise.resolve(InfoPacket.serializeResponse(this.baseLedger + this.peerName))
+      return Promise.resolve(InfoPacket.serializeResponse(this.baseLedger.substring(0, this.baseLedger.length - 1)))
     }
     return Promise.reject(this.makeLedgerError('unknown call id'))
   },

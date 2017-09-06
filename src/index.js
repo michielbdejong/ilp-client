@@ -23,6 +23,7 @@ function IlpNode (config) {
     if (name === 'clp') {
       continue
     }
+    console.log('plugin', config, name)
     const plugin = new Plugin[name](this.config[name])
     this.plugins.push(plugin)
                            // function VirtualPeer (plugin, forwardCb, checkVouchCb, connectorAddress) {
@@ -48,15 +49,15 @@ function IlpNode (config) {
 IlpNode.prototype = {
   addClpPeer(peerType, peerId, ws) {
     const peerName = peerType + '_' + peerId
-    const baseLedger = 'peer.testing.' + this.config.clp.name + '.' + peerName
+    const ledgerPrefix = 'peer.testing.' + this.config.clp.name + '.' + peerName + '.'
     console.log({ peerType, peerId })
-                            // function Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
-     this.peers[peerName] = new Peer(baseLedger, peerName, this.config.clp.initialBalancePerPeer, ws, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (address) => {
+                            // function Peer (ledgerPrefix, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
+     this.peers[peerName] = new Peer(ledgerPrefix, peerName, this.config.clp.initialBalancePerPeer, ws, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (address) => {
        this.vouchingMap[address] = peerName
        // console.log('vouched!', this.vouchingMap)
        return Promise.resolve()
      })
-     this.quoter.setCurve(this.baseLedger + peerId + '.', Buffer.from([
+     this.quoter.setCurve(ledgerPrefix, Buffer.from([
        0, 0, 0, 0, 0, 0, 0, 0,
        0, 0, 0, 0, 0, 0, 0, 0,
        0, 0, 0, 0, 0, 0, 255, 255,
@@ -74,10 +75,10 @@ IlpNode.prototype = {
   },
 
   maybeListen () {
+    if (typeof this.config.clp.listen !== 'number') {
+      return Promise.resolve()
+    }
     return new Promise(resolve => {
-      if (typeof this.config.clp.listen !== 'number') {
-        return
-      }
       this.wss = new WebSocket.Server({ port: this.config.clp.listen }, resolve)
     }).then(() => {
       this.wss.on('connection', (ws, httpReq) => {
@@ -111,9 +112,9 @@ IlpNode.prototype = {
 
   start() {
     return Promise.all([
-      this.maybeListen(),
-      this.connectToUpstreams(),
-      this.connectPlugins()
+      this.maybeListen().then(() => { console.log('maybeListen done', this.config) }),
+      this.connectToUpstreams().then(() => { console.log('connectToUpstreams done', this.config) }),
+      this.connectPlugins().then(() => { console.log('connectPlugins done', this.config) })
     ])
   },
 
