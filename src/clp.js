@@ -128,7 +128,7 @@ Clp.prototype = {
         break
 
       case ClpPacket.TYPE_RESPONSE:
-        console.log('TYPE_RESPONSE!', obj)
+        // console.log('TYPE_RESPONSE!', obj)
         if (Array.isArray(obj.data) && obj.data.length) {
           this.requestsSent[obj.requestId].resolve(obj.data[0])
         } else { // treat it as an ACK, see https://github.com/interledger/rfcs/issues/283
@@ -257,12 +257,12 @@ Clp.prototype = {
   },
 
   conditional (transfer, protocolData) {
-    console.log('asserting')
+    // console.log('asserting')
     assertType(transfer.amount, 'number')
     assertClass(transfer.executionCondition, Buffer)
     assertClass(transfer.expiresAt, Date)
 
-    console.log('conditional(', {transfer, protocolData})
+    // console.log('conditional(', {transfer, protocolData})
     const requestId = ++this.requestIdUsed
     const transferId = uuid()
     this.requestsSent[requestId] = {
@@ -280,7 +280,7 @@ Clp.prototype = {
         }, 0)
       }.bind(this)
     }
-    console.log('sending PREPARE')
+    // console.log('sending PREPARE')
     this.sendCall(ClpPacket.TYPE_PREPARE, requestId, {
       transferId,
       amount: transfer.amount,
@@ -288,7 +288,7 @@ Clp.prototype = {
       executionCondition: transfer.executionCondition,
       protocolData
     })
-    console.log('sent!')
+    // console.log('sent!')
     return new Promise((resolve, reject) => {
       this.transfersSent[transferId] = { resolve, reject, condition: transfer.executionCondition, amount: transfer.amount }
     })

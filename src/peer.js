@@ -27,7 +27,7 @@ const InfoPacket = {
   TYPE_RESPONSE: 2,
 
   serializeResponse (info) {
-    console.log('serializing!', info)
+    // console.log('serializing!', info)
     const infoBuf = Buffer.from(info, 'ascii')
     return Buffer.concat([
       Buffer.from([this.TYPE_RESPONSE]),
@@ -47,7 +47,7 @@ const InfoPacket = {
         lenLen = 1 + (dataBuf[1] - 128)
       }
       try {
-        console.log(dataBuf.toString('hex'), dataBuf.slice(lenLen + 1).toString('ascii'))
+        // console.log(dataBuf.toString('hex'), dataBuf.slice(lenLen + 1).toString('ascii'))
         obj.address = dataBuf.slice(lenLen + 1).toString('ascii')
       } catch (e) {
       }
@@ -100,7 +100,7 @@ const VouchPacket = {
 
   serialize (obj) {
     // TODO: Implement TYPE_ROLLBACK
-    console.log('serializing!', obj)
+    // console.log('serializing!', obj)
     const addressBuf = Buffer.from(obj.address, 'ascii')
     return Buffer.concat([
       Buffer.from([obj.type]),
@@ -146,7 +146,7 @@ function Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler
   this.transferHandler = transferHandler
   this.routeHandler = routeHandler
   this.voucher = voucher
-  console.log('Peer instantiates Clp', baseLedger, initialBalance)
+  // console.log('Peer instantiates Clp', baseLedger, initialBalance)
   this.clp = new Clp(baseLedger, initialBalance, ws, {
     ilp: this._handleIlp.bind(this),
     vouch: this._handleVouch.bind(this),
@@ -176,7 +176,7 @@ Peer.prototype = {
 
   _handleInfo (dataBuf) {
     if (dataBuf[0] === 0) {
-      console.log('info!', dataBuf)
+      // console.log('info!', dataBuf)
       return Promise.resolve(InfoPacket.serializeResponse(this.baseLedger.substring(0, this.baseLedger.length - 1)))
     }
     return Promise.reject(this.makeLedgerError('unknown call id'))
@@ -221,7 +221,7 @@ Peer.prototype = {
   },
 
   interledgerPayment (transfer, payment) {
-    console.log('sending ILP payment on CLP transfer')
+    // console.log('sending ILP payment on CLP transfer')
     return this.clp.conditional(transfer, [
       {
         protocolName: 'ilp',

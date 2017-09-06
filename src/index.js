@@ -27,7 +27,7 @@ function IlpNode (config) {
     if (name === 'clp') {
       continue
     }
-    console.log('plugin', config, name)
+    // console.log('plugin', config, name)
     const plugin = new Plugin[name](this.config[name])
     this.plugins.push(plugin)
     //                        function VirtualPeer (plugin, forwardCb, connectorAddress) {
@@ -48,7 +48,7 @@ IlpNode.prototype = {
   addVouchablePeer (peerName) {
     this.vouchablePeers.push(peerName)
     return Promise.all(this.vouchableAddresses.map(address => {
-      console.log('new vouchable peer', peerName, address)
+      // console.log('new vouchable peer', peerName, address)
       return this.peers[peerName].vouchBothWays(address)
     }))
   },
@@ -56,7 +56,7 @@ IlpNode.prototype = {
   addVouchableAddress (address) {
     this.vouchableAddresses.push(address)
     return Promise.all(this.vouchablePeers.map(peerName => {
-      console.log('new vouchable address', peerName, address)
+      // console.log('new vouchable address', peerName, address)
       return this.peers[peerName].vouchBothWays(address)
     }))
   },
@@ -68,7 +68,7 @@ IlpNode.prototype = {
     this.defaultClpPeer = peerName
 
     const ledgerPrefix = 'peer.testing.' + this.config.clp.name + '.' + peerName + '.'
-    console.log({ peerType, peerId })
+    // console.log({ peerType, peerId })
     //                function Peer (ledgerPrefix, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
     this.peers[peerName] = new Peer(ledgerPrefix, peerName, this.config.clp.initialBalancePerPeer, ws, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (address) => {
       this.vouchingMap[address] = peerName
@@ -115,7 +115,7 @@ IlpNode.prototype = {
   connectToUpstreams () {
     return Promise.all(this.config.clp.upstreams.map(upstreamConfig => {
       const peerName = upstreamConfig.url.replace(/(?!\w)./g, '')
-      console.log({ url: upstreamConfig.url, peerName })
+      // console.log({ url: upstreamConfig.url, peerName })
       return new Promise((resolve, reject) => {
         // console.log('connecting to upstream WebSocket', upstreamConfig.url + '/' + this.config.clp.name + '/' + upstreamConfig.token, this.config.clp, upstreamConfig)
         const ws = new WebSocket(upstreamConfig.url + '/' + this.config.clp.name + '/' + upstreamConfig.token, {
@@ -132,9 +132,9 @@ IlpNode.prototype = {
 
   start () {
     return Promise.all([
-      this.maybeListen().then(() => { console.log('maybeListen done', this.config) }),
-      this.connectToUpstreams().then(() => { console.log('connectToUpstreams done', this.config) }),
-      this.connectPlugins().then(() => { console.log('connectPlugins done', this.config) })
+      this.maybeListen(), // .then(() => { console.log('maybeListen done', this.config) }),
+      this.connectToUpstreams(), // .then(() => { console.log('connectToUpstreams done', this.config) }),
+      this.connectPlugins() // .then(() => { console.log('connectPlugins done', this.config) })
     ])
   },
 
@@ -163,13 +163,13 @@ IlpNode.prototype = {
   },
 
   checkVouch (fromAddress, amount) {
-    console.log('checkVouch', fromAddress, amount, this.vouchingMap)
+    // console.log('checkVouch', fromAddress, amount, this.vouchingMap)
     if (!this.vouchingMap[fromAddress]) {
       return false
     }
-    console.log('vouching peer is', this.vouchingMap[fromAddress], Object.keys(this.peers))
+    // console.log('vouching peer is', this.vouchingMap[fromAddress], Object.keys(this.peers))
     const balance = this.peers[this.vouchingMap[fromAddress]].clp.balance
-    console.log('checking balance', balance, amount)
+    // console.log('checking balance', balance, amount)
     return balance > amount
   },
 
@@ -199,7 +199,7 @@ IlpNode.prototype = {
   },
 
   getPeer (ledger) {
-    console.log(this.defaultClpPeer, Object.keys(this.peers))
+    // console.log(this.defaultClpPeer, Object.keys(this.peers))
     if (ledger === 'clp') {
       // FIXME: this is a hacky way to make `node scripts/flood.js 1 clp clp` work  
       return this.peers[this.defaultClpPeer]
