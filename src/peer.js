@@ -23,14 +23,36 @@ const BalancePacket = {
   }
 }
 const InfoPacket = {
+  TYPE_REQUEST: 1,
+  TYPE_RESPONSE: 2,
+
   serializeResponse (info) {
     console.log('serializing!', info)
     const infoBuf = Buffer.from(info, 'ascii')
     return Buffer.concat([
-      Buffer.from([2]),
+      Buffer.from([this.TYPE_RESPONSE]),
       lengthPrefixFor(infoBuf),
       infoBuf
     ])
+  },
+
+  deserialize (dataBuf) {
+    let obj = {
+      type: dataBuf[0]
+    }
+    if (dataBuf[0] === this.TYPE_RESPONSE) {
+      let lenLen = 1
+      if (dataBuf[1] >= 128) {
+        // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
+        lenLen = 1 + (dataBuf[1] - 128)
+      }
+      try {
+        console.log(dataBuf.toString('hex'), dataBuf.slice(lenLen + 1).toString('ascii'))
+        obj.address = dataBuf.slice(lenLen + 1).toString('ascii')
+      } catch (e) {
+      }
+    }
+    return obj
   }
 }
 
@@ -53,15 +75,19 @@ const CcpPacket = {
   },
 
   deserialize (dataBuf) {
-    let lenLen = 1
-    if (dataBuf[0] >= 128) {
-      // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
-      lenLen = 1 + (dataBuf[0] - 128)
+    let obj = {
+      type: dataBuf[0]
     }
-    let obj
-    try {
-      obj = JSON.parse(dataBuf.slice(lenLen).toString('ascii'))
-    } catch (e) {
+    if (dataBuf[0] === this.TYPE_ROUTE) {
+      let lenLen = 1
+      if (dataBuf[1] >= 128) {
+        // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
+        lenLen = 1 + (dataBuf[1] - 128)
+      }
+      try {
+        obj.data = JSON.parse(dataBuf.slice(lenLen + 1).toString('ascii'))
+      } catch (e) {
+      }
     }
     return obj
   }
@@ -73,7 +99,7 @@ const VouchPacket = {
     let addressLen = dataBuf[1]
     if (dataBuf[1] >= 128) {
       // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
-      lenLen = 1 + (dataBuf[0] - 128)
+      lenLen = 1 + (dataBuf[1] - 128)
       // TODO: write unit tests for this code and see if we can use it to
       // read the address, condition, and amount of a rollback
       addressLen = 0
@@ -105,7 +131,7 @@ function Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler
   this.transferHandler = transferHandler
   this.routeHandler = routeHandler
   this.voucher = voucher
-console.log('Peer instantiates Clp', baseLedger)
+  console.log('Peer instantiates Clp', baseLedger)
   this.clp = new Clp(baseLedger, initialBalance, ws, {
     ilp: this._handleIlp.bind(this),
     vouch: this._handleVouch.bind(this),
@@ -201,7 +227,9 @@ Peer.prototype = {
   },
 
   getMyIlpAddress() {
-    return this.clp.unpaid('info', Buffer.from([ 0 ]))
+    return this.clp.unpaid('info', Buffer.from([ 0 ])).then(responseMainProtocolData => {
+      return InfoPacket.deserialize(responseMainProtocolData.data).address
+    })
   }
 }
 
