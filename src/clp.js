@@ -128,7 +128,7 @@ Clp.prototype = {
         break
 
       case ClpPacket.TYPE_RESPONSE:
-        // console.log('TYPE_RESPONSE!')
+        console.log('TYPE_RESPONSE!', obj)
         if (Array.isArray(obj.data) && obj.data.length) {
           this.requestsSent[obj.requestId].resolve(obj.data[0])
         } else { // treat it as an ACK, see https://github.com/interledger/rfcs/issues/283

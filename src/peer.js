@@ -24,6 +24,7 @@ const BalancePacket = {
 }
 const InfoPacket = {
   serializeResponse (info) {
+    console.log('serializing!', info)
     const infoBuf = Buffer.from(info, 'ascii')
     return Buffer.concat([
       Buffer.from([2]),
@@ -134,7 +135,7 @@ Peer.prototype = {
 
   _handleInfo (dataBuf) {
     if (dataBuf[0] === 0) {
-      // console.log('info!', dataBuf)
+      console.log('info!', dataBuf)
       return Promise.resolve(InfoPacket.serializeResponse(this.baseLedger.substring(0, this.baseLedger.length - 1)))
     }
     return Promise.reject(this.makeLedgerError('unknown call id'))
@@ -179,7 +180,7 @@ Peer.prototype = {
   },
 
   interledgerPayment (transfer, payment) {
-    // console.log('sending ILP payment on CLP transfer')
+    console.log('sending ILP payment on CLP transfer')
     return this.clp.conditional(transfer, [
       {
         protocolName: 'ilp',
@@ -197,6 +198,10 @@ Peer.prototype = {
         unreachable_through_me: []
       }
     }))
+  },
+
+  getMyIlpAddress() {
+    return this.clp.unpaid('info', Buffer.from([ 0 ]))
   }
 }
 

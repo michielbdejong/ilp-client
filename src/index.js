@@ -14,6 +14,7 @@ function IlpNode (config) {
   this.fulfillments = {}
   this.quoter = new Quoter()
   this.peers = {}
+  this.defaultPeers = {}
   this.plugins = []
   this.config = config
   this.forwarder = new Forwarder(this.quoter, this.peers)
@@ -49,6 +50,10 @@ function IlpNode (config) {
 IlpNode.prototype = {
   addClpPeer(peerType, peerId, ws) {
     const peerName = peerType + '_' + peerId
+
+    // FIXME: this is a hacky way to make `node scripts/flood.js 1 clp clp` work  
+    this.defaultClpPeer = peerName
+
     const ledgerPrefix = 'peer.testing.' + this.config.clp.name + '.' + peerName + '.'
     console.log({ peerType, peerId })
                             // function Peer (ledgerPrefix, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
@@ -151,10 +156,10 @@ IlpNode.prototype = {
   getIlpAddress (ledger) {
     if (this.config[ledger].prefix + this.config[ledger].address) {
       // used in xrp and eth configs
-      return this.config[ledger].prefix + this.config[ledger].address
+      return Promise.resolve(this.config[ledger].prefix + this.config[ledger].address)
     } else {
       // used in clp config
-      return 'peer.testing.' + this.config[ledger].name + '.hi'
+      return this.peers[this.defaultClpPeer].getMyIlpAddress()
     }
   },
 
@@ -162,8 +167,13 @@ IlpNode.prototype = {
     return Object.keys(this.peers)
   },
 
-  getPeer (peerName) {
-    return this.peers[peerName]
+  getPeer (ledger) {
+    console.log(this.defaultClpPeer, Object.keys(this.peers))
+    if (ledger === 'clp') {
+      // FIXME: this is a hacky way to make `node scripts/flood.js 1 clp clp` work  
+      return this.peers[this.defaultClpPeer]
+    }
+    return this.peers['ledger_' + ledger]
   }
 }
 

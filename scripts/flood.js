@@ -1,6 +1,7 @@
 const crypto = require('crypto')
 
 const sha256 = require('../src/sha256')
+const IlpPacket = require('ilp-packet')
 const IlpNode = require('../src/index')
 
 function Flooder () {
@@ -27,18 +28,22 @@ Flooder.prototype = {
     this.client2.knowFulfillment(condition, fulfillment)
     // console.log('receiver set up', condition, fulfillment)
 
-    const packet = IlpPacket.serializeIlpPayment({
-      amount: '1',
-      account: this.client2.getIlpAddress(to)
-    })
-    const transfer = {
-      // transferId will be added  by Peer#conditional(transfer, protocolData)
-      amount: 1, // TODO: get quote first for exchange rates
-      executionCondition: condition,
-      expiresAt: new Date(new Date().getTime() + 100000)
-    }
+    this.client2.getIlpAddress(to).then(ilpAddress => {
+      const packet = IlpPacket.serializeIlpPayment({
+        amount: '1',
+        account: ilpAddress,
+      })
+      const transfer = {
+        // transferId will be added  by Peer#conditional(transfer, protocolData)
+        amount: 1, // TODO: get quote first for exchange rates
+        executionCondition: condition,
+        expiresAt: new Date(new Date().getTime() + 100000)
+      }
 
-    return this.client1.getPeer(from).interledgerPayment(transfer, packet).then(result => {
+      const peer = this.client1.getPeer(from)
+      // console.log(peer)
+      return peer.interledgerPayment(transfer, packet)
+    }).then(result => {
       // console.log('success!', from, to, condition, fulfillment, result)
     }, (err) => {
       console.error('fail!', JSON.stringify(err))
