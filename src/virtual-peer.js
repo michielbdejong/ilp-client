@@ -16,6 +16,7 @@ VirtualPeer.prototype = {
   handleTransfer (transfer) {
     // console.log('handleTransfer!', Buffer.from(transfer.executionCondition, 'base64'))
     const promise = Promise.resolve(this.forwardCb({
+      from: transfer.from,
       expiresAt: new Date(transfer.expiresAt),
       amount: parseInt(transfer.amount),
       executionCondition: Buffer.from(transfer.executionCondition, 'base64')
@@ -32,7 +33,19 @@ VirtualPeer.prototype = {
       })
     }, (err) => {
       console.log('could not forward, rejecting')
-      this.plugin.rejectIncomingTransfer(transfer.id, IlpPacket.deserializeIlpError(err))
+      if (err.message === 'vouch') {
+        this.plugin.rejectIncomingTransfer(transfer.id, {
+          code: 'L53',
+          name: 'transfer was sent from a wallet that was not vouched for (sufficiently)',
+          message: 'transfer was sent from a wallet that was not vouched for (sufficiently)',
+          triggered_by: this.plugin.getAccount(),
+          forwarded_by: [],
+          triggered_at: new Date().getTime(),
+          additional_info: {}
+        })
+      } else {
+        this.plugin.rejectIncomingTransfer(transfer.id, IlpPacket.deserializeIlpError(err))
+      }
     })
   },
 

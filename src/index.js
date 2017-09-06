@@ -1,12 +1,14 @@
 const WebSocket = require('ws')
-const Quoter = require('./quoter')
-const Forwarder = require('./forwarder')
-const Peer = require('./peer')
+
+const IlpPacket = require('ilp-packet')
 const Plugin = {
   xrp: require('ilp-plugin-xrp-escrow'),
   eth: require('ilp-plugin-ethereum'),
   dummy: require('../test/helpers/dummyPlugin')
 }
+const Quoter = require('./quoter')
+const Forwarder = require('./forwarder')
+const Peer = require('./peer')
 const VirtualPeer = require('./virtual-peer')
 
 function IlpNode (config) {
@@ -176,16 +178,8 @@ IlpNode.prototype = {
     // Technically, this is checking the vouch for the wrong
     // amount, but if the vouch checks out for the source amount,
     // then it's also good enough to cover onwardAmount
-    if (transfer.from && !this.checkVouchCb(transfer.from, parseInt(transfer.amount))) {
-      return Promise.reject(IlpPacket.serializeIlpError({
-        code: 'L53',
-        name: 'transfer was sent from a wallet that was not vouched for (sufficiently)',
-        message: 'transfer was sent from a wallet that was not vouched for (sufficiently)',
-        triggered_by: this.plugin.getAccount(),
-        forwarded_by: [],
-        triggered_at: new Date().getTime(),
-        additional_info: {}
-      }))
+    if (transfer.from && !this.checkVouch(transfer.from, parseInt(transfer.amount))) {
+      return Promise.reject(new Error('vouch'))
     }
     return Promise.resolve(this.fulfillments[transfer.executionCondition.toString('hex')] || this.forwarder.forward(transfer, paymentPacket))
   },

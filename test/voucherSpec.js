@@ -92,8 +92,8 @@ describe('Vouching System', () => {
 
       // console.log('setting up test', fulfillment, condition)
       const packet = IlpPacket.serializeIlpPayment({
-        amount: '1234',
-        account: 'peer.testing.' + this.client2.name + '.hi'
+        amount: '12345',
+        account: 'peer.testing.server.downstream_client2.hi'
       })
       this.client2.knowFulfillment(condition, fulfillment)
 
@@ -101,11 +101,11 @@ describe('Vouching System', () => {
       // to VirtualPeer:
       const lpiTransfer = {
         id: uuid(),
-        from: this.wallet1,
-        to: 'test.crypto.eth.rinkeby.dummy-account',
-        ledger: 'test.crypto.eth.rinkeby.',
+        from: 'test.dummy.client1',
+        to: 'test.dummy.server',
+        ledger: 'test.dummy.',
         amount: '12345',
-        ilp: packet,
+        ilp: packet.toString('base64'),
         noteToSelf: {},
         executionCondition: condition.toString('base64'),
         expiresAt: new Date(new Date().getTime() + 100000),
