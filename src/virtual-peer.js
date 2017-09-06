@@ -26,7 +26,7 @@ VirtualPeer.prototype = {
       // console.log('submitting fulfillment to ledger!', transfer.executionCondition, fulfillment)
       const fulfilled = this.plugin.fulfillCondition(transfer.id, fulfillment.toString('base64'))
       // console.log('fulfilled, promise', fulfilled)
-      fulfilled.then(() =>{
+      fulfilled.then(() => {
         // console.log('submitted that fulfillment to ledger!', transfer.executionCondition, fulfillment)
       }, err => {
         console.log('failed to submit that fulfillment to ledger!', transfer.executionCondition, fulfillment, err)
@@ -55,11 +55,11 @@ VirtualPeer.prototype = {
     const transferId = uuid()
     const promise = new Promise((resolve, reject) => {
       this.transfersSent[transferId] = {
-        resolve(result) {
+        resolve (result) {
           // console.log('transfer result in VirtualPeer', result)
           resolve(result)
         },
-        reject(err) {
+        reject (err) {
           // console.log('transfer err  in VirtualPeer', err, typeof err, Buffer.isBuffer(err))
           // console.log('calling reject', reject)
           reject(err)

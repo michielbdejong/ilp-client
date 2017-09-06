@@ -32,7 +32,7 @@ Flooder.prototype = {
       console.log({ ilpBaseAddress })
       const packet = IlpPacket.serializeIlpPayment({
         amount: '1',
-        account: ilpBaseAddress + '.hi',
+        account: ilpBaseAddress + '.hi'
       })
       console.log({ packet })
       const transfer = {
@@ -73,8 +73,8 @@ flooder.open().then(() => {
   startTime = new Date().getTime()
   return flooder.flood(NUM, from, to)
 }).then(() => {
-  const endTime = new Date().getTime()
-  console.log(NUM + ' transfers took ' + (endTime - startTime) + 'ms, that is '  + (1000 * NUM / (endTime - startTime)) + ' payments per second.')
+  // const endTime = new Date().getTime()
+  // console.log(NUM + ' transfers took ' + (endTime - startTime) + 'ms, that is '  + (1000 * NUM / (endTime - startTime)) + ' payments per second.')
   // console.log(Object.keys(flooder.client1.peer.clp.transfersSent).length) -> 0
   flooder.close()
 }, err => {

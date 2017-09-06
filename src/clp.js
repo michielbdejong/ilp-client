@@ -27,7 +27,7 @@ function Clp (baseLedger, initialBalance, ws, protocolHandlers) {
 
 Clp.prototype = {
   sendCall (type, requestId, data) {
-    console.log('sendCall', {type, requestId, data })
+    // console.log('sendCall', { type, requestId, data })
     this.ws.send(ClpPacket.serialize({ type, requestId, data }))
   },
 

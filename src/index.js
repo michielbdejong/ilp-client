@@ -1,6 +1,5 @@
 const WebSocket = require('ws')
 
-const IlpPacket = require('ilp-packet')
 const Plugin = {
   xrp: require('ilp-plugin-xrp-escrow'),
   eth: require('ilp-plugin-ethereum'),
@@ -31,7 +30,7 @@ function IlpNode (config) {
     console.log('plugin', config, name)
     const plugin = new Plugin[name](this.config[name])
     this.plugins.push(plugin)
-                           // function VirtualPeer (plugin, forwardCb, connectorAddress) {
+    //                        function VirtualPeer (plugin, forwardCb, connectorAddress) {
     this.peers['ledger_' + name] = new VirtualPeer(plugin, this.handleTransfer.bind(this), config.connector)
     // auto-vouch ledger VirtualPeer -> all existing CLP peers
     this.addVouchableAddress(plugin.getAccount())
@@ -46,21 +45,23 @@ function IlpNode (config) {
 }
 
 IlpNode.prototype = {
-  addVouchablePeer(peerName) {
+  addVouchablePeer (peerName) {
     this.vouchablePeers.push(peerName)
     return Promise.all(this.vouchableAddresses.map(address => {
       console.log('new vouchable peer', peerName, address)
       return this.peers[peerName].vouchBothWays(address)
     }))
   },
-  addVouchableAddress(address) {
+
+  addVouchableAddress (address) {
     this.vouchableAddresses.push(address)
     return Promise.all(this.vouchablePeers.map(peerName => {
       console.log('new vouchable address', peerName, address)
       return this.peers[peerName].vouchBothWays(address)
     }))
   },
-  addClpPeer(peerType, peerId, ws) {
+
+  addClpPeer (peerType, peerId, ws) {
     const peerName = peerType + '_' + peerId
 
     // FIXME: this is a hacky way to make `node scripts/flood.js 1 clp clp` work  
@@ -68,7 +69,7 @@ IlpNode.prototype = {
 
     const ledgerPrefix = 'peer.testing.' + this.config.clp.name + '.' + peerName + '.'
     console.log({ peerType, peerId })
-                   // function Peer (ledgerPrefix, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
+    //                function Peer (ledgerPrefix, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
     this.peers[peerName] = new Peer(ledgerPrefix, peerName, this.config.clp.initialBalancePerPeer, ws, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (address) => {
       this.vouchingMap[address] = peerName
       // console.log('vouched!', this.vouchingMap)
@@ -86,9 +87,9 @@ IlpNode.prototype = {
     return Promise.resolve()
   },
 
-  connectPlugins() {
+  connectPlugins () {
     let promises = []
-    for (let i=0; i < this.plugins.length; i++) {
+    for (let i = 0; i < this.plugins.length; i++) {
       promises.push(this.plugins[i].connect())
     }
     return Promise.all(promises)
@@ -116,13 +117,12 @@ IlpNode.prototype = {
       const peerName = upstreamConfig.url.replace(/(?!\w)./g, '')
       console.log({ url: upstreamConfig.url, peerName })
       return new Promise((resolve, reject) => {
-        console.log('connecting to upstream WebSocket', upstreamConfig.url + '/' + this.config.clp.name + '/' + upstreamConfig.token, this.config.clp, upstreamConfig)
+        // console.log('connecting to upstream WebSocket', upstreamConfig.url + '/' + this.config.clp.name + '/' + upstreamConfig.token, this.config.clp, upstreamConfig)
         const ws = new WebSocket(upstreamConfig.url + '/' + this.config.clp.name + '/' + upstreamConfig.token, {
           perMessageDeflate: false
         })
         ws.on('open', () => {
           // console.log('creating client peer')
-              // functionp Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
           this.upstreams.push(ws)
           this.addClpPeer('upstream', peerName, ws).then(resolve, reject)
         })
@@ -130,7 +130,7 @@ IlpNode.prototype = {
     }))
   },
 
-  start() {
+  start () {
     return Promise.all([
       this.maybeListen().then(() => { console.log('maybeListen done', this.config) }),
       this.connectToUpstreams().then(() => { console.log('connectToUpstreams done', this.config) }),
@@ -158,11 +158,11 @@ IlpNode.prototype = {
     return Promise.all(promises)
   },
 
-  knowFulfillment(condition, fulfillment) {
+  knowFulfillment (condition, fulfillment) {
     this.fulfillments[condition.toString('hex')] = fulfillment
   },
 
-  checkVouch(fromAddress, amount) {
+  checkVouch (fromAddress, amount) {
     console.log('checkVouch', fromAddress, amount, this.vouchingMap)
     if (!this.vouchingMap[fromAddress]) {
       return false
@@ -174,7 +174,7 @@ IlpNode.prototype = {
   },
 
   // actual receiver and connector functionality for incoming transfers:
-  handleTransfer(transfer, paymentPacket) {
+  handleTransfer (transfer, paymentPacket) {
     // Technically, this is checking the vouch for the wrong
     // amount, but if the vouch checks out for the source amount,
     // then it's also good enough to cover onwardAmount

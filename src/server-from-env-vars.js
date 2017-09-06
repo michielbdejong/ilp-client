@@ -11,7 +11,7 @@ const config = {
     server: process.env.XRP_SERVER || 'wss://s.altnet.rippletest.net:51233',
     prefix: process.env.XRP_PREFIX || 'test.crypto.xrp.'
   }
-})
+}
 
 // ...
 const ilpNode = new IlpNode(config)

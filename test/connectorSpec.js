@@ -49,7 +49,7 @@ describe('IlpNode', () => {
         destinationAccount: 'peer.testing.server.downstream_client2.hi',
         destinationHoldDuration: 3000
       })
- console.log('asking quote', this.client1.peers)
+      // console.log('asking quote', this.client1.peers)
       return this.client1.peers.upstream_wslocalhost8000.clp.unpaid('ilp', packet).then(result => {
         const resultObj = IlpPacket.deserializeIlqpLiquidityResponse(result.data)
         assert.deepEqual(resultObj, {

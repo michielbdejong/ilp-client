@@ -241,15 +241,15 @@ Peer.prototype = {
     }))
   },
 
-  getMyIlpAddress() {
+  getMyIlpAddress () {
     return this.clp.unpaid('info', Buffer.from([ 0 ])).then(responseMainProtocolData => {
       return InfoPacket.deserialize(responseMainProtocolData.data).address
     })
   },
-  vouchBothWays(address) {
+  vouchBothWays (address) {
     const packet1 = VouchPacket.serialize({ type: VouchPacket.TYPE_VOUCH, address })
     const packet2 = VouchPacket.serialize({ type: VouchPacket.TYPE_REACHME, address })
-    return Promise.all([this.clp.unpaid('vouch', packet1), this.clp.unpaid('vouch', packet2) ])
+    return Promise.all([this.clp.unpaid('vouch', packet1), this.clp.unpaid('vouch', packet2)])
   }
 }
 
