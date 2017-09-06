@@ -1,10 +1,9 @@
 const IlpPacket = require('ilp-packet')
 const uuid = require('uuid/v4')
 
-function VirtualPeer (plugin, forwardCb, checkVouchCb, connectorAddress) {
+function VirtualPeer (plugin, forwardCb, connectorAddress) {
   this.plugin = plugin
   this.forwardCb = forwardCb
-  this.checkVouchCb = checkVouchCb
   this.connectorAddress = connectorAddress
   this.transfersSent = {}
   this.plugin.on('incoming_prepare', this.handleTransfer.bind(this))
@@ -16,42 +15,25 @@ VirtualPeer.prototype = {
 
   handleTransfer (transfer) {
     // console.log('handleTransfer!', Buffer.from(transfer.executionCondition, 'base64'))
-    // Technically, this is checking the vouch for the wrong
-    // amount, but if the vouch checks out for the source amount,
-    // then it's also good enough to cover onwardAmount
-    if (this.checkVouchCb(transfer.from, parseInt(transfer.amount))) {
-      // console.log('vouch check ok, forwarding!!')
-      const promise = Promise.resolve(this.forwardCb({
-        expiresAt: new Date(transfer.expiresAt),
-        amount: parseInt(transfer.amount),
-        executionCondition: Buffer.from(transfer.executionCondition, 'base64')
-      }, Buffer.from(transfer.ilp, 'base64')))
-      // console.log('forwarded, promise', promise)
-      promise.then((fulfillment) => {
-        // console.log('submitting fulfillment to ledger!', transfer.executionCondition, fulfillment)
-        const fulfilled = this.plugin.fulfillCondition(transfer.id, fulfillment.toString('base64'))
-        // console.log('fulfilled, promise', fulfilled)
-        fulfilled.then(() =>{
-          // console.log('submitted that fulfillment to ledger!', transfer.executionCondition, fulfillment)
-        }, err => {
-          console.log('failed to submit that fulfillment to ledger!', transfer.executionCondition, fulfillment, err)
-        })
-      }, (err) => {
-        console.log('could not forward, rejecting')
-        this.plugin.rejectIncomingTransfer(transfer.id, IlpPacket.deserializeIlpError(err))
+    const promise = Promise.resolve(this.forwardCb({
+      expiresAt: new Date(transfer.expiresAt),
+      amount: parseInt(transfer.amount),
+      executionCondition: Buffer.from(transfer.executionCondition, 'base64')
+    }, Buffer.from(transfer.ilp, 'base64')))
+    // console.log('forwarded, promise', promise)
+    promise.then((fulfillment) => {
+      // console.log('submitting fulfillment to ledger!', transfer.executionCondition, fulfillment)
+      const fulfilled = this.plugin.fulfillCondition(transfer.id, fulfillment.toString('base64'))
+      // console.log('fulfilled, promise', fulfilled)
+      fulfilled.then(() =>{
+        // console.log('submitted that fulfillment to ledger!', transfer.executionCondition, fulfillment)
+      }, err => {
+        console.log('failed to submit that fulfillment to ledger!', transfer.executionCondition, fulfillment, err)
       })
-    } else {
-      console.log('vouch check not ok, rejecting!')
-      this.plugin.rejectIncomingTransfer(transfer.id, {
-        code: 'L53',
-        name: 'transfer was sent from a wallet that was not vouched for (sufficiently)',
-        message: 'transfer was sent from a wallet that was not vouched for (sufficiently)',
-        triggered_by: this.plugin.getAccount(),
-        forwarded_by: [],
-        triggered_at: new Date().getTime(),
-        additional_info: {}
-      })
-    }
+    }, (err) => {
+      console.log('could not forward, rejecting')
+      this.plugin.rejectIncomingTransfer(transfer.id, IlpPacket.deserializeIlpError(err))
+    })
   },
 
   interledgerPayment (transfer, payment) {

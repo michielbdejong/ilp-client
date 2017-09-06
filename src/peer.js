@@ -146,7 +146,7 @@ function Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler
   this.transferHandler = transferHandler
   this.routeHandler = routeHandler
   this.voucher = voucher
-  console.log('Peer instantiates Clp', baseLedger)
+  console.log('Peer instantiates Clp', baseLedger, initialBalance)
   this.clp = new Clp(baseLedger, initialBalance, ws, {
     ilp: this._handleIlp.bind(this),
     vouch: this._handleVouch.bind(this),

@@ -2,7 +2,7 @@ module.exports = {
   clp: {
     listen: 8000,
     name: 'ab833ece33938b2327b0d7ab78a28a39c498c9915e8ab05026d5400f0fa2da34',
-    initialBalancePerSlave: 10000,
+    initialBalancePerPeer: 10000,
     upstreams: []
   },
   eth: {

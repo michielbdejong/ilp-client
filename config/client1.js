@@ -1,7 +1,7 @@
 module.exports = {
   clp: {
     name: '95aa8969819714b50b7937ccd75a4cdf45d0a4707b79e7e23a7356e3f3902c3c',
-    initialBalancePerSlave: 10000,
+    initialBalancePerPeer: 10000,
     upstreams: [ {
       url: 'ws://localhost:8000',
       peerName: 'ab833ece33938b2327b0d7ab78a28a39c498c9915e8ab05026d5400f0fa2da34',

@@ -29,16 +29,8 @@ function IlpNode (config) {
     console.log('plugin', config, name)
     const plugin = new Plugin[name](this.config[name])
     this.plugins.push(plugin)
-                           // function VirtualPeer (plugin, forwardCb, checkVouchCb, connectorAddress) {
-    this.peers['ledger_' + name] = new VirtualPeer(plugin, this.handleTransfer.bind(this), (fromAddress, amount) => {
-      console.log('checkVouch', fromAddress, amount, this.vouchingMap)
-      if (!this.vouchingMap[fromAddress]) {
-        return false
-      }
-      const balance = this.peers[this.vouchingMap[fromAddress]].clp.balance
-      // console.log('checking balance', balance, amount)
-      return balance > amount
-    })
+                           // function VirtualPeer (plugin, forwardCb, connectorAddress) {
+    this.peers['ledger_' + name] = new VirtualPeer(plugin, this.handleTransfer.bind(this), config.connector)
     // auto-vouch ledger VirtualPeer -> all existing CLP peers
     this.addVouchableAddress(plugin.getAccount())
     // and add the plugin ledger as a destination in to the routing table:
@@ -55,12 +47,14 @@ IlpNode.prototype = {
   addVouchablePeer(peerName) {
     this.vouchablePeers.push(peerName)
     return Promise.all(this.vouchableAddresses.map(address => {
+      console.log('new vouchable peer', peerName, address)
       return this.peers[peerName].vouchBothWays(address)
     }))
   },
   addVouchableAddress(address) {
     this.vouchableAddresses.push(address)
     return Promise.all(this.vouchablePeers.map(peerName => {
+      console.log('new vouchable address', peerName, address)
       return this.peers[peerName].vouchBothWays(address)
     }))
   },
@@ -166,10 +160,34 @@ IlpNode.prototype = {
     this.fulfillments[condition.toString('hex')] = fulfillment
   },
 
+  checkVouch(fromAddress, amount) {
+    console.log('checkVouch', fromAddress, amount, this.vouchingMap)
+    if (!this.vouchingMap[fromAddress]) {
+      return false
+    }
+    console.log('vouching peer is', this.vouchingMap[fromAddress], Object.keys(this.peers))
+    const balance = this.peers[this.vouchingMap[fromAddress]].clp.balance
+    console.log('checking balance', balance, amount)
+    return balance > amount
+  },
+
   // actual receiver and connector functionality for incoming transfers:
   handleTransfer(transfer, paymentPacket) {
-   // console.log('client is fulfilling over CLP!', condition, this.fulfillments)
-   return Promise.resolve(this.fulfillments[transfer.executionCondition.toString('hex')] || this.forwarder.forward(transfer, paymentPacket))
+    // Technically, this is checking the vouch for the wrong
+    // amount, but if the vouch checks out for the source amount,
+    // then it's also good enough to cover onwardAmount
+    if (transfer.from && !this.checkVouchCb(transfer.from, parseInt(transfer.amount))) {
+      return Promise.reject(IlpPacket.serializeIlpError({
+        code: 'L53',
+        name: 'transfer was sent from a wallet that was not vouched for (sufficiently)',
+        message: 'transfer was sent from a wallet that was not vouched for (sufficiently)',
+        triggered_by: this.plugin.getAccount(),
+        forwarded_by: [],
+        triggered_at: new Date().getTime(),
+        additional_info: {}
+      }))
+    }
+    return Promise.resolve(this.fulfillments[transfer.executionCondition.toString('hex')] || this.forwarder.forward(transfer, paymentPacket))
   },
 
   getIlpAddress (ledger) {
