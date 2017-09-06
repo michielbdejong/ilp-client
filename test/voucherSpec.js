@@ -8,7 +8,13 @@ const sha256 = require('../src/sha256')
 
 describe('Vouching System', () => {
   beforeEach(function () {
-    this.connector = new Connector('peer.testing.', {
+    this.ilpNode = new IlpNode({
+      clp: {
+        listen: 8000,
+        name: 'server',
+        initialBalancePerPeer: 10000,
+        upstreams: []
+      },
       xrp: {
         secret: 'shRm6dnkLMzTxBUMgCy6bB6jweS3X',
         server: 'wss://s.altnet.rippletest.net:51233',
@@ -18,20 +24,20 @@ describe('Vouching System', () => {
         prefix: 'test.crypto.eth.rinkeby.'
       }
     })
-
-    return this.connector.listen(8000)
+    this.ilpNode.peers.ledger_dummy.fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
+    return this.ilpNode.listen(8000)
   })
   afterEach(function () {
-    return this.connector.close()
+    return this.ilpNode.close()
   })
 
   describe('two clients', () => {
     beforeEach(function () {
-      this.client1 = new Connector('peer.testing.', {})
-      this.client2 = new Connector('peer.testing.', {})
+      this.client1 = new IlpNode()
+      this.client2 = new IlpNode()
 
       this.wallet1 = 'test.crypto.eth.rinkeby.4thgw3dtrseawfrsfdxzsfzsfgdz'
-      return Promise.all([ this.client1.connect('ws://localhost:8000/', 'local8000'), this.client2.connect('ws://localhost:8000/', 'local8000') ]).then(() => {
+      return Promise.all([ this.client1.connect('ws://localhost:8000/', 'local8000'), this.client2.connect('ws://localhost:8000/') ]).then(() => {
         const packet = Buffer.concat([
           Buffer.from([0, this.wallet1.length]),
           Buffer.from(this.wallet1, 'ascii')
@@ -40,6 +46,7 @@ describe('Vouching System', () => {
       })
     })
     afterEach(function () {
+      // return this.client1.close()
       return Promise.all([ this.client1.close(), this.client2.close() ])
     })
 

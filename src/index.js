@@ -28,7 +28,7 @@ function IlpNode (config) {
     this.plugins.push(plugin)
                            // function VirtualPeer (plugin, forwardCb, checkVouchCb, connectorAddress) {
     this.peers['ledger_' + name] = new VirtualPeer(plugin, this.handleTransfer.bind(this), (fromAddress, amount) => {
-      // console.log('checkVouch', fromAddress, amount, this.vouchingMap)
+      console.log('checkVouch', fromAddress, amount, this.vouchingMap)
       if (!this.vouchingMap[fromAddress]) {
         return false
       }

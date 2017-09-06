@@ -23,7 +23,7 @@ DummyPlugin.prototype = {
     return Promise.resolve(this.successCallback(transferId, conditionBase64))
   },
   rejectIncomingTransfer (transferId, rejectionReasonObj) {
-    // console.log(rejectionReasonObj)
+    console.log(rejectionReasonObj)
     return Promise.resolve(this.failureCallback(transferId, rejectionReasonObj))
   }
 }
