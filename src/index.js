@@ -31,7 +31,7 @@ function IlpNode (config) {
     const plugin = new Plugin[name](this.config[name])
     this.plugins.push(plugin)
     //                        function VirtualPeer (plugin, forwardCb, connectorAddress) {
-    this.peers['ledger_' + name] = new VirtualPeer(plugin, this.handleTransfer.bind(this), config.connector)
+    this.peers['ledger_' + name] = new VirtualPeer(plugin, this.handleTransfer.bind(this), this.config[name].connector)
     // auto-vouch ledger VirtualPeer -> all existing CLP peers
     this.addVouchableAddress(plugin.getAccount())
     // and add the plugin ledger as a destination in to the routing table:

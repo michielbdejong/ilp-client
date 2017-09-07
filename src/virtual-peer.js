@@ -69,9 +69,11 @@ VirtualPeer.prototype = {
 
     let to = this.connectorAddress // default
     const ledger = this.plugin.getInfo().prefix
+    console.log({ to, ledger })
     if (paymentObj.account.startsWith(ledger)) { // skip the connector
-      const parts = paymentObj.substring(ledger.length).split('.')
+      const parts = paymentObj.account.substring(ledger.length).split('.')
       to = ledger + parts[0]
+      console.log({ to, parts })
     }
     const lpiTransfer = {
       id: transferId,
@@ -85,11 +87,7 @@ VirtualPeer.prototype = {
       expiresAt: transfer.expiresAt.toISOString(),
       custom: {}
     }
-    if (paymentObj.account.startsWith(lpiTransfer.ledger)) {
-      // console.log('last hop, to receiver instead of to connector')
-      lpiTransfer.to = paymentObj.account
-    }
-    // console.log('VirtualPeer calls sendTransfer!', lpiTransfer)
+    console.log('VirtualPeer calls sendTransfer!', lpiTransfer)
 
     this.plugin.sendTransfer(lpiTransfer).catch(err => {
       console.log('sendTransfer failed', err)

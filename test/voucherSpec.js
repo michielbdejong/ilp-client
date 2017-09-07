@@ -21,7 +21,8 @@ describe('Vouching System', () => {
         prefix: 'test.crypto.xrp.'
       },
       dummy: {
-        prefix: 'test.dummy.'
+        prefix: 'test.dummy.',
+        connector: 'test.dummy.connie'
       }
     })
     this.ilpNode.peers.ledger_dummy.fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
@@ -56,7 +57,7 @@ describe('Vouching System', () => {
       // console.log('setting up test', fulfillment, condition)
       const packet = IlpPacket.serializeIlpPayment({
         amount: '1234',
-        account: 'test.dummy.client2'
+        account: 'test.dummy.client2.hi'
       })
       this.ilpNode.peers.ledger_dummy.plugin.fulfillment = fulfillment
       const transfer = {
