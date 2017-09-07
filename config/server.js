@@ -7,8 +7,9 @@ module.exports = {
   },
   eth: {
     secret: 'xidaequeequuu4xah8Ohnoo1Aesumiech6tiay1h',
-    address: '0x8b3fbd781096b51e68448c6e5b53b240f663199f',
-    prefix: 'test.crypto.eth.rinkeby.'
+    address: '0x' + '8b3fbd781096b51e68448c6e5b53b240f663199f'.toUpperCase(),
+    prefix: 'test.crypto.eth.rinkeby.',
+    provider: 'http://localhost:8545'
   },
   xrp: {
     secret: 'shvKKDpRGMyKMUVn4EyMqCh9BQoP9',

@@ -10,9 +10,10 @@ module.exports = {
   },
   eth: {
     secret: 'ahd0mooGh3tai5Lae9quahth9Eerah6eiGhahgoh',
-    address: '0xecfa6a8999a67a498524eaaf5287417c4569c6db',
-    connector: '0x8b3fbd781096b51e68448c6e5b53b240f663199f',
-    prefix: 'test.crypto.eth.rinkeby.'
+    address: '0x' + 'ecfa6a8999a67a498524eaaf5287417c4569c6db'.toUpperCase(),
+    connector: '0x' + '8b3fbd781096b51e68448c6e5b53b240f663199f'.toUpperCase(),
+    prefix: 'test.crypto.eth.rinkeby.',
+    provider: 'http://localhost:8545'
   },
   xrp: {
     secret: 'ssGjGT4sz4rp2xahcDj87P71rTYXo',
