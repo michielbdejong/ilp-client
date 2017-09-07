@@ -39,3 +39,8 @@ $ node scripts/flood.js 10000 clp clp
 10000 transfers took 9044ms, that is 1105.7054400707652 payments per second.
 ```
 
+## Send over ETH Rinkeby
+
+In order to connect to ethereum, you need to be running a geth node; see
+https://github.com/interledger/interledger/wiki/Interledger-over-ETH
+for full instructions.
