@@ -9,8 +9,9 @@ module.exports = {
     } ]
   },
   eth: {
-    secret: 'xidaequeequuu4xah8Ohnoo1Aesumiech6tiay1h',
-    address: '0x8b3fbd781096b51e68448c6e5b53b240f663199f',
+    secret: 'koo5nae6ij0iiNga5koh4mahmoo9oom3iehohcoo',
+    address: '0x85039b0ec7c8090fa375b065a3918afdb1ef65f2',
+    connector: '0x8b3fbd781096b51e68448c6e5b53b240f663199f',
     prefix: 'test.crypto.eth.rinkeby.'
   },
   xrp: {
