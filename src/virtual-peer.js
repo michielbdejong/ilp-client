@@ -66,11 +66,18 @@ VirtualPeer.prototype = {
         }
       }
     })
+
+    let to = this.connectorAddress // default
+    const ledger = this.plugin.getInfo().prefix
+    if (paymentObj.account.startsWith(ledger)) { // skip the connector
+      const parts = paymentObj.substring(ledger.length).split('.')
+      to = ledger + parts[0]
+    }
     const lpiTransfer = {
       id: transferId,
       from: this.plugin.getAccount(),
-      to: this.connectorAddress,
-      ledger: this.plugin.getInfo().prefix,
+      to,
+      ledger,
       amount: paymentObj.amount,
       ilp: payment.toString('base64'),
       noteToSelf: {},
