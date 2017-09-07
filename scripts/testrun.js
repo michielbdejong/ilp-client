@@ -66,15 +66,21 @@ const NUM = parseInt(process.argv[2]) || 1
 const from = process.argv[3] || 'clp'
 const to = process.argv[4] || 'clp'
 
-const flooder = new Flooder()
 let startTime
-flooder.open().then(() => {
+
+const flooder = new Flooder()
+const ilpNode = new IlpNode(require('../config/server.js'))
+
+// ...
+ilpNode.start().then(() => {
+  return flooder.open()
+}).then(() => {
   console.log('flooder open, flooding')
   startTime = new Date().getTime()
   return flooder.flood(NUM, from, to)
 }).then(() => {
-  // const endTime = new Date().getTime()
-  // console.log(NUM + ' transfers took ' + (endTime - startTime) + 'ms, that is '  + (1000 * NUM / (endTime - startTime)) + ' payments per second.')
+  const endTime = new Date().getTime()
+  console.log(NUM + ' transfers took ' + (endTime - startTime) + 'ms, that is ' + (1000 * NUM / (endTime - startTime)) + ' payments per second.')
   // console.log(Object.keys(flooder.client1.peer.clp.transfersSent).length) -> 0
   flooder.close()
 }, err => {

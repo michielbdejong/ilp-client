@@ -3,44 +3,51 @@ const uuid = require('uuid/v4')
 
 const IlpPacket = require('ilp-packet')
 
-const Connector = require('../src/connector')
+const IlpNode = require('../src/index')
 const sha256 = require('../src/sha256')
 
 describe('Vouching System', () => {
   beforeEach(function () {
-    this.connector = new Connector('peer.testing.', {
+    this.ilpNode = new IlpNode({
+      clp: {
+        listen: 8000,
+        name: 'server',
+        initialBalancePerPeer: 10000,
+        upstreams: []
+      },
       xrp: {
         secret: 'shRm6dnkLMzTxBUMgCy6bB6jweS3X',
         server: 'wss://s.altnet.rippletest.net:51233',
         prefix: 'test.crypto.xrp.'
       },
       dummy: {
-        prefix: 'test.crypto.eth.rinkeby.'
+        prefix: 'test.dummy.',
+        connector: 'test.dummy.connie'
       }
     })
-
-    return this.connector.listen(8000)
+    this.ilpNode.peers.ledger_dummy.fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
+    return this.ilpNode.start()
   })
   afterEach(function () {
-    return this.connector.close()
+    return this.ilpNode.stop()
   })
 
   describe('two clients', () => {
     beforeEach(function () {
-      this.client1 = new Connector('peer.testing.', {})
-      this.client2 = new Connector('peer.testing.', {})
-
-      this.wallet1 = 'test.crypto.eth.rinkeby.4thgw3dtrseawfrsfdxzsfzsfgdz'
-      return Promise.all([ this.client1.connect('ws://localhost:8000/', 'local8000'), this.client2.connect('ws://localhost:8000/', 'local8000') ]).then(() => {
+      this.client1 = new IlpNode({ clp: { name: 'client1', upstreams: [ { url: 'ws://localhost:8000', token: 'foo' } ] } })
+      this.client2 = new IlpNode({ clp: { name: 'client2', upstreams: [ { url: 'ws://localhost:8000', token: 'bar' } ] } })
+      // return this.client1.open('ws://localhost:8000/')
+      return Promise.all([ this.client1.start(), this.client2.start() ]).then(() => {
         const packet = Buffer.concat([
-          Buffer.from([0, this.wallet1.length]),
-          Buffer.from(this.wallet1, 'ascii')
+          Buffer.from([0, 'test.dummy.client1'.length]),
+          Buffer.from('test.dummy.client1', 'ascii')
         ])
-        return this.client1.peers.upstream_local8000.clp.unpaid('vouch', packet)
+        return this.client1.peers.upstream_wslocalhost8000.clp.unpaid('vouch', packet)
       })
     })
     afterEach(function () {
-      return Promise.all([ this.client1.close(), this.client2.close() ])
+      // return this.client1.close()
+      return Promise.all([ this.client1.stop(), this.client2.stop() ])
     })
 
     it('should deliver to dummy ledger', function () {
@@ -50,33 +57,33 @@ describe('Vouching System', () => {
       // console.log('setting up test', fulfillment, condition)
       const packet = IlpPacket.serializeIlpPayment({
         amount: '1234',
-        account: this.wallet1
+        account: 'test.dummy.client2.hi'
       })
-      this.connector.peers.ledger_dummy.plugin.fulfillment = fulfillment
+      this.ilpNode.peers.ledger_dummy.plugin.fulfillment = fulfillment
       const transfer = {
         // transferId will be added  by Peer#conditional(transfer, protocolData)
         amount: 1235,
         executionCondition: condition,
         expiresAt: new Date(new Date().getTime() + 100000)
       }
-      // console.log('test prepared!', transfer, this.connector.peers.ledger_dummy.plugin)
-      return this.client1.peers.upstream_local8000.interledgerPayment(transfer, packet).then(result => {
+      // console.log('test prepared!', transfer, this.ilpNode.peers.ledger_dummy.plugin)
+      return this.client1.peers.upstream_wslocalhost8000.interledgerPayment(transfer, packet).then(result => {
         assert.deepEqual(result, fulfillment)
-        assert.deepEqual(this.connector.peers.ledger_dummy.plugin.transfers[0], {
-          id: this.connector.peers.ledger_dummy.plugin.transfers[0].id,
-          from: 'test.crypto.eth.rinkeby.dummy-account',
-          to: 'test.crypto.eth.rinkeby.4thgw3dtrseawfrsfdxzsfzsfgdz',
-          ledger: 'test.crypto.eth.rinkeby.',
+        assert.deepEqual(this.ilpNode.peers.ledger_dummy.plugin.transfers[0], {
+          id: this.ilpNode.peers.ledger_dummy.plugin.transfers[0].id,
+          from: 'test.dummy.dummy-account',
+          to: 'test.dummy.client2',
+          ledger: 'test.dummy.',
           amount: '1234',
           ilp: packet.toString('base64'),
           noteToSelf: {},
           executionCondition: condition.toString('base64'),
-          expiresAt: this.connector.peers.ledger_dummy.plugin.transfers[0].expiresAt,
+          expiresAt: this.ilpNode.peers.ledger_dummy.plugin.transfers[0].expiresAt,
           custom: {}
         })
         // console.log(this.client1)
-        assert.equal(this.connector.peers['downstream_' + this.client1.name].clp.balance, 8765)
-        assert.equal(this.connector.peers['downstream_' + this.client2.name].clp.balance, 10000)
+        assert.equal(this.ilpNode.peers['downstream_' + this.client1.config.clp.name].clp.balance, 8765)
+        assert.equal(this.ilpNode.peers['downstream_' + this.client2.config.clp.name].clp.balance, 10000)
       })
     })
 
@@ -86,8 +93,8 @@ describe('Vouching System', () => {
 
       // console.log('setting up test', fulfillment, condition)
       const packet = IlpPacket.serializeIlpPayment({
-        amount: '1234',
-        account: 'peer.testing.' + this.client2.name + '.hi'
+        amount: '12345',
+        account: 'peer.testing.server.downstream_client2.hi'
       })
       this.client2.knowFulfillment(condition, fulfillment)
 
@@ -95,26 +102,26 @@ describe('Vouching System', () => {
       // to VirtualPeer:
       const lpiTransfer = {
         id: uuid(),
-        from: this.wallet1,
-        to: 'test.crypto.eth.rinkeby.dummy-account',
-        ledger: 'test.crypto.eth.rinkeby.',
+        from: 'test.dummy.client1',
+        to: 'test.dummy.server',
+        ledger: 'test.dummy.',
         amount: '12345',
-        ilp: packet,
+        ilp: packet.toString('base64'),
         noteToSelf: {},
         executionCondition: condition.toString('base64'),
         expiresAt: new Date(new Date().getTime() + 100000),
         custom: {}
       }
-      this.connector.peers.ledger_dummy.plugin.successCallback = (transferId, fulfillmentBase64) => {
+      this.ilpNode.peers.ledger_dummy.plugin.successCallback = (transferId, fulfillmentBase64) => {
         done(new Error('should not have succeeded'))
       }
-      this.connector.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {
+      this.ilpNode.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {
         assert.equal(rejectionReasonObj.code, 'L53')
-        assert.equal(this.connector.peers['downstream_' + this.client1.name].clp.balance, 10000)
-        assert.equal(this.connector.peers['downstream_' + this.client2.name].clp.balance, 10000)
+        assert.equal(this.ilpNode.peers['downstream_' + this.client1.config.clp.name].clp.balance, 10000)
+        assert.equal(this.ilpNode.peers['downstream_' + this.client2.config.clp.name].clp.balance, 10000)
         done()
       }
-      this.connector.peers.ledger_dummy.plugin.handlers.incoming_prepare(lpiTransfer)
+      this.ilpNode.peers.ledger_dummy.plugin.handlers.incoming_prepare(lpiTransfer)
     })
 
     it('should accept from vouched wallets on dummy ledger', function (done) {
@@ -124,7 +131,7 @@ describe('Vouching System', () => {
       // console.log('setting up test', fulfillment, condition)
       const packet = IlpPacket.serializeIlpPayment({
         amount: '1234',
-        account: 'peer.testing.' + this.client2.name + '.hi'
+        account: 'peer.testing.server.downstream_client2.hi'
       })
       this.client2.knowFulfillment(condition, fulfillment)
 
@@ -132,9 +139,9 @@ describe('Vouching System', () => {
       // to VirtualPeer:
       const lpiTransfer = {
         id: uuid(),
-        from: this.wallet1,
-        to: 'test.crypto.eth.rinkeby.dummy-account',
-        ledger: 'test.crypto.eth.rinkeby.',
+        from: 'test.dummy.client1',
+        to: 'test.dummy.server',
+        ledger: 'test.dummy.',
         amount: '1234',
         ilp: packet.toString('base64'),
         noteToSelf: {},
@@ -142,17 +149,17 @@ describe('Vouching System', () => {
         expiresAt: new Date(new Date().getTime() + 100000),
         custom: {}
       }
-      this.connector.peers.ledger_dummy.plugin.successCallback = (transferId, fulfillmentBase64) => {
+      this.ilpNode.peers.ledger_dummy.plugin.successCallback = (transferId, fulfillmentBase64) => {
         assert.equal(transferId, lpiTransfer.id)
         assert.deepEqual(Buffer.from(fulfillmentBase64, 'base64'), fulfillment)
-        assert.equal(this.connector.peers['downstream_' + this.client1.name].clp.balance, 10000)
-        assert.equal(this.connector.peers['downstream_' + this.client2.name].clp.balance, 11234)
+        assert.equal(this.ilpNode.peers['downstream_' + this.client1.config.clp.name].clp.balance, 10000)
+        assert.equal(this.ilpNode.peers['downstream_' + this.client2.config.clp.name].clp.balance, 11234)
         done()
       }
-      this.connector.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {
+      this.ilpNode.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {
         done(rejectionReasonObj)
       }
-      this.connector.peers.ledger_dummy.plugin.handlers.incoming_prepare(lpiTransfer)
+      this.ilpNode.peers.ledger_dummy.plugin.handlers.incoming_prepare(lpiTransfer)
     })
   })
 })

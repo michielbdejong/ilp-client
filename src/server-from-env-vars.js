@@ -1,15 +1,21 @@
-const Connector = require('./connector')
+const IlpNode = require('./index')
 
-const connector = new Connector('peer.testing.', {
+const config = {
+  clp: {
+    listen: process.env.PORT || 8000,
+    initialBalancePerPeer: 10000
+  },
   xrp: {
     secret: process.env.XRP_SECRET || 'shvKKDpRGMyKMUVn4EyMqCh9BQoP9',
     address: process.env.XRP_ADDRESS || 'rhjRdyVNcaTNLXp3rkK4KtjCdUd9YEgrPs',
     server: process.env.XRP_SERVER || 'wss://s.altnet.rippletest.net:51233',
     prefix: process.env.XRP_PREFIX || 'test.crypto.xrp.'
   }
-})
+}
 
 // ...
-const port = process.env.PORT || 8000
-connector.open(port, 10000)
-console.log(`Listening on ws://localhost:${port}/`)
+const ilpNode = new IlpNode(config)
+console.log('starting...', config)
+ilpNode.start().then(() => {
+  console.log('started!')
+})

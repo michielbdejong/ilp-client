@@ -23,13 +23,36 @@ const BalancePacket = {
   }
 }
 const InfoPacket = {
+  TYPE_REQUEST: 1,
+  TYPE_RESPONSE: 2,
+
   serializeResponse (info) {
+    // console.log('serializing!', info)
     const infoBuf = Buffer.from(info, 'ascii')
     return Buffer.concat([
-      Buffer.from([2]),
+      Buffer.from([this.TYPE_RESPONSE]),
       lengthPrefixFor(infoBuf),
       infoBuf
     ])
+  },
+
+  deserialize (dataBuf) {
+    let obj = {
+      type: dataBuf[0]
+    }
+    if (dataBuf[0] === this.TYPE_RESPONSE) {
+      let lenLen = 1
+      if (dataBuf[1] >= 128) {
+        // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
+        lenLen = 1 + (dataBuf[1] - 128)
+      }
+      try {
+        // console.log(dataBuf.toString('hex'), dataBuf.slice(lenLen + 1).toString('ascii'))
+        obj.address = dataBuf.slice(lenLen + 1).toString('ascii')
+      } catch (e) {
+      }
+    }
+    return obj
   }
 }
 
@@ -52,27 +75,46 @@ const CcpPacket = {
   },
 
   deserialize (dataBuf) {
-    let lenLen = 1
-    if (dataBuf[0] >= 128) {
-      // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
-      lenLen = 1 + (dataBuf[0] - 128)
+    let obj = {
+      type: dataBuf[0]
     }
-    let obj
-    try {
-      obj = JSON.parse(dataBuf.slice(lenLen).toString('ascii'))
-    } catch (e) {
+    if (dataBuf[0] === this.TYPE_ROUTE) {
+      let lenLen = 1
+      if (dataBuf[1] >= 128) {
+        // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
+        lenLen = 1 + (dataBuf[1] - 128)
+      }
+      try {
+        obj.data = JSON.parse(dataBuf.slice(lenLen + 1).toString('ascii'))
+      } catch (e) {
+      }
     }
     return obj
   }
 }
 
 const VouchPacket = {
+  TYPE_VOUCH: 1,
+  TYPE_REACHME: 2,
+  TYPE_ROLLBACK: 3,
+
+  serialize (obj) {
+    // TODO: Implement TYPE_ROLLBACK
+    // console.log('serializing!', obj)
+    const addressBuf = Buffer.from(obj.address, 'ascii')
+    return Buffer.concat([
+      Buffer.from([obj.type]),
+      lengthPrefixFor(addressBuf),
+      addressBuf
+    ])
+  },
+
   deserialize (dataBuf) {
     let lenLen = 1
     let addressLen = dataBuf[1]
     if (dataBuf[1] >= 128) {
       // See section 8.6.5 of http://www.itu.int/rec/T-REC-X.696-201508-I
-      lenLen = 1 + (dataBuf[0] - 128)
+      lenLen = 1 + (dataBuf[1] - 128)
       // TODO: write unit tests for this code and see if we can use it to
       // read the address, condition, and amount of a rollback
       addressLen = 0
@@ -104,7 +146,7 @@ function Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler
   this.transferHandler = transferHandler
   this.routeHandler = routeHandler
   this.voucher = voucher
-console.log('Peer instantiates Clp', baseLedger)
+  // console.log('Peer instantiates Clp', baseLedger, initialBalance)
   this.clp = new Clp(baseLedger, initialBalance, ws, {
     ilp: this._handleIlp.bind(this),
     vouch: this._handleVouch.bind(this),
@@ -135,7 +177,7 @@ Peer.prototype = {
   _handleInfo (dataBuf) {
     if (dataBuf[0] === 0) {
       // console.log('info!', dataBuf)
-      return Promise.resolve(InfoPacket.serializeResponse(this.baseLedger + this.peerName))
+      return Promise.resolve(InfoPacket.serializeResponse(this.baseLedger.substring(0, this.baseLedger.length - 1)))
     }
     return Promise.reject(this.makeLedgerError('unknown call id'))
   },
@@ -197,6 +239,17 @@ Peer.prototype = {
         unreachable_through_me: []
       }
     }))
+  },
+
+  getMyIlpAddress () {
+    return this.clp.unpaid('info', Buffer.from([ 0 ])).then(responseMainProtocolData => {
+      return InfoPacket.deserialize(responseMainProtocolData.data).address
+    })
+  },
+  vouchBothWays (address) {
+    const packet1 = VouchPacket.serialize({ type: VouchPacket.TYPE_VOUCH, address })
+    const packet2 = VouchPacket.serialize({ type: VouchPacket.TYPE_REACHME, address })
+    return Promise.all([this.clp.unpaid('vouch', packet1), this.clp.unpaid('vouch', packet2)])
   }
 }
 

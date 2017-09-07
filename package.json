@@ -2,10 +2,11 @@
   "name": "ilp-node",
   "version": "3.0.1",
   "description": "Connector used for https://github.com/interledger/interledger/wiki/Interledger-over-CLP",
-  "main": "src/connector.js",
+  "main": "src/index.js",
   "dependencies": {
     "clp-packet": "github:interledgerjs/clp-packet#mj-testnet-1",
     "ilp-packet": "^1.3.0",
+    "ilp-plugin-ethereum": "github:interledgerjs/ilp-plugin-ethereum#mj-testnet-1",
     "ilp-plugin-xrp-escrow": "github:michielbdejong/ilp-plugin-xrp-escrow#7bd0b7a",
     "uuid": "^3.1.0",
     "ws": "^3.1.0"
