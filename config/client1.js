@@ -12,8 +12,9 @@ module.exports = {
     secret: 'ahd0mooGh3tai5Lae9quahth9Eerah6eiGhahgoh',
     address: '0x' + 'ecfa6a8999a67a498524eaaf5287417c4569c6db'.toUpperCase(),
     connector: '0x' + '8b3fbd781096b51e68448c6e5b53b240f663199f'.toUpperCase(),
-    prefix: 'test.crypto.eth.rinkeby.',
-    provider: 'http://localhost:8545'
+    provider: 'http://localhost:8545',
+    contract: '0x8B3FBD781096B51E68448C6E5B53B240F663199F',
+    prefix: 'test.crypto.eth.rinkeby.'
   },
   xrp: {
     secret: 'ssGjGT4sz4rp2xahcDj87P71rTYXo',
