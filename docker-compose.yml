@@ -1,0 +1,15 @@
+version: '3'
+services:
+  ilp:
+    links:
+     - eth
+    build: .
+    volumes:
+     - ./letsencrypt:/root/letsencrypt
+    ports:
+     - "80:80"
+     - "443:443"
+  eth:
+    build: docker/geth-rinkeby
+    volumes:
+     - ./rinkeby:/root/.rinkeby
