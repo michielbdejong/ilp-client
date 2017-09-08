@@ -1,4 +1,5 @@
 const WebSocket = require('ws')
+const http = require('http')
 
 const Plugin = {
   xrp: require('ilp-plugin-xrp-escrow'),
@@ -103,18 +104,18 @@ IlpNode.prototype = {
       if (this.config.clp.tls) { // case 1: use LetsEncrypt => [https, http]
         getLetsEncryptServers('amundsen.michielbdejong.com').then(resolve, reject)
       } else if (typeof this.config.clp.listen !== 'number') { // case 2: don't open run a server => []
-          return Promise.resolve([])
+        resolve([])
       } else { // case 3: listen without TLS on a port => [http]
         const server = http.createServer((req, res) => {
           res.end('This is a CLP server, please upgrade to WebSockets.')
-        }).listen(this.config.clp.listen, resolve([ server ]))
+        })
+        server.listen(this.config.clp.listen, resolve([ server ]))
       }
     }).then(servers => {
+      // console.log('servers:', servers.length)
       this.serversToClose = servers
       if (servers.length) {
-        const createPromise = new Promise((resolve) => {
-          this.wss = new WebSocket.Server({ servers[0] }, resolve)
-        })
+        this.wss = new WebSocket.Server({ server: servers[0] })
         this.serversToClose.push(this.wss)
         this.wss.on('connection', (ws, httpReq) => {
           const parts = httpReq.url.split('/')
@@ -123,7 +124,6 @@ IlpNode.prototype = {
           // console.log('assigned peerId!', peerId)
           this.addClpPeer('downstream', peerId, ws)
         })
-        return createPromise
       }
     })
   },
