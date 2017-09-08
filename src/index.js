@@ -102,7 +102,7 @@ IlpNode.prototype = {
   maybeListen () {
     return new Promise((resolve, reject) => {
       if (this.config.clp.tls) { // case 1: use LetsEncrypt => [https, http]
-        getLetsEncryptServers('amundsen.michielbdejong.com').then(resolve, reject)
+        letsEncrypt('amundsen.michielbdejong.com').then(resolve, reject)
       } else if (typeof this.config.clp.listen !== 'number') { // case 2: don't open run a server => []
         resolve([])
       } else { // case 3: listen without TLS on a port => [http]

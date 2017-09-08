@@ -2,7 +2,6 @@
 
 const http = require('http')
 const https = require('https')
-const fs = require('fs')
 const LE = require('greenlock').LE
 const le = LE.create({
   server: 'staging',
@@ -10,11 +9,11 @@ const le = LE.create({
   acme: require('le-acme-core').ACME.create(),
   store: require('le-store-certbot').create({ configDir: '~/letsencrypt/etc', webrootPath: '~/letsencrypt/var/:hostname' }),
   challenges: { 'http-01': require('le-challenge-fs').create({ webrootPath: '~/letsencrypt/var/:hostname' }) },
-  agreeToTerms: function (tosUrl, cb) { cb(null, tosUrl); },
+  agreeToTerms: function (tosUrl, cb) { cb(null, tosUrl) },
   debug: true
 })
 
-module.exports = function getLetsEncryptServers(domain) {
+module.exports = function getLetsEncryptServers (domain) {
   let httpServer
   return new Promise((resolve, reject) => {
     httpServer = http.createServer(le.middleware())
@@ -29,7 +28,7 @@ module.exports = function getLetsEncryptServers(domain) {
     })
   }).then(function (certs) {
     if (!certs) {
-      throw new Error("Should have acquired certificate for domains.")
+      throw new Error('Should have acquired certificate for domains.')
     }
     console.log(certs)
     return new Promise((resolve, reject) => {
