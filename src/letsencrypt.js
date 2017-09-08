@@ -41,7 +41,7 @@ module.exports = function getLetsEncryptServers (domain) {
         res.end('Hello encrypted world')
       })
       httpsServer.listen(443, (err) => {
-        if (err) { reject(err) } else { resolve([ httpServer, httpsServer ]) }
+        if (err) { reject(err) } else { resolve([ httpsServer, httpServer ]) }
       })
     })
   })

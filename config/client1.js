@@ -3,7 +3,7 @@ module.exports = {
     name: '95aa8969819714b50b7937ccd75a4cdf45d0a4707b79e7e23a7356e3f3902c3c',
     initialBalancePerPeer: 10000,
     upstreams: [ {
-      url: 'ws://localhost:8000',
+      url: 'wss://amundsen.michielbdejong.com',
       peerName: 'ab833ece33938b2327b0d7ab78a28a39c498c9915e8ab05026d5400f0fa2da34',
       token: 'adc4b2c02c6ac27b36d7000969d4d6300fbc53e69e7fa136a017077c25a18d4e'
     } ]
