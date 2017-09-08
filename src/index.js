@@ -10,11 +10,11 @@ const Forwarder = require('./forwarder')
 const Peer = require('./peer')
 const VirtualPeer = require('./virtual-peer')
 
-const express = require('express')
-const greenLockExpress = require('greenlock-express')
+const letsEncrypt = require('./letsencrypt')
 
 function IlpNode (config) {
   this.upstreams = []
+  this.serversToClose = []
   this.plugins = []
   this.vouchableAddresses = []
   this.vouchablePeers = []
@@ -99,36 +99,32 @@ IlpNode.prototype = {
   },
 
   maybeListen () {
-    return new Promise(resolve => {
-      let server
-      if (this.config.clp.tls) {
-        // TODO: find out how to remove the dependency on express here
-        server = greenLockExpress.create({
-           server: 'staging',
-           email: 'john.doe@example.com',
-           agreeTos: true,
-           approveDomains: [ this.config.clp.tls ],
-           app: express().use('/', function (req, res) {
-             res.end('Hello, World!');
-           }),
-         }).listen(80, 443)
-      } else {
-        if (typeof this.config.clp.listen !== 'number') {
-          return Promise.resolve()
-        }
-        server = http.createServer((req, res) => {
+    return new Promise((resolve, reject) => {
+      if (this.config.clp.tls) { // case 1: use LetsEncrypt => [https, http]
+        getLetsEncryptServers('amundsen.michielbdejong.com').then(resolve, reject)
+      } else if (typeof this.config.clp.listen !== 'number') { // case 2: don't open run a server => []
+          return Promise.resolve([])
+      } else { // case 3: listen without TLS on a port => [http]
+        const server = http.createServer((req, res) => {
           res.end('This is a CLP server, please upgrade to WebSockets.')
-        }).listen(this.config.clp.listen)
+        }).listen(this.config.clp.listen, resolve([ server ]))
       }
-      this.wss = new WebSocket.Server({ server }, resolve)
-    }).then(() => {
-      this.wss.on('connection', (ws, httpReq) => {
-        const parts = httpReq.url.split('/')
-        const peerId = parts[1]
-        // const peerToken = parts[2] // TODO: use this to authorize reconnections
-        // console.log('assigned peerId!', peerId)
-        this.addClpPeer('downstream', peerId, ws)
-      })
+    }).then(servers => {
+      this.serversToClose = servers
+      if (servers.length) {
+        const createPromise = new Promise((resolve) => {
+          this.wss = new WebSocket.Server({ servers[0] }, resolve)
+        })
+        this.serversToClose.push(this.wss)
+        this.wss.on('connection', (ws, httpReq) => {
+          const parts = httpReq.url.split('/')
+          const peerId = parts[1]
+          // const peerToken = parts[2] // TODO: use this to authorize reconnections
+          // console.log('assigned peerId!', peerId)
+          this.addClpPeer('downstream', peerId, ws)
+        })
+        return createPromise
+      }
     })
   },
 
@@ -159,22 +155,25 @@ IlpNode.prototype = {
   },
 
   stop () {
+    // close ws/wss clients:
     let promises = this.upstreams.map(ws => {
       return new Promise(resolve => {
         ws.on('close', () => {
-          // console.log('close emitted!')
           resolve()
         })
-        // console.log('closing client!')
         ws.close()
-        // console.log('started closing client!')
       })
     })
-    if (this.wss) {
-      promises.push(new Promise(resolve => {
-        return this.wss.close(resolve)
-      }))
-    }
+
+    // close http, https, ws/wss servers:
+    promises.push(this.serversToClose.map(server => {
+      return new Promise((resolve) => {
+        server.close(resolve)
+      })
+    }))
+
+    // disconnect plugins:
+    promises.push(this.plugins.map(plugin => plugin.disconnect()))
     return Promise.all(promises)
   },
 
