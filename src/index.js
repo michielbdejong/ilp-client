@@ -10,6 +10,9 @@ const Forwarder = require('./forwarder')
 const Peer = require('./peer')
 const VirtualPeer = require('./virtual-peer')
 
+const express = require('express')
+const greenLockExpress = require('greenlock-express')
+
 function IlpNode (config) {
   this.upstreams = []
   this.plugins = []
@@ -96,11 +99,28 @@ IlpNode.prototype = {
   },
 
   maybeListen () {
-    if (typeof this.config.clp.listen !== 'number') {
-      return Promise.resolve()
-    }
     return new Promise(resolve => {
-      this.wss = new WebSocket.Server({ port: this.config.clp.listen }, resolve)
+      let server
+      if (this.config.clp.tls) {
+        // TODO: find out how to remove the dependency on express here
+        server = greenLockExpress.create({
+           server: 'staging',
+           email: 'john.doe@example.com',
+           agreeTos: true,
+           approveDomains: [ this.config.clp.tls ],
+           app: express().use('/', function (req, res) {
+             res.end('Hello, World!');
+           }),
+         }).listen(80, 443)
+      } else {
+        if (typeof this.config.clp.listen !== 'number') {
+          return Promise.resolve()
+        }
+        server = http.createServer((req, res) => {
+          res.end('This is a CLP server, please upgrade to WebSockets.')
+        }).listen(this.config.clp.listen)
+      }
+      this.wss = new WebSocket.Server({ server }, resolve)
     }).then(() => {
       this.wss.on('connection', (ws, httpReq) => {
         const parts = httpReq.url.split('/')
