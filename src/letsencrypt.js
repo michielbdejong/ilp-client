@@ -35,7 +35,7 @@ module.exports = function getLetsEncryptServers (domain) {
       const httpsServer = https.createServer({
         key: certs.privkey,
         cert: certs.cert,
-        chain: certs.chain
+        ca: certs.chain
       }, (req, res) => {
         console.log(req.url)
         res.end('Hello encrypted world')
