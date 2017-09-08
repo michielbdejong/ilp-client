@@ -11,8 +11,8 @@ Listening on ws://localhost:8000/
 In another:
 ```js
 $ node scripts/genSecrets.js
-$ cat config/clp.js
-$ vim config/xrp.js
+$ cat config/server.js # contains example confs for CLP-server, XRP, and ETH
+$ vim config/client1.js # add your own XRP and ETH confs
 $ node scripts/flood.js 10000 clp clp
 [ '/Users/michiel/.nvm/versions/node/v7.7.1/bin/node',
   '/Users/michiel/gh/michielbdejong/ilp-node/scripts/flood.js',
@@ -27,9 +27,7 @@ $ node scripts/flood.js 10000 clp clp
 <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Aan_de_Zuidpool_-_p1913-160.jpg">
 
 ```js
-$ node scripts/genSecrets.js wss://amundsen.herokuapp.com rHrrxo57wXH5AqTgjq91cQCZCpiU16W5ps
-$ cat config/clp.js
-$ vim config/xrp.js
+$ node scripts/genSecrets.js wss://amundsen.herokuapp.com
 $ node scripts/flood.js 10000 clp clp
 [ '/Users/michiel/.nvm/versions/node/v7.7.1/bin/node',
   '/Users/michiel/gh/michielbdejong/ilp-node/scripts/flood.js',
@@ -38,6 +36,10 @@ $ node scripts/flood.js 10000 clp clp
   'clp' ]
 10000 transfers took 9044ms, that is 1105.7054400707652 payments per second.
 ```
+
+## Send over XRP
+
+TODO: update docs for this.
 
 ## Send over ETH Rinkeby
 

@@ -17,6 +17,7 @@ DummyPlugin.prototype = {
     return Promise.resolve(null)
   },
   connect () {},
+  disconnect () {},
   getAccount () { return this.prefix + 'dummy-account' },
   getInfo () { return { prefix: this.prefix } },
   fulfillCondition (transferId, conditionBase64) {

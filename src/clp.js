@@ -27,7 +27,7 @@ function Clp (baseLedger, initialBalance, ws, protocolHandlers) {
 
 Clp.prototype = {
   sendCall (type, requestId, data) {
-    // console.log('sendCall', { type, requestId, data })
+    console.log('sendCall', { type, requestId, data })
     this.ws.send(ClpPacket.serialize({ type, requestId, data }))
   },
 
@@ -119,7 +119,7 @@ Clp.prototype = {
     assertType(obj.requestId, 'number')
     assertType(obj.data, 'object')
 
-    // console.log('incoming:', JSON.stringify(obj))
+    console.log('incoming:', JSON.stringify(obj))
     switch (obj.type) {
       case ClpPacket.TYPE_ACK:
         // console.log('TYPE_ACK!')
