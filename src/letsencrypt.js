@@ -4,8 +4,8 @@ const http = require('http')
 const https = require('https')
 const LE = require('greenlock').LE
 const le = LE.create({
-  server: 'staging',
-  // server: 'https://acme-v01.api.letsencrypt.org/directory',
+  // server: 'staging',
+  server: 'https://acme-v01.api.letsencrypt.org/directory',
   acme: require('le-acme-core').ACME.create(),
   store: require('le-store-certbot').create({ configDir: '~/letsencrypt/etc', webrootPath: '~/letsencrypt/var/:hostname' }),
   challenges: { 'http-01': require('le-challenge-fs').create({ webrootPath: '~/letsencrypt/var/:hostname' }) },
