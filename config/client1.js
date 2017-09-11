@@ -4,8 +4,7 @@ module.exports = {
     "initialBalancePerPeer": 10000,
     "upstreams": [
       {
-        "url": "ws://localhost:8000",
-        "peerName": "upstream-of-client-1",
+        "url": "ws://localhost:8000/ilp-node-3/api/v1",
         "token": "0df891c5249e4239f42b36bf5dbff9d6808272ac9d33b272f81f7f1042088f74"
       }
     ]

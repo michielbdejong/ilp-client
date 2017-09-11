@@ -1,6 +1,7 @@
 module.exports = {
   clp: {
     listen: 8000,
+    path: '/ilp-node-3/api/v1',
     name: 'ab833ece33938b2327b0d7ab78a28a39c498c9915e8ab05026d5400f0fa2da34',
     initialBalancePerPeer: 10000,
     upstreams: []
