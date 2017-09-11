@@ -1,10 +1,10 @@
 const IlpPacket = require('ilp-packet')
 const uuid = require('uuid/v4')
 
-function VirtualPeer (plugin, forwardCb, connectorAddress) {
+function VirtualPeer (plugin, onIncomingTransfer, connectorAccount) {
   this.plugin = plugin
-  this.forwardCb = forwardCb
-  this.connectorAddress = connectorAddress
+  this.onIncomingTransfer = onIncomingTransfer
+  this.connectorAccount = connectorAccount
   this.transfersSent = {}
   this.plugin.on('incoming_prepare', this.handleTransfer.bind(this))
   this.plugin.on('outgoing_fulfill', this.handleFulfill.bind(this))
@@ -14,8 +14,8 @@ function VirtualPeer (plugin, forwardCb, connectorAddress) {
 VirtualPeer.prototype = {
 
   handleTransfer (transfer) {
-    // console.log('handleTransfer!', Buffer.from(transfer.executionCondition, 'base64'))
-    const promise = Promise.resolve(this.forwardCb({
+    console.log('handleTransfer!', Buffer.from(transfer.executionCondition, 'base64'))
+    const promise = Promise.resolve(this.onIncomingTransfer({
       from: transfer.from,
       expiresAt: new Date(transfer.expiresAt),
       amount: parseInt(transfer.amount),
@@ -67,8 +67,8 @@ VirtualPeer.prototype = {
       }
     })
 
-    let to = this.connectorAddress // default
     const ledger = this.plugin.getInfo().prefix
+    let to = ledger + this.connectorAccount // default
     // console.log({ to, ledger })
     if (paymentObj.account.startsWith(ledger)) { // skip the connector
       const parts = paymentObj.account.substring(ledger.length).split('.')
@@ -87,7 +87,7 @@ VirtualPeer.prototype = {
       expiresAt: transfer.expiresAt.toISOString(),
       custom: {}
     }
-    // console.log('VirtualPeer calls sendTransfer!', lpiTransfer)
+    console.log('VirtualPeer calls sendTransfer!', lpiTransfer)
 
     this.plugin.sendTransfer(lpiTransfer).catch(err => {
       console.error('sendTransfer failed', err)
