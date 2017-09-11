@@ -1,6 +1,6 @@
 {
   "name": "ilp-node",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Connector used for https://github.com/interledger/interledger/wiki/Interledger-over-CLP",
   "main": "src/index.js",
   "dependencies": {
