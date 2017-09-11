@@ -20,7 +20,7 @@ module.exports = {
   "xrp": {
     "secret": "snWRByL1KRSSprArJJvxDaiJfujLC",
     "address": "rB1vPd6fnPZQUHmnxexfzXsUPdKKjfTQxQ",
-    "connector": "rhjRdyVNcaTNLXp3rkK4KtjCdUd9YEgrPs",
+    "connector": require('./server').xrp.address,
     "server": "wss://s.altnet.rippletest.net:51233",
     "prefix": "test.crypto.xrp."
   }
