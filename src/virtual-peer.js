@@ -29,10 +29,10 @@ VirtualPeer.prototype = {
       fulfilled.then(() => {
         // console.log('submitted that fulfillment to ledger!', transfer.executionCondition, fulfillment)
       }, err => {
-        console.log('failed to submit that fulfillment to ledger!', transfer.executionCondition, fulfillment, err)
+        console.error('failed to submit that fulfillment to ledger!', transfer.executionCondition, fulfillment, err)
       })
     }, (err) => {
-      console.log('could not forward, rejecting')
+      console.error('could not forward, rejecting')
       if (err.message === 'vouch') {
         this.plugin.rejectIncomingTransfer(transfer.id, {
           code: 'L53',
@@ -69,11 +69,11 @@ VirtualPeer.prototype = {
 
     let to = this.connectorAddress // default
     const ledger = this.plugin.getInfo().prefix
-    console.log({ to, ledger })
+    // console.log({ to, ledger })
     if (paymentObj.account.startsWith(ledger)) { // skip the connector
       const parts = paymentObj.account.substring(ledger.length).split('.')
       to = ledger + parts[0]
-      console.log({ to, parts })
+      // console.log({ to, parts })
     }
     const lpiTransfer = {
       id: transferId,
@@ -87,10 +87,10 @@ VirtualPeer.prototype = {
       expiresAt: transfer.expiresAt.toISOString(),
       custom: {}
     }
-    console.log('VirtualPeer calls sendTransfer!', lpiTransfer)
+    // console.log('VirtualPeer calls sendTransfer!', lpiTransfer)
 
     this.plugin.sendTransfer(lpiTransfer).catch(err => {
-      console.log('sendTransfer failed', err)
+      console.error('sendTransfer failed', err)
       this.transfersSent[transferId].reject({
         code: 'L62',
         name: err.message
@@ -107,7 +107,7 @@ VirtualPeer.prototype = {
   },
 
   handleReject (transfer, rejectionReasonBase64) {
-    console.log('handling reject!', Buffer.from(transfer.executionCondition, 'base64'), Buffer.from(rejectionReasonBase64, 'base64'))
+    // console.log('handling reject!', Buffer.from(transfer.executionCondition, 'base64'), Buffer.from(rejectionReasonBase64, 'base64'))
     this.transfersSent[transfer.id].reject(Buffer.from(rejectionReasonBase64, 'base64'))
     delete this.transfersSent[transfer.id]
   }

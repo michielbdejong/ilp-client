@@ -29,21 +29,21 @@ Flooder.prototype = {
     // console.log('receiver set up', condition, fulfillment)
 
     return this.client2.getIlpAddress(to).then(ilpBaseAddress => {
-      console.log({ ilpBaseAddress })
+      // console.log({ ilpBaseAddress })
       const packet = IlpPacket.serializeIlpPayment({
         amount: '1',
         account: ilpBaseAddress + '.hi'
       })
-      console.log({ packet })
+      // console.log({ packet })
       const transfer = {
         // transferId will be added  by Peer#conditional(transfer, protocolData)
         amount: 1, // TODO: get quote first for exchange rates
         executionCondition: condition,
         expiresAt: new Date(new Date().getTime() + 100000)
       }
-      console.log({ ilpBaseAddress, transfer, packet })
+      // console.log({ ilpBaseAddress, transfer, packet })
       const peer = this.client1.getPeer(from)
-      console.log(peer)
+      // console.log(peer)
       return peer.interledgerPayment(transfer, packet)
     }).then(result => {
       // console.log('success!', from, to, condition, fulfillment, result)

@@ -133,7 +133,7 @@ IlpNode.prototype = {
       const peerName = upstreamConfig.url.replace(/(?!\w)./g, '')
       // console.log({ url: upstreamConfig.url, peerName })
       return new Promise((resolve, reject) => {
-        console.log('connecting to upstream WebSocket', upstreamConfig.url + '/' + this.config.clp.name + '/' + upstreamConfig.token, this.config.clp, upstreamConfig)
+        // console.log('connecting to upstream WebSocket', upstreamConfig.url + '/' + this.config.clp.name + '/' + upstreamConfig.token, this.config.clp, upstreamConfig)
         const ws = new WebSocket(upstreamConfig.url + '/' + this.config.clp.name + '/' + upstreamConfig.token, {
           perMessageDeflate: false
         })

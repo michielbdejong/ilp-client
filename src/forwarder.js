@@ -37,7 +37,7 @@ Forwarder.prototype = {
       // console.log('interledgerPayment result', result)
       return result
     }, err => {
-      console.log('interledgerPayment err', err)
+      console.error('interledgerPayment err', err)
       throw err
     })
   },

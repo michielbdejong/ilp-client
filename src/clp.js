@@ -27,12 +27,12 @@ function Clp (baseLedger, initialBalance, ws, protocolHandlers) {
 
 Clp.prototype = {
   sendCall (type, requestId, data) {
-    console.log('sendCall', { type, requestId, data })
+    // console.log('sendCall', { type, requestId, data })
     this.ws.send(ClpPacket.serialize({ type, requestId, data }))
   },
 
   sendError (requestId, err) {
-    console.log('SENDING ERROR', err, typeof err)
+    console.error('SENDING ERROR', err, typeof err)
     this.sendCall(ClpPacket.TYPE_ERROR, requestId, {
       rejectionReason: err,
       protocolData: []
@@ -119,7 +119,7 @@ Clp.prototype = {
     assertType(obj.requestId, 'number')
     assertType(obj.data, 'object')
 
-    console.log('incoming:', JSON.stringify(obj))
+    // console.log('incoming:', JSON.stringify(obj))
     switch (obj.type) {
       case ClpPacket.TYPE_ACK:
         // console.log('TYPE_ACK!')
@@ -173,7 +173,7 @@ Clp.prototype = {
             protocolData: []
           })
         }, (err) => {
-          console.log('could not handle protocol request from PREPARE')
+          console.error('could not handle protocol request from PREPARE', err)
           this.sendCall(ClpPacket.TYPE_REJECT, replyRequestId, {
             transferId: obj.data.transferId,
             rejectionReason: err,
@@ -227,7 +227,7 @@ Clp.prototype = {
           // console.log('sendind back result!', obj, result)
           this.sendResult(obj.requestId, obj.data[0].protocolName, result)
         }, err => {
-          console.log('could not handle protocol request from MESSAGE')
+          console.error('could not handle protocol request from MESSAGE')
           // console.log('sendind back err!', err)
           this.sendError(obj.requestId, err)
         })

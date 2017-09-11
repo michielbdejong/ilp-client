@@ -68,7 +68,7 @@ Quoter.prototype = {
       }
       parts.pop()
     }
-    console.log('tried to find curve', address, this.curves)
+    console.error('tried to find curve', address, this.curves)
     throw new Error('no curve found')
   },
 
