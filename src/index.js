@@ -137,10 +137,14 @@ IlpNode.prototype = {
         this.wss.on('connection', (ws, httpReq) => {
           const parts = httpReq.url.split('/')
           // console.log('client connected!', parts)
-          //        0: software, 1: clp, 2: spec, 3: name, 4: token
-          // e.g. [ 'ilp-node-3', 'clp', 'v1', 'a7f0e298941b772f5abc028d477938b6bbf56e1a14e3e4fae97015401e8ab372', 'ea16ed65d80fa8c760e9251b235e3d47893e7c35ffe3d9c57bd041200d1c0a50' ]
-          const peerId = parts[3]
-          // const peerToken = parts[4] // TODO: use this to authorize reconnections
+          // Note that the spec version and the token will probably disappear from the URL
+          // in Interledger Testnet Stack Version 2, due to https://github.com/interledger/rfcs/issues/294
+          // and https://github.com/interledger/interledger/wiki/Interledger-over-CLP#changes-to-setup
+          // respectively.
+          //        0: '', 1: software, 2: api, 3: spec, 4: name, 5: token
+          // e.g. [ '', 'ilp-node-3', 'api', 'v1', 'a7f0e298941b772f5abc028d477938b6bbf56e1a14e3e4fae97015401e8ab372', 'ea16ed65d80fa8c760e9251b235e3d47893e7c35ffe3d9c57bd041200d1c0a50' ]
+          const peerId = parts[4]
+          // const peerToken = parts[5] // TODO: use this to authorize reconnections
           // console.log('assigned peerId!', peerId)
           this.addClpPeer('downstream', peerId, ws)
         })

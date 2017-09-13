@@ -1,11 +1,11 @@
 module.exports = {
   "clp": {
-    "name": "52a46a3834686ed9b9d6bb12d6cad8a3c0cedf92a430e6f2b5d2b8841c615815",
+    "name": "187502bd2fe969e945eb35f323854ee634cf82a72b8644c5d15ff0cec02cb9a5",
     "initialBalancePerPeer": 10000,
     "upstreams": [
       {
-        "url": "wss://amundsen.herokuapp.com",
-        "token": "c08836ed9c0e2182e8b41931a088673bb03f57998e55c848a1a6d0ae21db224e"
+        "url": "wss://amundsen.michielbdejong.com/ilp-node-3/api/v1",
+        "token": "9a4cdc9c7282832b10658d29a6fc15437422166c773a828189a635556af4d15d"
       }
     ]
   },
