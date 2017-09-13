@@ -1,5 +1,6 @@
 const WebSocket = require('ws')
 const http = require('http')
+const VouchPacket = require('./protocols').VouchPacket
 
 const Plugin = {
   xrp: require('ilp-plugin-xrp-escrow'),
@@ -34,8 +35,8 @@ function IlpNode (config) {
     // console.log('plugin', config, name)
     const plugin = new Plugin[name](this.config[name])
     this.plugins.push(plugin)
-    //                        function VirtualPeer (plugin, onIncomingTransfer, connectorAccount) {
-    this.peers['ledger_' + name] = new VirtualPeer(plugin, this.handleTransfer.bind(this), this.config[name].connector)
+    //                        function VirtualPeer (plugin, onIncomingTransfer) {
+    this.peers['ledger_' + name] = new VirtualPeer(plugin, this.handleTransfer.bind(this))
     // auto-vouch ledger VirtualPeer -> all existing CLP peers
     this.addVouchableAddress(plugin.getAccount())
     // and add the plugin ledger as a destination in to the routing table:
@@ -74,9 +75,25 @@ IlpNode.prototype = {
     const ledgerPrefix = 'peer.testing.' + this.config.clp.name + '.' + peerName + '.'
     // console.log({ peerType, peerId })
     //                function Peer (ledgerPrefix, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
-    this.peers[peerName] = new Peer(ledgerPrefix, peerName, this.config.clp.initialBalancePerPeer, ws, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (address) => {
-      this.vouchingMap[address] = peerName
-      // console.log('vouched!', this.vouchingMap)
+    this.peers[peerName] = new Peer(ledgerPrefix, peerName, this.config.clp.initialBalancePerPeer, ws, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (vouchType, address) => {
+      console.log('vouch came in!', vouchType, address, this.config)
+      if (vouchType === VouchPacket.TYPE_VOUCH) {
+        // charge rollbacks for `address` to `peerName` trustline balance
+        this.vouchingMap[address] = peerName
+      } else if (vouchType === VouchPacket.TYPE_REACHME) {
+        for (let peerName in this.peers) {
+          console.log({ peerName })
+          if (!peerName.startsWith('ledger_')) {
+            continue
+          }
+          const ledgerName = peerName.substring('ledger_'.length)
+          if (address.startsWith(this.config[ledgerName].prefix)) {
+            console.log('have a connector on', ledgerName, address, peerName)
+            this.peers[`ledger_${ledgerName}`].setConnectorAddress(address)
+          }
+        }
+      }
+      // console.log('peer has vouched!', vouchType, address, this.vouchingMap)
       return Promise.resolve()
     })
     // auto-vouch all existing ledger VirtualPeers -> CLP peer
@@ -197,19 +214,23 @@ IlpNode.prototype = {
 
   // actual receiver and connector functionality for incoming transfers:
   handleTransfer (transfer, paymentPacket) {
+    console.log('handleTransfer came in index!', transfer, paymentPacket)
+    if (this.fulfillments[transfer.executionCondition.toString('hex')]) {
+      return Promise.resolve(this.fulfillments[transfer.executionCondition.toString('hex')])
+    }
     // Technically, this is checking the vouch for the wrong
     // amount, but if the vouch checks out for the source amount,
     // then it's also good enough to cover onwardAmount
     if (transfer.from && !this.checkVouch(transfer.from, parseInt(transfer.amount))) {
       return Promise.reject(new Error('vouch'))
     }
-    return Promise.resolve(this.fulfillments[transfer.executionCondition.toString('hex')] || this.forwarder.forward(transfer, paymentPacket))
+    return Promise.resolve(this.forwarder.forward(transfer, paymentPacket))
   },
 
   getIlpAddress (ledger) {
-    if (this.config[ledger].prefix + this.config[ledger].address) {
+    if (this.config[ledger].prefix && this.config[ledger].account) {
       // used in xrp and eth configs
-      return Promise.resolve(this.config[ledger].prefix + this.config[ledger].address)
+      return Promise.resolve(this.config[ledger].prefix + this.config[ledger].account)
     } else {
       // used in clp config
       return this.peers[this.defaultClpPeer].getMyIlpAddress()

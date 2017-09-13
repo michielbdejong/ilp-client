@@ -12,7 +12,6 @@ module.exports = {
 //  "eth": {
 //    "secret": "ahd0mooGh3tai5Lae9quahth9Eerah6eiGhahgoh",
 //    "account": "0xECFA6A8999A67A498524EAAF5287417C4569C6DB",
-//    "connector": "0x8B3FBD781096B51E68448C6E5B53B240F663199F",
 //    "provider": "http://localhost:8545",
 //    "contract": "0x8B3FBD781096B51E68448C6E5B53B240F663199F",
 //    "prefix": "test.crypto.eth.rinkeby."
@@ -20,7 +19,6 @@ module.exports = {
   "xrp": {
     "secret": "ssGjGT4sz4rp2xahcDj87P71rTYXo",
     "account": "rrhnXcox5bEmZfJCHzPxajUtwdt772zrCW",
-    "connector": require('./server').xrp.account,
     "server": "wss://s.altnet.rippletest.net:51233",
     "prefix": "test.crypto.xrp."
   }

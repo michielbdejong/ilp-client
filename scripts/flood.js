@@ -44,7 +44,16 @@ Flooder.prototype = {
       // console.log({ ilpBaseAddress, transfer, packet })
       const peer = this.client1.getPeer(from)
       // console.log(peer)
-      return peer.interledgerPayment(transfer, packet)
+      return new Promise((resolve) => {
+      //  const timer = setInterval(() => {
+      //    if (from === 'clp' || peer.connectorAddress) {
+      //      clearInterval(timer)
+            resolve(peer.interledgerPayment(transfer, packet))
+      //    } else {
+      //      console.log('waiting for a peer to give us a connector address for ' + from, peer)
+      //    }
+      //  }, 1000)
+      })
     }).then(result => {
       // console.log('success!', from, to, condition, fulfillment, result)
     }, (err) => {
