@@ -81,7 +81,7 @@ Peer.prototype = {
 
   _handleVouch (dataBuf) {
     const obj = VouchPacket.deserialize(dataBuf)
-    console.log('received vouch!', obj)
+    // console.log('received vouch!', obj)
     return this.voucher(obj.callId, obj.address)
   },
 
@@ -114,7 +114,7 @@ Peer.prototype = {
   vouchBothWays (address) {
     const packet1 = VouchPacket.serialize({ callId: VouchPacket.TYPE_VOUCH, address })
     const packet2 = VouchPacket.serialize({ callId: VouchPacket.TYPE_REACHME, address })
-    console.log('sending vouches', packet1, packet2)
+    // console.log('sending vouches', packet1, packet2)
     return Promise.all([this.clp.unpaid('vouch', packet1), this.clp.unpaid('vouch', packet2)])
   }
 }

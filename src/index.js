@@ -76,19 +76,19 @@ IlpNode.prototype = {
     // console.log({ peerType, peerId })
     //                function Peer (ledgerPrefix, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
     this.peers[peerName] = new Peer(ledgerPrefix, peerName, this.config.clp.initialBalancePerPeer, ws, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (vouchType, address) => {
-      console.log('vouch came in!', vouchType, address, this.config)
+      // console.log('vouch came in!', vouchType, address, this.config)
       if (vouchType === VouchPacket.TYPE_VOUCH) {
         // charge rollbacks for `address` to `peerName` trustline balance
         this.vouchingMap[address] = peerName
       } else if (vouchType === VouchPacket.TYPE_REACHME) {
         for (let peerName in this.peers) {
-          console.log({ peerName })
+          // console.log({ peerName })
           if (!peerName.startsWith('ledger_')) {
             continue
           }
           const ledgerName = peerName.substring('ledger_'.length)
           if (address.startsWith(this.config[ledgerName].prefix)) {
-            console.log('have a connector on', ledgerName, address, peerName)
+            // console.log('have a connector on', ledgerName, address, peerName)
             this.peers[`ledger_${ledgerName}`].setConnectorAddress(address)
           }
         }
@@ -214,7 +214,7 @@ IlpNode.prototype = {
 
   // actual receiver and connector functionality for incoming transfers:
   handleTransfer (transfer, paymentPacket) {
-    console.log('handleTransfer came in index!', transfer, paymentPacket)
+    // console.log('handleTransfer came in index!', transfer, paymentPacket)
     if (this.fulfillments[transfer.executionCondition.toString('hex')]) {
       return Promise.resolve(this.fulfillments[transfer.executionCondition.toString('hex')])
     }

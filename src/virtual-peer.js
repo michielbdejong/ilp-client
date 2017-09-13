@@ -13,7 +13,7 @@ function VirtualPeer (plugin, onIncomingTransfer) {
 VirtualPeer.prototype = {
 
   handleTransfer (transfer) {
-    console.log('handleTransfer!', Buffer.from(transfer.executionCondition, 'base64'))
+    // console.log('handleTransfer!', Buffer.from(transfer.executionCondition, 'base64'))
     const promise = Promise.resolve(this.onIncomingTransfer({
       from: transfer.from,
       expiresAt: new Date(transfer.expiresAt),
@@ -49,7 +49,7 @@ VirtualPeer.prototype = {
   },
 
   setConnectorAddress (connectorAddress) {
-    console.log('setting connector address!', connectorAddress)
+    // console.log('setting connector address!', connectorAddress)
     this.connectorAddress = connectorAddress
   },
 
@@ -73,11 +73,11 @@ VirtualPeer.prototype = {
 
     const ledger = this.plugin.getInfo().prefix
     let to = this.connectorAddress // default, send everything to your peer's reach-me-at account
-    console.log('default, to peer reach-me-at', { to, ledger })
+    // console.log('default, to peer reach-me-at', { to, ledger })
     if (paymentObj.account.startsWith(ledger)) { // skip the connector
       const parts = paymentObj.account.substring(ledger.length).split('.')
       to = ledger + parts[0]
-      console.log('last-hop delivery!', { to, parts, ledger, paymentObj })
+      // console.log('last-hop delivery!', { to, parts, ledger, paymentObj })
     }
     const lpiTransfer = {
       id: transferId,
@@ -91,7 +91,7 @@ VirtualPeer.prototype = {
       expiresAt: transfer.expiresAt.toISOString(),
       custom: {}
     }
-    console.log('VirtualPeer calls sendTransfer!', lpiTransfer)
+    // console.log('VirtualPeer calls sendTransfer!', lpiTransfer)
 
     this.plugin.sendTransfer(lpiTransfer).catch(err => {
       console.error('sendTransfer failed', err)
