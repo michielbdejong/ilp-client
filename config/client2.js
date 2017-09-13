@@ -1,21 +1,15 @@
 module.exports = {
   "clp": {
-    "name": "a7f0e298941b772f5abc028d477938b6bbf56e1a14e3e4fae97015401e8ab372",
+    "name": "5dca955b59f8d35eb0cacbc7b199eb6a877f02ca942e5f316731d5100fecb7c0",
     "initialBalancePerPeer": 10000,
     "upstreams": [
       {
-        "url": "ws://localhost:8000/ilp-node-3/api/v1",
-        "token": "ea16ed65d80fa8c760e9251b235e3d47893e7c35ffe3d9c57bd041200d1c0a50"
+        "url": "wss://amundsen.herokuapp.com",
+        "peerName": "upstream-of-client-2",
+        "token": "97e5d4231e87b4558d3c9a4f495eea8db327090d2e874f2ee057e34011b7838f"
       }
     ]
   },
-//  "eth": {
-//    "secret": "koo5nae6ij0iiNga5koh4mahmoo9oom3iehohcoo",
-//    "account": "0x85039B0EC7C8090FA375B065A3918AFDB1EF65F2",
-//    "provider": "http://localhost:8545",
-//    "contract": "0x8B3FBD781096B51E68448C6E5B53B240F663199F",
-//    "prefix": "test.crypto.eth.rinkeby."
-//  },
   "xrp": {
     "secret": "snWRByL1KRSSprArJJvxDaiJfujLC",
     "account": "rB1vPd6fnPZQUHmnxexfzXsUPdKKjfTQxQ",

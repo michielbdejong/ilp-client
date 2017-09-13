@@ -18,7 +18,6 @@ conf1.clp = {
   initialBalancePerPeer: 10000,
   upstreams: [ {
     url: url1,
-    peerName: 'upstream-of-client-1',
     token: token1
   } ]
 }
@@ -28,7 +27,6 @@ conf2.clp = {
   initialBalancePerPeer: 10000,
   upstreams: [ {
     url: url2,
-    peerName: 'upstream-of-client-2',
     token: token2
   } ]
 }
