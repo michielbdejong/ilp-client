@@ -1,10 +1,9 @@
 const IlpPacket = require('ilp-packet')
 const uuid = require('uuid/v4')
 
-function VirtualPeer (plugin, onIncomingTransfer, connectorAccount) {
+function VirtualPeer (plugin, onIncomingTransfer) {
   this.plugin = plugin
   this.onIncomingTransfer = onIncomingTransfer
-  this.connectorAccount = connectorAccount
   this.transfersSent = {}
   this.plugin.on('incoming_prepare', this.handleTransfer.bind(this))
   this.plugin.on('outgoing_fulfill', this.handleFulfill.bind(this))
@@ -14,7 +13,7 @@ function VirtualPeer (plugin, onIncomingTransfer, connectorAccount) {
 VirtualPeer.prototype = {
 
   handleTransfer (transfer) {
-    console.log('handleTransfer!', Buffer.from(transfer.executionCondition, 'base64'))
+    // console.log('handleTransfer!', Buffer.from(transfer.executionCondition, 'base64'))
     const promise = Promise.resolve(this.onIncomingTransfer({
       from: transfer.from,
       expiresAt: new Date(transfer.expiresAt),
@@ -32,7 +31,7 @@ VirtualPeer.prototype = {
         console.error('failed to submit that fulfillment to ledger!', transfer.executionCondition, fulfillment, err)
       })
     }, (err) => {
-      console.error('could not forward, rejecting')
+      console.error('could not forward, rejecting', err.message)
       if (err.message === 'vouch') {
         this.plugin.rejectIncomingTransfer(transfer.id, {
           code: 'L53',
@@ -47,6 +46,11 @@ VirtualPeer.prototype = {
         this.plugin.rejectIncomingTransfer(transfer.id, IlpPacket.deserializeIlpError(err))
       }
     })
+  },
+
+  setConnectorAddress (connectorAddress) {
+    // console.log('setting connector address!', connectorAddress)
+    this.connectorAddress = connectorAddress
   },
 
   interledgerPayment (transfer, payment) {
@@ -68,12 +72,12 @@ VirtualPeer.prototype = {
     })
 
     const ledger = this.plugin.getInfo().prefix
-    let to = ledger + this.connectorAccount // default
-    // console.log({ to, ledger })
+    let to = this.connectorAddress // default, send everything to your peer's reach-me-at account
+    // console.log('default, to peer reach-me-at', { to, ledger })
     if (paymentObj.account.startsWith(ledger)) { // skip the connector
       const parts = paymentObj.account.substring(ledger.length).split('.')
       to = ledger + parts[0]
-      // console.log({ to, parts })
+      // console.log('last-hop delivery!', { to, parts, ledger, paymentObj })
     }
     const lpiTransfer = {
       id: transferId,
@@ -87,7 +91,7 @@ VirtualPeer.prototype = {
       expiresAt: transfer.expiresAt.toISOString(),
       custom: {}
     }
-    console.log('VirtualPeer calls sendTransfer!', lpiTransfer)
+    // console.log('VirtualPeer calls sendTransfer!', lpiTransfer)
 
     this.plugin.sendTransfer(lpiTransfer).catch(err => {
       console.error('sendTransfer failed', err)
