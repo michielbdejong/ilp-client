@@ -5,7 +5,6 @@ module.exports = {
     "upstreams": [
       {
         "url": "wss://amundsen.herokuapp.com",
-        "peerName": "upstream-of-client-1",
         "token": "c08836ed9c0e2182e8b41931a088673bb03f57998e55c848a1a6d0ae21db224e"
       }
     ]
