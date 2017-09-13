@@ -14,8 +14,8 @@ module.exports = {
 //    prefix: 'test.crypto.eth.rinkeby.'
 //  },
   xrp: {
-    secret: 'shvKKDpRGMyKMUVn4EyMqCh9BQoP9',
-    account: 'rhjRdyVNcaTNLXp3rkK4KtjCdUd9YEgrPs',
+    secret: 'ssSnGCUpczt5gZo7AUHbMmKNtswim',
+    account: 'rBqq2oxPPSeNWxDwPjBMufMMU21j8NVFKr',
     server: 'wss://s.altnet.rippletest.net:51233',
     prefix: 'test.crypto.xrp.'
   }
