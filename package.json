@@ -25,7 +25,7 @@
   "scripts": {
     "lint": "eslint .",
     "test": "mocha",
-    "start": "node src/server-from-env-vars.js"
+    "start": "node src/server-from-amundsen-config.js"
   },
   "engines": {
     "node": ">=8"
