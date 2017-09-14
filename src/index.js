@@ -68,12 +68,13 @@ IlpNode.prototype = {
     if (whoAmI === 'server') {
       peerType = 'downstream'
       let myBaseUrl
-      if (this.config.tls) {
+      if (this.config.clp.tls) {
         myBaseUrl = 'wss://' + this.config.clp.tls
       } else {
-        myBaseUrl = 'ws://localhost:' + this.config.clp.port
+        myBaseUrl = 'ws://localhost:' + this.config.clp.listen
       }
       if (!url.startsWith(myBaseUrl)) {
+        console.log(url, this.config)
         throw new Error('confused about my base url!', url, this.config.clp)
       }
       parts = url.substring(myBaseUrl.length).split('/')
