@@ -20,5 +20,5 @@ client.start().then(() => {
     }), // packet
     condition // condition
   ])
-  console.log('Please open https://interfaucet.michielbdejong.com/fund/' + ipr.toString('hex'))
+  console.log('Please open https://interfaucet.herokuapp.com/fund/' + ipr.toString('hex'))
 })
