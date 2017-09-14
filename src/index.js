@@ -12,13 +12,14 @@ const Peer = require('./peer')
 const VirtualPeer = require('./virtual-peer')
 
 function IlpNode (config) {
-  this.clpNode = new ClpNode(config.clp, this.addClpPeer.bind(this))
+  this.clpNode = new ClpNode(config.clp, this.addClpPeer.bind(this), this.handleClpMessage.bind(this))
   this.plugins = []
   this.vouchableAddresses = []
   this.vouchablePeers = []
   this.fulfillments = {}
   this.quoter = new Quoter()
   this.peers = {}
+  this.msgHandler = {}
   this.defaultPeers = {}
   this.config = config
   this.forwarder = new Forwarder(this.quoter, this.peers)
@@ -46,6 +47,13 @@ function IlpNode (config) {
 }
 
 IlpNode.prototype = {
+  handleClpMessage(msg, whoAmI, baseUrl, urlPath) {
+    console.log('handleClpMessage', { msg, whoAmI, baseUrl, urlPath }, Object.keys(this.msgHandler))
+    if (!this.msgHandler[baseUrl + urlPath]) {
+      return Promise.reject(new Error('have no msg handler for that peer'))
+    }
+    return this.msgHandler[baseUrl + urlPath](msg)
+  },
   addVouchablePeer (peerName) {
     this.vouchablePeers.push(peerName)
     return Promise.all(this.vouchableAddresses.map(address => {
@@ -62,22 +70,12 @@ IlpNode.prototype = {
     }))
   },
 
-  addClpPeer (ws, whoAmI, url) {
+  addClpPeer (whoAmI, baseUrl, urlPath) {
     let peerType
     let peerId
     if (whoAmI === 'server') {
       peerType = 'downstream'
-      let myBaseUrl
-      if (this.config.clp.tls) {
-        myBaseUrl = 'wss://' + this.config.clp.tls
-      } else {
-        myBaseUrl = 'ws://localhost:' + this.config.clp.listen
-      }
-      if (!url.startsWith(myBaseUrl)) {
-        console.log(url, this.config)
-        throw new Error('confused about my base url!', url, this.config.clp)
-      }
-      parts = url.substring(myBaseUrl.length).split('/')
+      parts = urlPath.split('/')
       peerId = parts[4]
     } else {
       peerType = 'downstream'
@@ -92,7 +90,18 @@ IlpNode.prototype = {
     const ledgerPrefix = 'peer.testing.' + this.config.clp.name + '.' + peerName + '.'
     // console.log({ peerType, peerId })
     //                function Peer (ledgerPrefix, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
-    this.peers[peerName] = new Peer(ledgerPrefix, peerName, this.config.clp.initialBalancePerPeer, ws, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (vouchType, address) => {
+    console.log('creating peer!', baseUrl, urlPath)
+    const that = this
+    this.peers[peerName] = new Peer(ledgerPrefix, peerName, this.config.clp.initialBalancePerPeer, {
+      on(eventName, eventHandler) {
+        console.log('setting message handler!', baseUrl, urlPath)
+        that.msgHandler[baseUrl + urlPath] = eventHandler
+      },
+      send(msg) {
+        console.log('peer is calling my send!', baseUrl, urlPath, msg)
+        that.clpNode.send(baseUrl + urlPath, msg)
+      }
+    }, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (vouchType, address) => {
       // console.log('vouch came in!', vouchType, address, this.config)
       if (vouchType === VouchPacket.TYPE_VOUCH) {
         // charge rollbacks for `address` to `peerName` trustline balance

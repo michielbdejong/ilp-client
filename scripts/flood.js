@@ -78,6 +78,10 @@ const to = process.argv[4] || 'clp'
 const flooder = new Flooder()
 let startTime
 flooder.open().then(() => {
+  return new Promise((resolve) =>{ 
+    setTimeout(resolve, 1000)
+  })
+}).then(() => {
   console.log('flooder open, flooding')
   startTime = new Date().getTime()
   return flooder.flood(NUM, from, to)
