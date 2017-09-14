@@ -4,7 +4,7 @@ module.exports = {
     "initialBalancePerPeer": 10000,
     "upstreams": [
       {
-        "url": "wss://amundsen.michielbdejong.com/ilp-node-3/api/v1",
+        "url": "ws://localhost:8000/ilp-node-3/api/v1",
         "token": "9a4cdc9c7282832b10658d29a6fc15437422166c773a828189a635556af4d15d"
       }
     ]

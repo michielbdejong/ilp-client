@@ -29,7 +29,7 @@ Clp.prototype = {
   sendCall (type, requestId, data) {
     // console.log('sendCall', { type, requestId, data })
     const clpPacket = ClpPacket.serialize({ type, requestId, data })
-    // console.log('encoded', clpPacket)
+    console.log('encoded', clpPacket, 'Peer is sending!')
     this.ws.send(clpPacket)
   },
 
