@@ -11,10 +11,8 @@ const Forwarder = require('./forwarder')
 const Peer = require('./peer')
 const VirtualPeer = require('./virtual-peer')
 
-const letsEncrypt = require('./letsencrypt')
-
 function IlpNode (config) {
-  this.clpNode = new ClpNode(config.clp, this.handleClpConnection.bind(this))
+  this.clpNode = new ClpNode(config.clp, this.addClpPeer.bind(this))
   this.plugins = []
   this.vouchableAddresses = []
   this.vouchablePeers = []
@@ -82,7 +80,7 @@ IlpNode.prototype = {
       peerId = parts[4]
     } else {
       peerType = 'downstream'
-      peerId = upstreamConfig.url.replace(/(?!\w)./g, '')
+      peerId = url.replace(/(?!\w)./g, '')
     }
 
     const peerName = peerType + '_' + peerId
