@@ -12,7 +12,7 @@ const Peer = require('./peer')
 const VirtualPeer = require('./virtual-peer')
 
 function IlpNode (config) {
-  this.clpNode = new ClpNode(config.clp, this.addClpPeer.bind(this))
+  this.clpNode = new ClpNode(config.clp, this.handleClpConnection.bind(this))
   this.plugins = []
   this.vouchableAddresses = []
   this.vouchablePeers = []
