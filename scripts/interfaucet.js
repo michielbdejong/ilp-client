@@ -30,9 +30,10 @@ client.start().then(() => {
       executionCondition: parsed.condition,
       expiresAt: new Date(new Date().getTime() + 3600 * 1000)
     }, parsed.packet).then(() => {
-      res.end('SENT!')
+      res.end('<html><img src="https://i.pinimg.com/564x/88/84/85/888485cae122717788328b4486803a32.jpg"></html>')
     }, err => {
-      res.end(JSON.stringify(err))
+      console.log(err, err.message)
+      res.end('<html><img src="https://i.pinimg.com/736x/fa/d2/76/fad27608b9bd588fe18231e2babe2b5f--man-faces-strange-places.jpg"></html>')
     })
   })
   server.listen(process.env.PORT)
