@@ -4,7 +4,7 @@
   "description": "Connector used for https://github.com/interledger/interledger/wiki/Interledger-over-CLP",
   "main": "src/index.js",
   "dependencies": {
-    "clp-node": "github:michielbdejong/clp-node#9fb7843",
+    "clp-node": "github:michielbdejong/clp-node#d5c951a",
     "clp-packet": "github:interledgerjs/clp-packet#mj-testnet-1",
     "ilp-packet": "^1.3.0",
     "ilp-plugin-ethereum": "github:interledgerjs/ilp-plugin-ethereum#246803b",
