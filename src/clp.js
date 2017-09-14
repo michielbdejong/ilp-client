@@ -27,9 +27,9 @@ function Clp (baseLedger, initialBalance, ws, protocolHandlers) {
 
 Clp.prototype = {
   sendCall (type, requestId, data) {
-    console.log('sendCall', { type, requestId, data })
+    // console.log('sendCall', { type, requestId, data })
     const clpPacket = ClpPacket.serialize({ type, requestId, data })
-    console.log('encoded', clpPacket)
+    // console.log('encoded', clpPacket)
     this.ws.send(clpPacket)
   },
 
@@ -259,7 +259,7 @@ Clp.prototype = {
   },
 
   conditional (transfer, protocolData) {
-    console.log('conditional', transfer, protocolData)
+    // console.log('conditional', transfer, protocolData)
     // console.log('asserting')
     assertType(transfer.amount, 'number')
     assertClass(transfer.executionCondition, Buffer)

@@ -218,7 +218,7 @@ IlpNode.prototype = {
 
   // actual receiver and connector functionality for incoming transfers:
   handleTransfer (transfer, paymentPacket) {
-    // console.log('handleTransfer came in index!', transfer, paymentPacket)
+    // console.log('handleTransfer came in index!', transfer, paymentPacket, this.fulfillments)
     if (this.fulfillments[transfer.executionCondition.toString('hex')]) {
       return Promise.resolve(this.fulfillments[transfer.executionCondition.toString('hex')])
     }
