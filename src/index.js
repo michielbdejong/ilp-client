@@ -1,5 +1,4 @@
-const WebSocket = require('ws')
-const http = require('http')
+const ClpNode = require('clp-node')
 const VouchPacket = require('./protocols').VouchPacket
 
 const Plugin = {
@@ -12,11 +11,8 @@ const Forwarder = require('./forwarder')
 const Peer = require('./peer')
 const VirtualPeer = require('./virtual-peer')
 
-const letsEncrypt = require('./letsencrypt')
-
 function IlpNode (config) {
-  this.upstreams = []
-  this.serversToClose = []
+  this.clpNode = new ClpNode(config.clp, this.addClpPeer.bind(this))
   this.plugins = []
   this.vouchableAddresses = []
   this.vouchablePeers = []
@@ -66,7 +62,27 @@ IlpNode.prototype = {
     }))
   },
 
-  addClpPeer (peerType, peerId, ws) {
+  addClpPeer (ws, whoAmI, url) {
+    let peerType
+    let peerId
+    if (whoAmI === 'server') {
+      peerType = 'downstream'
+      let myBaseUrl
+      if (this.config.tls) {
+        myBaseUrl = 'wss://' + this.config.clp.tls
+      } else {
+        myBaseUrl = 'ws://localhost:' + this.config.clp.port
+      }
+      if (!url.startsWith(myBaseUrl)) {
+        throw new Error('confused about my base url!', url, this.config.clp)
+      }
+      parts = url.substring(myBaseUrl.length).split('/')
+      peerId = parts[4]
+    } else {
+      peerType = 'downstream'
+      peerId = url.replace(/(?!\w)./g, '')
+    }
+
     const peerName = peerType + '_' + peerId
 
     // FIXME: this is a hacky way to make `node scripts/flood.js 1 clp clp` work  
@@ -116,85 +132,13 @@ IlpNode.prototype = {
     return Promise.all(promises)
   },
 
-  maybeListen () {
-    return new Promise((resolve, reject) => {
-      if (this.config.clp.tls) { // case 1: use LetsEncrypt => [https, http]
-        letsEncrypt('amundsen.michielbdejong.com').then(resolve, reject)
-      } else if (typeof this.config.clp.listen !== 'number') { // case 2: don't open run a server => []
-        resolve([])
-      } else { // case 3: listen without TLS on a port => [http]
-        const server = http.createServer((req, res) => {
-          res.end('This is a CLP server, please upgrade to WebSockets.')
-        })
-        server.listen(this.config.clp.listen, resolve([ server ]))
-      }
-    }).then(servers => {
-      // console.log('servers:', servers.length)
-      this.serversToClose = servers
-      if (servers.length) {
-        this.wss = new WebSocket.Server({ server: servers[0] })
-        this.serversToClose.push(this.wss)
-        this.wss.on('connection', (ws, httpReq) => {
-          const parts = httpReq.url.split('/')
-          // console.log('client connected!', parts)
-          // Note that the spec version and the token will probably disappear from the URL
-          // in Interledger Testnet Stack Version 2, due to https://github.com/interledger/rfcs/issues/294
-          // and https://github.com/interledger/interledger/wiki/Interledger-over-CLP#changes-to-setup
-          // respectively.
-          //        0: '', 1: software, 2: api, 3: spec, 4: name, 5: token
-          // e.g. [ '', 'ilp-node-3', 'api', 'v1', 'a7f0e298941b772f5abc028d477938b6bbf56e1a14e3e4fae97015401e8ab372', 'ea16ed65d80fa8c760e9251b235e3d47893e7c35ffe3d9c57bd041200d1c0a50' ]
-          const peerId = parts[4]
-          // const peerToken = parts[5] // TODO: use this to authorize reconnections
-          // console.log('assigned peerId!', peerId)
-          this.addClpPeer('downstream', peerId, ws)
-        })
-      }
-    })
-  },
-
-  connectToUpstreams () {
-    return Promise.all(this.config.clp.upstreams.map(upstreamConfig => {
-      const peerName = upstreamConfig.url.replace(/(?!\w)./g, '')
-      // console.log({ url: upstreamConfig.url, peerName })
-      return new Promise((resolve, reject) => {
-        // console.log('connecting to upstream WebSocket', upstreamConfig.url + '/' + this.config.clp.name + '/' + upstreamConfig.token, this.config.clp, upstreamConfig)
-        const ws = new WebSocket(upstreamConfig.url + '/' + this.config.clp.name + '/' + upstreamConfig.token, {
-          perMessageDeflate: false
-        })
-        ws.on('open', () => {
-          // console.log('creating client peer')
-          this.upstreams.push(ws)
-          this.addClpPeer('upstream', peerName, ws).then(resolve, reject)
-        })
-      })
-    }))
-  },
-
   start () {
-    return Promise.all([
-      this.maybeListen(), // .then(() => { console.log('maybeListen done', this.config) }),
-      this.connectToUpstreams(), // .then(() => { console.log('connectToUpstreams done', this.config) }),
-      this.connectPlugins() // .then(() => { console.log('connectPlugins done', this.config) })
-    ])
+    return this.clpNode.start()
   },
 
   stop () {
     // close ws/wss clients:
-    let promises = this.upstreams.map(ws => {
-      return new Promise(resolve => {
-        ws.on('close', () => {
-          resolve()
-        })
-        ws.close()
-      })
-    })
-
-    // close http, https, ws/wss servers:
-    promises.push(this.serversToClose.map(server => {
-      return new Promise((resolve) => {
-        server.close(resolve)
-      })
-    }))
+    let promises = [ this.clpNode.stop() ]
 
     // disconnect plugins:
     promises.push(this.plugins.map(plugin => plugin.disconnect()))
