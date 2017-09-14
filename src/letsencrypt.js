@@ -4,7 +4,7 @@ const http = require('http')
 const https = require('https')
 const LE = require('greenlock').LE
 
-module.exports = function getLetsEncryptServers (domain, callback) {
+module.exports = function getLetsEncryptServers (domain) {
   let httpServer
   const le = LE.create({
     // server: 'staging',
@@ -36,7 +36,7 @@ module.exports = function getLetsEncryptServers (domain, callback) {
         key: certs.privkey,
         cert: certs.cert,
         ca: certs.chain
-      }, callback || (req, res) => {
+      }, (req, res) => {
         // console.log(req.url)
         res.end('Hello encrypted world')
       })
@@ -54,9 +54,3 @@ module.exports = function getLetsEncryptServers (domain, callback) {
 //     servers.map(server => server.close())
 //   }, 1000000)
 // })
-//
-// With a callback:
-// getLetsEncryptServers('amundsen.michielbdejong.com', (req, res) => {
-//   res.end('Hello encrypted world')
-// })
-//
