@@ -25,7 +25,7 @@
   "scripts": {
     "lint": "eslint .",
     "test": "mocha",
-    "start": "node scripts/interfaucet.js"
+    "start": "node src/server-from-amundsen-config.js"
   },
   "engines": {
     "node": ">=8"
