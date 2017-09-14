@@ -26,7 +26,7 @@ client.start().then(() => {
       condition: iprBuf.slice(-8)
     }
     client.getPeer('clp').interledgerPayment({
-      amount: parsed.packet.amount,
+      amount: parseInt(parsed.packet.amount),
       executionCondition: parsed.condition,
       expiresAt: new Date(new Date().getTime() + 3600 * 1000)
     }, parsed.packet).then(() => {
