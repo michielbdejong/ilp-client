@@ -20,16 +20,17 @@ client.start().then(() => {
     const parts = req.url.split('/')
     console.log('interfaucet request!', parts)
     const iprBuf = Buffer.from(parts[2], 'hex')
-    const parsed = {
+    const ipr = {
       version: iprBuf[0],
-      packet: IlpPacket.deserializeIlpPayment(iprBuf.slice(1, iprBuf.length - 8)),
+      packet: iprBuf.slice(1, iprBuf.length - 8),
       condition: iprBuf.slice(-8)
     }
+
     client.getPeer('clp').interledgerPayment({
-      amount: parseInt(parsed.packet.amount),
-      executionCondition: parsed.condition,
+      amount = parseInt(IlpPacket.deserializeIlpPayment(ipr.packet).amount),
+      executionCondition: ipr.condition,
       expiresAt: new Date(new Date().getTime() + 3600 * 1000)
-    }, parsed.packet).then(() => {
+    }, ipr.packet).then(() => {
       res.end('SENT!')
     }, err => {
       res.end(JSON.stringify(err))
