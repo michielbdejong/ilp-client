@@ -23,8 +23,8 @@ client.start().then(() => {
       const iprBuf = Buffer.from(parts[2], 'hex')
       return {
         version: iprBuf[0],
-        packet: iprBuf.slice(1, iprBuf.length - 8),
-        condition: iprBuf.slice(-8)
+        packet: iprBuf.slice(1, iprBuf.length - 32),
+        condition: iprBuf.slice(-32)
       }
     }).then((ipr) => {
       console.log('ipr', JSON.stringify(ipr))
