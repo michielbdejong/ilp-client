@@ -7,7 +7,7 @@ const IlpNode = require('../src/index')
 const client = new IlpNode(require('../config/client1'))
 const fulfillment = crypto.randomBytes(32)
 const condition = sha256(fulfillment)
-
+console.log(fulfillment, condition, fulfillment.length, condition.length)
 client.start().then(() => {
   client.knowFulfillment(condition, fulfillment)
   return client.getIlpAddress('clp')

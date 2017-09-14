@@ -41,7 +41,7 @@ Peer.prototype = {
 
   _handleInfo (dataBuf) {
     if (dataBuf[0] === 0) {
-      console.log('info!', dataBuf, this.baseLedger, this.peerName)
+      // console.log('info!', dataBuf, this.baseLedger, this.peerName)
       return Promise.resolve(InfoPacket.serializeResponse(this.baseLedger.substring(0, this.baseLedger.length - 1)))
     }
     return Promise.reject(this.makeLedgerError('unknown call id'))
@@ -107,10 +107,10 @@ Peer.prototype = {
   },
 
   getMyIlpAddress () {
-    console.log('getting my ilp address')
+    // console.log('getting my ilp address')
     return this.clp.unpaid('info', Buffer.from([ 0 ])).then(responseMainProtocolData => {
-      console.log('got my ilp address', responseMainProtocolData)
-      console.log(InfoPacket.deserialize(responseMainProtocolData.data))
+      // console.log('got my ilp address', responseMainProtocolData)
+      // console.log(InfoPacket.deserialize(responseMainProtocolData.data))
       return InfoPacket.deserialize(responseMainProtocolData.data).address
     })
   },
