@@ -36,19 +36,6 @@ client.start().then(() => {
         expiresAt: new Date(new Date().getTime() + 3600 * 1000)
       }, ipr.packet)
     }).then(() => {
-    const parts = req.url.split('/')
-    console.log('interfaucet request!', parts)
-    const iprBuf = Buffer.from(parts[2], 'hex')
-    const parsed = {
-      version: iprBuf[0],
-      packet: IlpPacket.deserializeIlpPayment(iprBuf.slice(1, iprBuf.length - 8)),
-      condition: iprBuf.slice(-8)
-    }
-    client.getPeer('clp').interledgerPayment({
-      amount: parsed.packet.amount,
-      executionCondition: parsed.condition,
-      expiresAt: new Date(new Date().getTime() + 3600 * 1000)
-    }, parsed.packet).then(() => {
       res.end('<html><img src="https://i.pinimg.com/564x/88/84/85/888485cae122717788328b4486803a32.jpg"></html>')
     }, err => {
       console.log(err, err.message)
