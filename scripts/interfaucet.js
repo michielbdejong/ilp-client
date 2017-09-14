@@ -27,8 +27,11 @@ client.start().then(() => {
         condition: iprBuf.slice(-8)
       }
     }).then((ipr) => {
+      console.log('ipr', JSON.stringify(ipr))
+      const ipp = IlpPacket.deserializeIlpPayment(ipr.packet)
+      console.log('ipp', JSON.stringify(ipp))
       return client.getPeer('clp').interledgerPayment({
-        amount: parseInt(IlpPacket.deserializeIlpPayment(ipr.packet).amount),
+        amount: parseInt(ipp.amount),
         executionCondition: ipr.condition,
         expiresAt: new Date(new Date().getTime() + 3600 * 1000)
       }, ipr.packet)
