@@ -3,7 +3,7 @@ const IlpNode = require('../src/index')
 const IlpPacket = require('ilp-packet')
 
 const client = new IlpNode({
-  clp: {
+  btp: {
     name: 'interfaucet',
     upstreams: [
       {
@@ -30,7 +30,7 @@ client.start().then(() => {
       console.log('ipr', JSON.stringify(ipr))
       const ipp = IlpPacket.deserializeIlpPayment(ipr.packet)
       console.log('ipp', JSON.stringify(ipp))
-      return client.getPeer('clp').interledgerPayment({
+      return client.getPeer('btp').interledgerPayment({
         amount: parseInt(ipp.amount),
         executionCondition: ipr.condition,
         expiresAt: new Date(new Date().getTime() + 3600 * 1000)

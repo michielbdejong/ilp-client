@@ -9,7 +9,7 @@ const sha256 = require('../src/sha256')
 describe('Vouching System', () => {
   beforeEach(function () {
     this.ilpNode = new IlpNode({
-      clp: {
+      btp: {
         listen: 8000,
         name: 'server',
         initialBalancePerPeer: 10000,
@@ -34,15 +34,15 @@ describe('Vouching System', () => {
 
   describe('two clients', () => {
     beforeEach(function () {
-      this.client1 = new IlpNode({ clp: { name: 'client1', upstreams: [ { url: 'ws://localhost:8000', token: 'foo' } ] } })
-      this.client2 = new IlpNode({ clp: { name: 'client2', upstreams: [ { url: 'ws://localhost:8000', token: 'bar' } ] } })
+      this.client1 = new IlpNode({ btp: { name: 'client1', upstreams: [ { url: 'ws://localhost:8000', token: 'foo' } ] } })
+      this.client2 = new IlpNode({ btp: { name: 'client2', upstreams: [ { url: 'ws://localhost:8000', token: 'bar' } ] } })
       // return this.client1.open('ws://localhost:8000/')
       return Promise.all([ this.client1.start(), this.client2.start() ]).then(() => {
         const packet = Buffer.concat([
           Buffer.from([0, 'test.dummy.client1'.length]),
           Buffer.from('test.dummy.client1', 'ascii')
         ])
-        return this.client1.peers.upstream_wslocalhost8000.clp.unpaid('vouch', packet)
+        return this.client1.peers.upstream_wslocalhost8000.btp.unpaid('vouch', packet)
       })
     })
     afterEach(function () {
@@ -82,8 +82,8 @@ describe('Vouching System', () => {
           custom: {}
         })
         // console.log(this.client1)
-        assert.equal(this.ilpNode.peers['downstream_' + this.client1.config.clp.name].clp.balance, 8765)
-        assert.equal(this.ilpNode.peers['downstream_' + this.client2.config.clp.name].clp.balance, 10000)
+        assert.equal(this.ilpNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 8765)
+        assert.equal(this.ilpNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 10000)
       })
     })
 
@@ -117,8 +117,8 @@ describe('Vouching System', () => {
       }
       this.ilpNode.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {
         assert.equal(rejectionReasonObj.code, 'L53')
-        assert.equal(this.ilpNode.peers['downstream_' + this.client1.config.clp.name].clp.balance, 10000)
-        assert.equal(this.ilpNode.peers['downstream_' + this.client2.config.clp.name].clp.balance, 10000)
+        assert.equal(this.ilpNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 10000)
+        assert.equal(this.ilpNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 10000)
         done()
       }
       this.ilpNode.peers.ledger_dummy.plugin.handlers.incoming_prepare(lpiTransfer)
@@ -152,8 +152,8 @@ describe('Vouching System', () => {
       this.ilpNode.peers.ledger_dummy.plugin.successCallback = (transferId, fulfillmentBase64) => {
         assert.equal(transferId, lpiTransfer.id)
         assert.deepEqual(Buffer.from(fulfillmentBase64, 'base64'), fulfillment)
-        assert.equal(this.ilpNode.peers['downstream_' + this.client1.config.clp.name].clp.balance, 10000)
-        assert.equal(this.ilpNode.peers['downstream_' + this.client2.config.clp.name].clp.balance, 11234)
+        assert.equal(this.ilpNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 10000)
+        assert.equal(this.ilpNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 11234)
         done()
       }
       this.ilpNode.peers.ledger_dummy.plugin.failureCallback = (transferId, rejectionReasonObj) => {

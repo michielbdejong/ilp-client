@@ -10,7 +10,7 @@ const sha256 = require('../src/sha256')
 describe('High Throughput', () => {
   beforeEach(function () {
     this.ilpNode = new IlpNode({
-      clp: {
+      btp: {
         listen: 8000,
         name: 'server',
         initialBalancePerPeer: 10000,
@@ -34,8 +34,8 @@ describe('High Throughput', () => {
 
   describe('two clients', () => {
     beforeEach(function () {
-      this.client1 = new IlpNode({ clp: { name: 'client1', upstreams: [ { url: 'ws://localhost:8000', token: 'foo' } ] } })
-      this.client2 = new IlpNode({ clp: { name: 'client2', upstreams: [ { url: 'ws://localhost:8000', token: 'bar' } ] } })
+      this.client1 = new IlpNode({ btp: { name: 'client1', upstreams: [ { url: 'ws://localhost:8000', token: 'foo' } ] } })
+      this.client2 = new IlpNode({ btp: { name: 'client2', upstreams: [ { url: 'ws://localhost:8000', token: 'bar' } ] } })
       // return this.client1.open('ws://localhost:8000/')
       return Promise.all([ this.client1.start(), this.client2.start() ])
     })
@@ -44,7 +44,7 @@ describe('High Throughput', () => {
       return Promise.all([ this.client1.stop(), this.client2.stop() ])
     })
 
-    it('should make 1000 CLP to CLP payments (two hops inside single thread)', function () {
+    it('should make 1000 BTP to BTP payments (two hops inside single thread)', function () {
       this.timeout(10000)
       const sendOne = () => {
         const fulfillment = crypto.randomBytes(32)
@@ -72,7 +72,7 @@ describe('High Throughput', () => {
       return Promise.all(promises)
     })
 
-    it('should make 1000 ilp-plugin-onledger-escrow to CLP payments (using dummy plugin)', function (done) {
+    it('should make 1000 ilp-plugin-onledger-escrow to BTP payments (using dummy plugin)', function (done) {
       this.timeout(10000)
       const NUM = 1000
       const fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
@@ -113,7 +113,7 @@ describe('High Throughput', () => {
       }
     })
 
-    it('should make 1000 CLP to ilp-plugin-onledger-escrow payments (using dummy plugin)', function () {
+    it('should make 1000 BTP to ilp-plugin-onledger-escrow payments (using dummy plugin)', function () {
       this.timeout(10000)
       const fulfillment = Buffer.from('1234*fulfillment1234*fulfillment', 'ascii')
       const condition = sha256(fulfillment)

@@ -44,7 +44,7 @@ Forwarder.prototype = {
 
   forwardRoute (route) {
     for (let name in this.peers) {
-      if (name.startsWith('peer_')) { // only forward over CLP peers, not virtual peers (ledger plugins)
+      if (name.startsWith('peer_')) { // only forward over BTP peers, not virtual peers (ledger plugins)
         this.peers[name].announceRoute(route)
       }
     }

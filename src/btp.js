@@ -1,4 +1,4 @@
-const ClpPacket = require('clp-packet')
+const BtpPacket = require('btp-packet')
 const IlpPacket = require('ilp-packet')
 const uuid = require('uuid/v4')
 const sha256 = require('./sha256')
@@ -13,7 +13,7 @@ function assertClass (x, className) {
   throw new Error(JSON.stringify(x) + ' is not a ' + className)
 }
 
-function Clp (baseLedger, initialBalance, ws, protocolHandlers) {
+function Btp (baseLedger, initialBalance, ws, protocolHandlers) {
   this.baseLedger = baseLedger
   this.requestIdUsed = 0
   this.balance = initialBalance // ledger units this node owes to that peer
@@ -21,21 +21,21 @@ function Clp (baseLedger, initialBalance, ws, protocolHandlers) {
   this.transfersSent = {}
   this.ws = ws
   this.protocolHandlers = protocolHandlers
-  // listen for incoming CLP messages:
+  // listen for incoming BTP messages:
   this.ws.on('message', this.incoming.bind(this))
 }
 
-Clp.prototype = {
+Btp.prototype = {
   sendCall (type, requestId, data) {
     // console.log('sendCall', { type, requestId, data })
-    const clpPacket = ClpPacket.serialize({ type, requestId, data })
-    console.log('encoded', clpPacket, 'Peer is sending!')
-    this.ws.send(clpPacket)
+    const btpPacket = BtpPacket.serialize({ type, requestId, data })
+    console.log('encoded', btpPacket, 'Peer is sending!')
+    this.ws.send(btpPacket)
   },
 
   sendError (requestId, err) {
     console.error('SENDING ERROR', err, typeof err)
-    this.sendCall(ClpPacket.TYPE_ERROR, requestId, {
+    this.sendCall(BtpPacket.TYPE_ERROR, requestId, {
       rejectionReason: err,
       protocolData: []
     })
@@ -62,17 +62,17 @@ Clp.prototype = {
   sendResult (requestId, protocolName, result) {
     // console.log('sendResult(', {requestId, protocolName, result})
     if (result) { // RESPONSE
-      this.sendCall(ClpPacket.TYPE_RESPONSE, requestId, [
+      this.sendCall(BtpPacket.TYPE_RESPONSE, requestId, [
         {
           protocolName,
-          contentType: ClpPacket.MIME_APPLICATION_OCTET_STREAM,
+          contentType: BtpPacket.MIME_APPLICATION_OCTET_STREAM,
           data: result
         }
       ])
     } else { // ACK
       // uncomment this if https://github.com/interledger/rfcs/issues/283 gets adopted:
-      // this.sendCall(ClpPacket.TYPE_RESPONSE, requestId, [])
-      this.sendCall(ClpPacket.TYPE_ACK, requestId, [])
+      // this.sendCall(BtpPacket.TYPE_RESPONSE, requestId, [])
+      this.sendCall(BtpPacket.TYPE_ACK, requestId, [])
     }
   },
 
@@ -83,7 +83,7 @@ Clp.prototype = {
       resolve () {},
       reject () {}
     }
-    this.sendCall(ClpPacket.TYPE_FULFILL, requestId, {
+    this.sendCall(BtpPacket.TYPE_FULFILL, requestId, {
       transferId,
       fulfillment,
       protocolData: []
@@ -97,7 +97,7 @@ Clp.prototype = {
       resolve () {},
       reject () {}
     }
-    this.sendCall(ClpPacket.TYPE_REJECT, requestId, {
+    this.sendCall(BtpPacket.TYPE_REJECT, requestId, {
       transferId,
       rejectionReason: IlpPacket.serializeIlpError({
         code: 'F02',
@@ -116,20 +116,20 @@ Clp.prototype = {
   incoming (buf) {
     assertClass(buf, Buffer)
 
-    const obj = ClpPacket.deserialize(buf)
+    const obj = BtpPacket.deserialize(buf)
     assertType(obj.type, 'number')
     assertType(obj.requestId, 'number')
     assertType(obj.data, 'object')
 
     // console.log('incoming:', JSON.stringify(obj))
     switch (obj.type) {
-      case ClpPacket.TYPE_ACK:
+      case BtpPacket.TYPE_ACK:
         // console.log('TYPE_ACK!')
         this.requestsSent[obj.requestId].resolve()
         delete this.requestsSent[obj.requestId]
         break
 
-      case ClpPacket.TYPE_RESPONSE:
+      case BtpPacket.TYPE_RESPONSE:
         // console.log('TYPE_RESPONSE!', obj)
         if (Array.isArray(obj.data) && obj.data.length) {
           this.requestsSent[obj.requestId].resolve(obj.data[0])
@@ -139,13 +139,13 @@ Clp.prototype = {
         delete this.requestsSent[obj.requestId]
         break
 
-      case ClpPacket.TYPE_ERROR:
+      case BtpPacket.TYPE_ERROR:
         // console.log('TYPE_ERROR!')
         this.requestsSent[obj.requestId].reject(obj.data.rejectionReason)
         delete this.requestsSent[obj.requestId]
         break
 
-      case ClpPacket.TYPE_PREPARE:
+      case BtpPacket.TYPE_PREPARE:
         // console.log('TYPE_PREPARE!')
         if (obj.data.amount > this.balance) {
           // console.log('too poor!', obj, this.balance)
@@ -169,14 +169,14 @@ Clp.prototype = {
           expiresAt: obj.data.expiresAt
         }).then((fulfillment) => {
           // console.log('sending fulfill call, paymentPromise gave:', fulfillment)
-          this.sendCall(ClpPacket.TYPE_FULFILL, replyRequestId, {
+          this.sendCall(BtpPacket.TYPE_FULFILL, replyRequestId, {
             transferId: obj.data.transferId,
             fulfillment,
             protocolData: []
           })
         }, (err) => {
           console.error('could not handle protocol request from PREPARE', err)
-          this.sendCall(ClpPacket.TYPE_REJECT, replyRequestId, {
+          this.sendCall(BtpPacket.TYPE_REJECT, replyRequestId, {
             transferId: obj.data.transferId,
             rejectionReason: err,
             protocolData: []
@@ -187,7 +187,7 @@ Clp.prototype = {
         })
         break
 
-      case ClpPacket.TYPE_FULFILL:
+      case BtpPacket.TYPE_FULFILL:
         const conditionCheck = sha256(obj.data.fulfillment)
         // console.log('TYPE_FULFILL!', obj.data, conditionCheck , this.transfersSent[obj.data.transferId].condition)
         if (typeof this.transfersSent[obj.data.transferId] === 'undefined') {
@@ -206,7 +206,7 @@ Clp.prototype = {
         }
         break
 
-      case ClpPacket.TYPE_REJECT:
+      case BtpPacket.TYPE_REJECT:
         // console.log('TYPE_REJECT!')
         if (typeof this.transfersSent[obj.data.transferId] === 'undefined') {
           this.sendError(obj.requestId, this.makeLedgerError('unknown transfer id'))
@@ -217,7 +217,7 @@ Clp.prototype = {
         }
         break
 
-      case ClpPacket.TYPE_MESSAGE:
+      case BtpPacket.TYPE_MESSAGE:
         // console.log('TYPE_MESSAGE!')
         if (!Array.isArray(obj.data) || !obj.data.length) {
           this.sendError(obj.requestId, this.makeLedgerError('empty message'))
@@ -236,7 +236,7 @@ Clp.prototype = {
         break
 
       default:
-        throw new Error('clp packet type not recognized')
+        throw new Error('btp packet type not recognized')
     }
   },
   unpaid (protocolName, data) {
@@ -245,10 +245,10 @@ Clp.prototype = {
 
     // console.log('unpaid', protocolName, data)
     const requestId = ++this.requestIdUsed
-    this.sendCall(ClpPacket.TYPE_MESSAGE, requestId, [
+    this.sendCall(BtpPacket.TYPE_MESSAGE, requestId, [
       {
         protocolName,
-        contentType: ClpPacket.MIME_APPLICATION_OCTET_STREAM,
+        contentType: BtpPacket.MIME_APPLICATION_OCTET_STREAM,
         data
       }
     ])
@@ -284,7 +284,7 @@ Clp.prototype = {
       }.bind(this)
     }
     // console.log('sending PREPARE')
-    this.sendCall(ClpPacket.TYPE_PREPARE, requestId, {
+    this.sendCall(BtpPacket.TYPE_PREPARE, requestId, {
       transferId,
       amount: transfer.amount,
       expiresAt: transfer.expiresAt,
@@ -308,4 +308,4 @@ Clp.prototype = {
   }
 }
 
-module.exports = Clp
+module.exports = Btp

@@ -1,7 +1,7 @@
 const IlpNode = require('./index')
 
 const config = {
-  clp: {
+  btp: {
     listen: process.env.PORT || 8000,
     initialBalancePerPeer: 10000
   },
