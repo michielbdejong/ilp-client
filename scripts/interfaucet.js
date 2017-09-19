@@ -35,10 +35,11 @@ client.start().then(() => {
         executionCondition: ipr.condition,
         expiresAt: new Date(new Date().getTime() + 3600 * 1000)
       }, ipr.packet)
-    }).then(() => {
+    }).then(result => {
+      console.log(result, 'success, apparently')
       res.end('<html><img src="https://i.pinimg.com/564x/88/84/85/888485cae122717788328b4486803a32.jpg"></html>')
     }, err => {
-      console.log(err, err.message)
+      console.log(err, err.message, 'error result of interledgerPayment')
       res.end('<html><img src="https://i.pinimg.com/736x/fa/d2/76/fad27608b9bd588fe18231e2babe2b5f--man-faces-strange-places.jpg"></html>')
     })
   })
