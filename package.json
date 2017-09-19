@@ -1,7 +1,7 @@
 {
   "name": "ilp-node",
   "version": "4.0.0",
-  "description": "Connector used for https://github.com/interledger/interledger/wiki/Interledger-over-CLP",
+  "description": "Example connector used for https://github.com/interledger/interledger/wiki/The-Interledger-Testnet-of-Testnets-(IToT)#tutorials",
   "main": "src/index.js",
   "dependencies": {
     "clp-node": "github:michielbdejong/clp-node#mj-testnet-2",
