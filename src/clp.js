@@ -265,9 +265,9 @@ Clp.prototype = {
     return new Promise((resolve, reject) => {
       this.requestsSent[requestId] = { resolve, reject }
     })
-    
+  },
 
-    nditional (transfer, protocolData) {
+  conditional (transfer, protocolData) {
     // console.log('conditional', transfer, protocolData)
     // console.log('asserting')
     assertType(transfer.amount, 'number')
