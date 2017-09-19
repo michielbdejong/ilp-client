@@ -23,7 +23,7 @@ Flooder.prototype = {
     const fulfillment = crypto.randomBytes(32)
     const condition = sha256(fulfillment)
 
-    // set up receiver; this will work for both the client's CLP Peer
+    // set up receiver; this will work for both the client's BTP Peer
     // and its XRP VirtualPeer:
     this.client2.knowFulfillment(condition, fulfillment)
     // console.log('receiver set up', condition, fulfillment)
@@ -46,7 +46,7 @@ Flooder.prototype = {
       // console.log(peer)
       return new Promise((resolve) => {
       //  const timer = setInterval(() => {
-      //    if (from === 'clp' || peer.connectorAddress) {
+      //    if (from === 'btp' || peer.connectorAddress) {
       //      clearInterval(timer)
             resolve(peer.interledgerPayment(transfer, packet))
       //    } else {
@@ -72,8 +72,8 @@ Flooder.prototype = {
 
 console.log(process.argv)
 const NUM = parseInt(process.argv[2]) || 1
-const from = process.argv[3] || 'clp'
-const to = process.argv[4] || 'clp'
+const from = process.argv[3] || 'btp'
+const to = process.argv[4] || 'btp'
 
 const flooder = new Flooder()
 let startTime
@@ -88,11 +88,11 @@ flooder.open().then(() => {
 }).then(() => {
   const endTime = new Date().getTime()
   console.log(NUM + ' transfers took ' + (endTime - startTime) + 'ms, that is ' + (1000 * NUM / (endTime - startTime)) + ' payments per second.')
-  // console.log(Object.keys(flooder.client1.peer.clp.transfersSent).length) -> 0
+  // console.log(Object.keys(flooder.client1.peer.btp.transfersSent).length) -> 0
   flooder.close()
 }, err => {
   const endTime = new Date().getTime()
   console.log('FAIL', err, 'took ' + (endTime - startTime) + 'ms.')
-  // console.log(Object.keys(flooder.client1.peer.clp.transfersSent).length) -> 0
+  // console.log(Object.keys(flooder.client1.peer.btp.transfersSent).length) -> 0
   flooder.close()
 })

@@ -1,4 +1,4 @@
-const ClpNode = require('clp-node')
+const BtpNode = require('clp-node')
 const VouchPacket = require('./protocols').VouchPacket
 
 const Plugin = {
@@ -12,7 +12,7 @@ const Peer = require('./peer')
 const VirtualPeer = require('./virtual-peer')
 
 function IlpNode (config) {
-  this.clpNode = new ClpNode(config.clp, this.addClpPeer.bind(this), this.handleClpMessage.bind(this))
+  this.btpNode = new BtpNode(config.btp, this.addBtpPeer.bind(this), this.handleBtpMessage.bind(this))
   this.plugins = []
   this.vouchableAddresses = []
   this.vouchablePeers = []
@@ -26,7 +26,7 @@ function IlpNode (config) {
   this.vouchingMap = {}
 
   for (let name in this.config) {
-    if (name === 'clp') {
+    if (name === 'btp') {
       continue
     }
     // console.log('plugin', config, name)
@@ -34,7 +34,7 @@ function IlpNode (config) {
     this.plugins.push(plugin)
     //                        function VirtualPeer (plugin, onIncomingTransfer) {
     this.peers['ledger_' + name] = new VirtualPeer(plugin, this.handleTransfer.bind(this))
-    // auto-vouch ledger VirtualPeer -> all existing CLP peers
+    // auto-vouch ledger VirtualPeer -> all existing BTP peers
     this.addVouchableAddress(plugin.getAccount())
     // and add the plugin ledger as a destination in to the routing table:
     this.quoter.setCurve(plugin.getInfo().prefix, Buffer.from([
@@ -47,8 +47,8 @@ function IlpNode (config) {
 }
 
 IlpNode.prototype = {
-  handleClpMessage(msg, whoAmI, baseUrl, urlPath) {
-    console.log('handleClpMessage', { msg, whoAmI, baseUrl, urlPath }, Object.keys(this.msgHandler))
+  handleBtpMessage(msg, whoAmI, baseUrl, urlPath) {
+    // console.log('handleBtpMessage', { msg, whoAmI, baseUrl, urlPath }, Object.keys(this.msgHandler))
     if (!this.msgHandler[baseUrl + urlPath]) {
       return Promise.reject(new Error('have no msg handler for that peer'))
     }
@@ -70,7 +70,7 @@ IlpNode.prototype = {
     }))
   },
 
-  addClpPeer (whoAmI, baseUrl, urlPath) {
+  addBtpPeer (whoAmI, baseUrl, urlPath) {
     let peerType
     let peerId
     if (whoAmI === 'server') {
@@ -84,22 +84,22 @@ IlpNode.prototype = {
 
     const peerName = peerType + '_' + peerId
 
-    // FIXME: this is a hacky way to make `node scripts/flood.js 1 clp clp` work  
-    this.defaultClpPeer = peerName
+    // FIXME: this is a hacky way to make `node scripts/flood.js 1 btp btp` work  
+    this.defaultBtpPeer = peerName
 
-    const ledgerPrefix = 'peer.testing.' + this.config.clp.name + '.' + peerName + '.'
+    const ledgerPrefix = 'peer.testing.' + this.config.btp.name + '.' + peerName + '.'
     // console.log({ peerType, peerId })
     //                function Peer (ledgerPrefix, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
-    console.log('creating peer!', baseUrl, urlPath)
+    // console.log('creating peer!', baseUrl, urlPath)
     const that = this
-    this.peers[peerName] = new Peer(ledgerPrefix, peerName, this.config.clp.initialBalancePerPeer, {
+    this.peers[peerName] = new Peer(ledgerPrefix, peerName, this.config.btp.initialBalancePerPeer, {
       on(eventName, eventHandler) {
-        console.log('setting message handler!', baseUrl, urlPath)
+        // console.log('setting message handler!', baseUrl, urlPath)
         that.msgHandler[baseUrl + urlPath] = eventHandler
       },
       send(msg) {
-        console.log('peer is calling my send!', baseUrl, urlPath, msg)
-        that.clpNode.send(baseUrl + urlPath, msg)
+        // console.log('peer is calling my send!', baseUrl, urlPath, msg)
+        that.btpNode.send(baseUrl + urlPath, msg)
       }
     }, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (vouchType, address) => {
       // console.log('vouch came in!', vouchType, address, this.config)
@@ -122,9 +122,9 @@ IlpNode.prototype = {
       // console.log('peer has vouched!', vouchType, address, this.vouchingMap)
       return Promise.resolve()
     })
-    // auto-vouch all existing ledger VirtualPeers -> CLP peer
+    // auto-vouch all existing ledger VirtualPeers -> BTP peer
     this.addVouchablePeer(peerName)
-    // and add the CLP trustline as a destination in to the routing table:
+    // and add the BTP trustline as a destination in to the routing table:
     this.quoter.setCurve(ledgerPrefix, Buffer.from([
       0, 0, 0, 0, 0, 0, 0, 0,
       0, 0, 0, 0, 0, 0, 0, 0,
@@ -143,12 +143,12 @@ IlpNode.prototype = {
   },
 
   start () {
-    return this.clpNode.start()
+    return Promise.all([ this.btpNode.start(), this.connectPlugins() ])
   },
 
   stop () {
     // close ws/wss clients:
-    let promises = [ this.clpNode.stop() ]
+    let promises = [ this.btpNode.stop() ]
 
     // disconnect plugins:
     promises.push(this.plugins.map(plugin => plugin.disconnect()))
@@ -165,7 +165,7 @@ IlpNode.prototype = {
       return false
     }
     // console.log('vouching peer is', this.vouchingMap[fromAddress], Object.keys(this.peers))
-    const balance = this.peers[this.vouchingMap[fromAddress]].clp.balance
+    const balance = this.peers[this.vouchingMap[fromAddress]].btp.balance
     // console.log('checking balance', balance, amount)
     return balance > amount
   },
@@ -186,12 +186,13 @@ IlpNode.prototype = {
   },
 
   getIlpAddress (ledger) {
+    // console.log('getting ilp addres', ledger, this.config)
     if (this.config[ledger].prefix && this.config[ledger].account) {
       // used in xrp and eth configs
       return Promise.resolve(this.config[ledger].prefix + this.config[ledger].account)
     } else {
-      // used in clp config
-      return this.peers[this.defaultClpPeer].getMyIlpAddress()
+      // used in btp config
+      return this.peers[this.defaultBtpPeer].getMyIlpAddress()
     }
   },
 
@@ -200,10 +201,10 @@ IlpNode.prototype = {
   },
 
   getPeer (ledger) {
-    // console.log(this.defaultClpPeer, Object.keys(this.peers))
-    if (ledger === 'clp') {
-      // FIXME: this is a hacky way to make `node scripts/flood.js 1 clp clp` work  
-      return this.peers[this.defaultClpPeer]
+    // console.log(this.defaultBtpPeer, Object.keys(this.peers))
+    if (ledger === 'btp') {
+      // FIXME: this is a hacky way to make `node scripts/flood.js 1 btp btp` work  
+      return this.peers[this.defaultBtpPeer]
     }
     return this.peers['ledger_' + ledger]
   }

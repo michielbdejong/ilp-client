@@ -1,5 +1,5 @@
 # ilp-node
-Testnet connector, see https://github.com/interledger/interledger/wiki/Interledger-over-CLP
+Testnet connector, see https://github.com/interledger/interledger/wiki/Interledger-over-BTP
 
 In one screen:
 ```sh
@@ -11,14 +11,14 @@ Listening on ws://localhost:8000/
 In another:
 ```js
 $ node scripts/genSecrets.js
-$ cat config/server.js # contains example confs for CLP-server, XRP, and ETH
+$ cat config/server.js # contains example confs for BTP-server, XRP, and ETH
 $ vim config/client1.js # add your own XRP and ETH confs
-$ node scripts/flood.js 10000 clp clp
+$ node scripts/flood.js 10000 btp btp
 [ '/Users/michiel/.nvm/versions/node/v7.7.1/bin/node',
   '/Users/michiel/gh/michielbdejong/ilp-node/scripts/flood.js',
   '10000',
-  'clp',
-  'clp' ]
+  'btp',
+  'btp' ]
 10000 transfers took 3058ms, that is 3270.1111837802487 payments per second.
 ```
 
@@ -28,12 +28,12 @@ $ node scripts/flood.js 10000 clp clp
 
 ```js
 $ node scripts/genSecrets.js wss://amundsen.michielbdejong.com/ilp-node-3/api/v1
-$ node scripts/flood.js 10000 clp clp
+$ node scripts/flood.js 10000 btp btp
 [ '/Users/michiel/.nvm/versions/node/v7.7.1/bin/node',
   '/Users/michiel/gh/michielbdejong/ilp-node/scripts/flood.js',
   '10000',
-  'clp',
-  'clp' ]
+  'btp',
+  'btp' ]
 10000 transfers took 9044ms, that is 1105.7054400707652 payments per second.
 ```
 

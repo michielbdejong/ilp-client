@@ -9,7 +9,7 @@ const sha256 = require('../src/sha256')
 describe('IlpNode', () => {
   beforeEach(function () {
     this.ilpNode = new IlpNode({
-      clp: {
+      btp: {
         listen: 8000,
         name: 'server',
         initialBalancePerPeer: 10000,
@@ -33,8 +33,8 @@ describe('IlpNode', () => {
 
   describe('two clients', () => {
     beforeEach(function () {
-      this.client1 = new IlpNode({ clp: { name: 'client1', upstreams: [ { url: 'ws://localhost:8000', token: 'foo' } ] } })
-      this.client2 = new IlpNode({ clp: { name: 'client2', upstreams: [ { url: 'ws://localhost:8000', token: 'bar' } ] } })
+      this.client1 = new IlpNode({ btp: { name: 'client1', upstreams: [ { url: 'ws://localhost:8000', token: 'foo' } ] } })
+      this.client2 = new IlpNode({ btp: { name: 'client2', upstreams: [ { url: 'ws://localhost:8000', token: 'bar' } ] } })
       // return this.client1.open('ws://localhost:8000/')
       return Promise.all([ this.client1.start(), this.client2.start() ])
     })
@@ -50,7 +50,7 @@ describe('IlpNode', () => {
         destinationHoldDuration: 3000
       })
       // console.log('asking quote', this.client1.peers)
-      return this.client1.peers.upstream_wslocalhost8000.clp.unpaid('ilp', packet).then(result => {
+      return this.client1.peers.upstream_wslocalhost8000.btp.unpaid('ilp', packet).then(result => {
         const resultObj = IlpPacket.deserializeIlqpLiquidityResponse(result.data)
         assert.deepEqual(resultObj, {
           liquidityCurve: Buffer.from('00000000000000000000000000000000000000000000ffff000000000000ffff', 'hex'),
@@ -63,7 +63,7 @@ describe('IlpNode', () => {
 
     it('should respond to info', function () {
       const packet = Buffer.from([0])
-      return this.client1.peers.upstream_wslocalhost8000.clp.unpaid('info', packet).then(response => {
+      return this.client1.peers.upstream_wslocalhost8000.btp.unpaid('info', packet).then(response => {
         const infoStr = response.data.slice(2).toString('ascii') // assume length <= 127
         assert.deepEqual(response.data[0], 2)
         assert.deepEqual(response.data[1], infoStr.length)
@@ -74,7 +74,7 @@ describe('IlpNode', () => {
 
     it('should respond to balance', function () {
       const packet = Buffer.from([0])
-      return this.client1.peers.upstream_wslocalhost8000.clp.unpaid('balance', packet).then(response => {
+      return this.client1.peers.upstream_wslocalhost8000.btp.unpaid('balance', packet).then(response => {
         assert.deepEqual(response.data, Buffer.from('02080000000000002710', 'hex'))
         assert.equal(response.protocolName, 'balance')
       })
@@ -97,9 +97,9 @@ describe('IlpNode', () => {
       }
       return this.client1.peers.upstream_wslocalhost8000.interledgerPayment(transfer, packet).then(result => {
         assert.deepEqual(result, fulfillment)
-        assert.equal(this.ilpNode.peers['downstream_' + this.client1.config.clp.name].clp.balance, 8766)
-        assert.equal(this.ilpNode.peers['downstream_' + this.client2.config.clp.name].clp.balance, 11234)
-        return this.client1.peers.upstream_wslocalhost8000.clp.unpaid('balance', Buffer.from([0]))
+        assert.equal(this.ilpNode.peers['downstream_' + this.client1.config.btp.name].btp.balance, 8766)
+        assert.equal(this.ilpNode.peers['downstream_' + this.client2.config.btp.name].btp.balance, 11234)
+        return this.client1.peers.upstream_wslocalhost8000.btp.unpaid('balance', Buffer.from([0]))
       }).then(response => {
         // (10000 - 1234) = 34 * 256 + 62
         assert.deepEqual(response.data, Buffer.from([2, 8, 0, 0, 0, 0, 0, 0, 34, 62]))
@@ -111,7 +111,7 @@ describe('IlpNode', () => {
       const address = 'test.crypto.eth.rinkeby.4thgw3dtrseawfrsfdxzsfzsfgdz'
       return this.client1.peers.upstream_wslocalhost8000.vouchBothWays(address).then(result => {
         // console.log(result)
-        assert.equal(this.ilpNode.vouchingMap[address], 'downstream_' + this.client1.config.clp.name)
+        assert.equal(this.ilpNode.vouchingMap[address], 'downstream_' + this.client1.config.btp.name)
       })
     })
   })

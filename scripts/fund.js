@@ -10,7 +10,7 @@ const condition = sha256(fulfillment)
 console.log(fulfillment, condition, fulfillment.length, condition.length)
 client.start().then(() => {
   client.knowFulfillment(condition, fulfillment)
-  return client.getIlpAddress('clp')
+  return client.getIlpAddress('btp')
 }).then(ilpBaseAddress => {
   const ipr = Buffer.concat([
     Buffer.from([ 2 ]), // version

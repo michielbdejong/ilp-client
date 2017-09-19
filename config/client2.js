@@ -1,5 +1,5 @@
 module.exports = {
-  "clp": {
+  "btp": {
     "name": "23aa4302c78c66df8aa469912fe76323b70386470c1d01bd6ed7a25aae0a5336",
     "initialBalancePerPeer": 10000,
     "upstreams": [

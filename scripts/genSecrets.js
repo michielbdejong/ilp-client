@@ -13,7 +13,7 @@ const url2 = baseUrl
 let conf1 = require(__dirname + '/../config/client1.js') // eslint-disable-line no-path-concat
 let conf2 = require(__dirname + '/../config/client2.js') // eslint-disable-line no-path-concat
 
-conf1.clp = {
+conf1.btp = {
   name: name1,
   initialBalancePerPeer: 10000,
   upstreams: [ {
@@ -22,7 +22,7 @@ conf1.clp = {
   } ]
 }
 
-conf2.clp = {
+conf2.btp = {
   name: name2,
   initialBalancePerPeer: 10000,
   upstreams: [ {

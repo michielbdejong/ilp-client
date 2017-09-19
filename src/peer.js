@@ -1,7 +1,7 @@
-const ClpPacket = require('clp-packet')
+const BtpPacket = require('btp-packet')
 const IlpPacket = require('ilp-packet')
 
-const Clp = require('./clp')
+const Btp = require('./btp')
 const { InfoPacket, BalancePacket, CcpPacket, VouchPacket, PaychanPacket } = require('./protocols')
 
 function Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
@@ -11,8 +11,8 @@ function Peer (baseLedger, peerName, initialBalance, ws, quoter, transferHandler
   this.transferHandler = transferHandler
   this.routeHandler = routeHandler
   this.voucher = voucher
-  // console.log('Peer instantiates Clp', baseLedger, initialBalance)
-  this.clp = new Clp(baseLedger, initialBalance, ws, {
+  // console.log('Peer instantiates Btp', baseLedger, initialBalance)
+  this.btp = new Btp(baseLedger, initialBalance, ws, {
     ilp: this._handleIlp.bind(this),
     vouch: this._handleVouch.bind(this),
     ccp: this._handleCcp.bind(this),
@@ -50,7 +50,7 @@ Peer.prototype = {
   _handleBalance (dataBuf) {
     if (dataBuf[0] === 0) {
       // console.log('balance!', dataBuf)
-      return Promise.resolve(BalancePacket.serializeResponse(this.clp.balance))
+      return Promise.resolve(BalancePacket.serializeResponse(this.btp.balance))
     }
     return Promise.reject(this.makeLedgerError('unknown call id'))
   },
@@ -86,18 +86,18 @@ Peer.prototype = {
   },
 
   interledgerPayment (transfer, payment) {
-    // console.log('sending ILP payment on CLP transfer')
-    return this.clp.conditional(transfer, [
+    // console.log('sending ILP payment on BTP transfer')
+    return this.btp.conditional(transfer, [
       {
         protocolName: 'ilp',
-        contentType: ClpPacket.MIME_APPLICATION_OCTET_STREAM,
+        contentType: BtpPacket.MIME_APPLICATION_OCTET_STREAM,
         data: payment
       }
     ])
   },
 
   announceRoutes (routes) {
-    return this.clp.unpaid('ccp', CcpPacket.serialize({
+    return this.btp.unpaid('ccp', CcpPacket.serialize({
       type: CcpPacket.TYPE_ROUTES,
       data: {
         new_routes: routes,
@@ -108,7 +108,7 @@ Peer.prototype = {
 
   getMyIlpAddress () {
     // console.log('getting my ilp address')
-    return this.clp.unpaid('info', Buffer.from([ 0 ])).then(responseMainProtocolData => {
+    return this.btp.unpaid('info', Buffer.from([ 0 ])).then(responseMainProtocolData => {
       // console.log('got my ilp address', responseMainProtocolData)
       // console.log(InfoPacket.deserialize(responseMainProtocolData.data))
       return InfoPacket.deserialize(responseMainProtocolData.data).address
@@ -118,7 +118,7 @@ Peer.prototype = {
     const packet1 = VouchPacket.serialize({ callId: VouchPacket.TYPE_VOUCH, address })
     const packet2 = VouchPacket.serialize({ callId: VouchPacket.TYPE_REACHME, address })
     // console.log('sending vouches', packet1, packet2)
-    return Promise.all([this.clp.unpaid('vouch', packet1), this.clp.unpaid('vouch', packet2)])
+    return Promise.all([this.btp.unpaid('vouch', packet1), this.btp.unpaid('vouch', packet2)])
   }
 }
 
