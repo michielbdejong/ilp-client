@@ -24,9 +24,7 @@ function Clp (baseLedger, initialBalance, ws, protocolHandlers) {
   // listen for incoming CLP messages:
   this.ws.on('message', (msg) => {
     try {
-      this.incoming(msg).catch((e) => {
-        console.log('incoming lead to reject', msg, e)
-      })
+      this.incoming(msg)
     } catch (e) {
       console.log('incoming lead to error', msg, e)
     }
