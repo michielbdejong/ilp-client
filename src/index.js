@@ -48,7 +48,7 @@ function IlpNode (config) {
 
 IlpNode.prototype = {
   handleBtpMessage(msg, whoAmI, baseUrl, urlPath) {
-    console.log('handleBtpMessage', { msg, whoAmI, baseUrl, urlPath }, Object.keys(this.msgHandler))
+    // console.log('handleBtpMessage', { msg, whoAmI, baseUrl, urlPath }, Object.keys(this.msgHandler))
     if (!this.msgHandler[baseUrl + urlPath]) {
       return Promise.reject(new Error('have no msg handler for that peer'))
     }
@@ -90,15 +90,15 @@ IlpNode.prototype = {
     const ledgerPrefix = 'peer.testing.' + this.config.btp.name + '.' + peerName + '.'
     // console.log({ peerType, peerId })
     //                function Peer (ledgerPrefix, peerName, initialBalance, ws, quoter, transferHandler, routeHandler, voucher) {
-    console.log('creating peer!', baseUrl, urlPath)
+    // console.log('creating peer!', baseUrl, urlPath)
     const that = this
     this.peers[peerName] = new Peer(ledgerPrefix, peerName, this.config.btp.initialBalancePerPeer, {
       on(eventName, eventHandler) {
-        console.log('setting message handler!', baseUrl, urlPath)
+        // console.log('setting message handler!', baseUrl, urlPath)
         that.msgHandler[baseUrl + urlPath] = eventHandler
       },
       send(msg) {
-        console.log('peer is calling my send!', baseUrl, urlPath, msg)
+        // console.log('peer is calling my send!', baseUrl, urlPath, msg)
         that.btpNode.send(baseUrl + urlPath, msg)
       }
     }, this.quoter, this.handleTransfer.bind(this), this.forwarder.forwardRoute.bind(this.forwarder), (vouchType, address) => {

@@ -29,7 +29,7 @@ Btp.prototype = {
   sendCall (type, requestId, data) {
     // console.log('sendCall', { type, requestId, data })
     const btpPacket = BtpPacket.serialize({ type, requestId, data })
-    console.log('encoded', btpPacket, 'Peer is sending!')
+    // console.log('encoded', btpPacket, 'Peer is sending!')
     this.ws.send(btpPacket)
   },
 
