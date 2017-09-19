@@ -1,4 +1,4 @@
-const BtpNode = require('btp-node')
+const BtpNode = require('clp-node')
 const VouchPacket = require('./protocols').VouchPacket
 
 const Plugin = {
