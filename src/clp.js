@@ -22,7 +22,15 @@ function Clp (baseLedger, initialBalance, ws, protocolHandlers) {
   this.ws = ws
   this.protocolHandlers = protocolHandlers
   // listen for incoming CLP messages:
-  this.ws.on('message', this.incoming.bind(this))
+  this.ws.on('message', (msg) => {
+    try {
+      this.incoming(msg).catch((e) => {
+        console.log('incoming lead to reject', msg, e)
+      })
+    } catch (e) {
+      console.log('incoming lead to error', msg, e)
+    }
+  })
 }
 
 Clp.prototype = {
@@ -238,8 +246,8 @@ Clp.prototype = {
       default:
         throw new Error('clp packet type not recognized')
     }
-  },
-  unpaid (protocolName, data) {
+    
+    paid (protocolName, data) {
     assertType(protocolName, 'string')
     assertClass(data, Buffer)
 
@@ -256,9 +264,9 @@ Clp.prototype = {
     return new Promise((resolve, reject) => {
       this.requestsSent[requestId] = { resolve, reject }
     })
-  },
+    
 
-  conditional (transfer, protocolData) {
+    nditional (transfer, protocolData) {
     // console.log('conditional', transfer, protocolData)
     // console.log('asserting')
     assertType(transfer.amount, 'number')

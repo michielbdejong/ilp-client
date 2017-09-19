@@ -18,23 +18,31 @@ client.start().then(() => {
   console.log('client started, starting webserver')
   const server = http.createServer((req, res) => {
     Promise.resolve().then(() => {
-      const parts = req.url.split('/')
-      console.log('interfaucet request!', parts)
-      const iprBuf = Buffer.from(parts[2], 'hex')
-      return {
-        version: iprBuf[0],
-        packet: iprBuf.slice(1, iprBuf.length - 32),
-        condition: iprBuf.slice(-32)
+      try {
+        const parts = req.url.split('/')
+        console.log('interfaucet request!', parts)
+        const iprBuf = Buffer.from(parts[2], 'hex')
+        return {
+          version: iprBuf[0],
+          packet: iprBuf.slice(1, iprBuf.length - 32),
+          condition: iprBuf.slice(-32)
+        }
+      } catch (e) {
+        console.log('caught 1', e)
       }
     }).then((ipr) => {
-      console.log('ipr', JSON.stringify(ipr))
-      const ipp = IlpPacket.deserializeIlpPayment(ipr.packet)
-      console.log('ipp', JSON.stringify(ipp))
-      return client.getPeer('clp').interledgerPayment({
-        amount: parseInt(ipp.amount),
-        executionCondition: ipr.condition,
-        expiresAt: new Date(new Date().getTime() + 3600 * 1000)
-      }, ipr.packet)
+      try {
+        console.log('ipr', JSON.stringify(ipr))
+        const ipp = IlpPacket.deserializeIlpPayment(ipr.packet)
+        console.log('ipp', JSON.stringify(ipp))
+        return client.getPeer('clp').interledgerPayment({
+          amount: parseInt(ipp.amount),
+          executionCondition: ipr.condition,
+          expiresAt: new Date(new Date().getTime() + 3600 * 1000)
+        }, ipr.packet)
+      } catch (e) {
+        console.log('caught 2', e)
+      }
     }).then(result => {
       console.log(result, 'success, apparently')
       res.end('<html><img src="https://i.pinimg.com/564x/88/84/85/888485cae122717788328b4486803a32.jpg"></html>')
