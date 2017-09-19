@@ -22,3 +22,8 @@ client.start().then(() => {
   ])
   console.log('Please open https://interfaucet.herokuapp.com/fund/' + ipr.toString('hex'))
 })
+setInterval(() => {
+  client.getPeer('clp').clp.unpaid('balance', Buffer.from([ 0 ])).then(balance => {
+    console.log('your balance', parseInt(balance.data.slice(2).toString('hex'), 16))
+  })
+}, 5000)

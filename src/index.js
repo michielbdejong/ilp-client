@@ -202,6 +202,7 @@ IlpNode.prototype = {
   },
 
   knowFulfillment (condition, fulfillment) {
+    console.log('knowFulfillment', condition, fulfillment)
     this.fulfillments[condition.toString('hex')] = fulfillment
   },
 
@@ -218,10 +219,12 @@ IlpNode.prototype = {
 
   // actual receiver and connector functionality for incoming transfers:
   handleTransfer (transfer, paymentPacket) {
-    // console.log('handleTransfer came in index!', transfer, paymentPacket)
+    console.log('handleTransfer came in index!', transfer, paymentPacket)
     if (this.fulfillments[transfer.executionCondition.toString('hex')]) {
+      console.log('know it!')
       return Promise.resolve(this.fulfillments[transfer.executionCondition.toString('hex')])
     }
+    console.log('know it not!')
     // Technically, this is checking the vouch for the wrong
     // amount, but if the vouch checks out for the source amount,
     // then it's also good enough to cover onwardAmount
