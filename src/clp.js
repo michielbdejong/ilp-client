@@ -246,8 +246,9 @@ Clp.prototype = {
       default:
         throw new Error('clp packet type not recognized')
     }
+  },
     
-    paid (protocolName, data) {
+  unpaid (protocolName, data) {
     assertType(protocolName, 'string')
     assertClass(data, Buffer)
 
