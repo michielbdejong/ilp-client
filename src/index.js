@@ -143,7 +143,7 @@ IlpNode.prototype = {
   },
 
   start () {
-    return this.btpNode.start()
+    return Promise.all([ this.btpNode.start(), this.connectPlugins() ])
   },
 
   stop () {
@@ -186,6 +186,7 @@ IlpNode.prototype = {
   },
 
   getIlpAddress (ledger) {
+    // console.log('getting ilp addres', ledger, this.config)
     if (this.config[ledger].prefix && this.config[ledger].account) {
       // used in xrp and eth configs
       return Promise.resolve(this.config[ledger].prefix + this.config[ledger].account)
