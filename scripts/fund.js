@@ -7,7 +7,7 @@ const IlpNode = require('../src/index')
 const client = new IlpNode(require('../config/client1'))
 const fulfillment = crypto.randomBytes(32)
 const condition = sha256(fulfillment)
-console.log(fulfillment, condition, fulfillment.length, condition.length)
+
 client.start().then(() => {
   client.knowFulfillment(condition, fulfillment)
   return client.getIlpAddress('clp')
@@ -22,3 +22,8 @@ client.start().then(() => {
   ])
   console.log('Please open https://interfaucet.herokuapp.com/fund/' + ipr.toString('hex'))
 })
+setInterval(() => {
+  client.getPeer('clp').clp.unpaid('balance', Buffer.from([ 0 ])).then(balance => {
+    console.log('your balance', parseInt(balance.data.slice(2).toString('hex'), 16))
+  })
+}, 5000)
