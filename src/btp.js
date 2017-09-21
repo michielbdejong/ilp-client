@@ -22,7 +22,13 @@ function Btp (baseLedger, initialBalance, ws, protocolHandlers) {
   this.ws = ws
   this.protocolHandlers = protocolHandlers
   // listen for incoming BTP messages:
-  this.ws.on('message', this.incoming.bind(this))
+  this.ws.on('message', (msg) => {
+    try {
+      this.incoming(msg)
+    } catch (err) {
+      console.error('incoming message led to error', JSON.stringify(msg), err.message)
+    }
+  })
 }
 
 Btp.prototype = {
