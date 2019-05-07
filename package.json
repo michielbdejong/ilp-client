@@ -6,20 +6,20 @@
   "dependencies": {
     "clp-node": "github:michielbdejong/clp-node#mj-testnet-2",
     "btp-packet": "github:interledgerjs/btp-packet#mj-testnet-2",
-    "ilp-packet": "^1.3.0",
+    "ilp-packet": "^3.0.8",
     "ilp-plugin-ethereum": "github:interledgerjs/ilp-plugin-ethereum#246803b",
     "ilp-plugin-xrp-escrow": "github:michielbdejong/ilp-plugin-xrp-escrow#3fadeb4",
     "uuid": "^3.1.0"
   },
   "devDependencies": {
     "chai": "^4.1.1",
-    "eslint": "^4.5.0",
-    "eslint-config-standard": "^10.2.1",
+    "eslint": "^5.16.0",
+    "eslint-config-standard": "^12.0.0",
     "eslint-plugin-import": "^2.7.0",
-    "eslint-plugin-node": "^5.1.0",
-    "eslint-plugin-promise": "^3.5.0",
-    "eslint-plugin-standard": "^3.0.1",
-    "mocha": "^3.4.1"
+    "eslint-plugin-node": "^9.0.1",
+    "eslint-plugin-promise": "^4.1.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "mocha": "^6.1.4"
   },
   "scripts": {
     "lint": "eslint .",
