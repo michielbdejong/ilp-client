@@ -1,4 +1,7 @@
 # ilp-node
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/michielbdejong/ilp-node.svg)](https://greenkeeper.io/)
+
 Testnet connector, see https://github.com/interledger/interledger/wiki/Interledger-over-BTP
 
 In one screen:
